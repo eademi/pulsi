@@ -205,6 +205,7 @@ export class GarminConnectionService {
     const summaryTypes = Object.keys(payload) as GarminNotificationSummaryType[];
 
     let accepted = 0;
+    let failed = 0;
     for (const summaryType of summaryTypes) {
       const notifications = payload[summaryType];
 
@@ -240,17 +241,17 @@ export class GarminConnectionService {
           await this.handleHealthPush(pushPayload);
           await this.garminRepository.markWebhookEventStatus(event.id, "processed");
         } catch (error) {
+          failed += 1;
           await this.garminRepository.markWebhookEventStatus(
             event.id,
             "failed",
             error instanceof Error ? error.message : "Unknown Garmin ping processing failure"
           );
-          throw error;
         }
       }
     }
 
-    return { accepted };
+    return { accepted, failed };
   }
 
   private toPushPayload(

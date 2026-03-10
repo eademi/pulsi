@@ -283,7 +283,7 @@ export const providerHealthSummaries = pgTable(
     ),
     summaryKey: uniqueIndex("provider_health_summaries_summary_key").on(
       table.provider,
-      table.connectionId,
+      table.athleteId,
       table.summaryType,
       table.providerSummaryId
     )

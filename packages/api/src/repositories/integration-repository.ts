@@ -180,7 +180,7 @@ export class IntegrationRepository {
       .onConflictDoUpdate({
         target: [
           providerHealthSummaries.provider,
-          providerHealthSummaries.connectionId,
+          providerHealthSummaries.athleteId,
           providerHealthSummaries.summaryType,
           providerHealthSummaries.providerSummaryId
         ],

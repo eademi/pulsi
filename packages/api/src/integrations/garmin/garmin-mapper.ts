@@ -199,7 +199,8 @@ const extractSummaryId = (summary: { userId: string }) =>
   asString((summary as Record<string, unknown>).summaryId) ?? "";
 
 const extractSummaryDate = (summary: { userId: string }) =>
-  asString((summary as Record<string, unknown>).calendarDate);
+  asString((summary as Record<string, unknown>).calendarDate) ??
+  deriveLocalCalendarDate(summary as Record<string, unknown>);
 
 const extractStartTime = (summary: { userId: string }) =>
   asNumber(
@@ -209,6 +210,30 @@ const extractStartTime = (summary: { userId: string }) =>
 
 const extractDuration = (summary: { userId: string }) =>
   asNumber((summary as Record<string, unknown>).durationInSeconds);
+
+const deriveLocalCalendarDate = (summary: Record<string, unknown>): string | null => {
+  const timestamp =
+    asNumber(summary.startTimeInSeconds) ??
+    asNumber(summary.measurementTimeInSeconds);
+
+  if (timestamp === null) {
+    return null;
+  }
+
+  const offsetSeconds =
+    asNumber(summary.startTimeOffsetInSeconds) ??
+    asNumber(summary.measurementTimeOffsetInSeconds) ??
+    asNumber(summary.offsetStartTimeInSeconds) ??
+    asNumber(summary.offsetInSeconds) ??
+    0;
+
+  const shiftedDate = new Date((timestamp + offsetSeconds) * 1000);
+  const year = shiftedDate.getUTCFullYear();
+  const month = String(shiftedDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(shiftedDate.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
 const extractArray = (value: unknown): unknown[] | null => (Array.isArray(value) ? value : null);
 
