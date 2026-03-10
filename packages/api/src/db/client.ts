@@ -4,12 +4,16 @@ import postgres from "postgres";
 import { env } from "../env";
 import * as schema from "./schema";
 
-const client = postgres(env.DATABASE_URL, {
+export const sqlClient = postgres(env.DATABASE_URL, {
   max: 10,
   prepare: false
 });
 
-export const db = drizzle(client, { schema });
+export const db = drizzle(sqlClient, { schema });
 export type Database = typeof db;
 export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 export type DbExecutor = Database | Transaction;
+
+export const closeDatabase = async () => {
+  await sqlClient.end({ timeout: 5 });
+};
