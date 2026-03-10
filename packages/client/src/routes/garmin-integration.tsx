@@ -9,7 +9,7 @@ import type {
 } from "@pulsi/shared";
 
 import { apiClient } from "../lib/api";
-import { getDashboardPath } from "../lib/session";
+import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
 export const clientLoader = async ({
   params
@@ -23,6 +23,9 @@ export const clientLoader = async ({
   }
 
   const session = await apiClient.getSession();
+  if (session.actorType === "athlete") {
+    throw redirect(getDefaultAppPath(session));
+  }
   const activeMembership = session.memberships.find(
     (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
   );

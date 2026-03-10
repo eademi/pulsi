@@ -2,7 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import type { AthleteActorProfile } from "@pulsi/shared";
 
-import type { Database } from "../db/client";
+import type { Database, DbExecutor } from "../db/client";
 import {
   athleteSquadAssignments,
   athleteUserAccounts,
@@ -10,9 +10,54 @@ import {
   squads,
   tenants
 } from "../db/schema";
+import { AppError } from "../http/errors";
 
 export class AthleteAccountRepository {
   public constructor(private readonly db: Database) {}
+
+  public async create(
+    input: {
+      athleteId: string;
+      userId: string;
+      claimedAt: Date;
+    },
+    executor: DbExecutor = this.db
+  ) {
+    const [account] = await executor
+      .insert(athleteUserAccounts)
+      .values({
+        athleteId: input.athleteId,
+        userId: input.userId,
+        claimedAt: input.claimedAt
+      })
+      .returning();
+
+    if (!account) {
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to create athlete account");
+    }
+
+    return account;
+  }
+
+  public async findActiveByAthleteId(athleteId: string) {
+    const [account] = await this.db
+      .select()
+      .from(athleteUserAccounts)
+      .where(and(eq(athleteUserAccounts.athleteId, athleteId), eq(athleteUserAccounts.status, "active")))
+      .limit(1);
+
+    return account ?? null;
+  }
+
+  public async findActiveByUserId(userId: string) {
+    const [account] = await this.db
+      .select()
+      .from(athleteUserAccounts)
+      .where(and(eq(athleteUserAccounts.userId, userId), eq(athleteUserAccounts.status, "active")))
+      .limit(1);
+
+    return account ?? null;
+  }
 
   public async findActiveProfileByUserId(userId: string): Promise<AthleteActorProfile | null> {
     const [record] = await this.db

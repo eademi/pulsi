@@ -5,6 +5,7 @@ import type { ActorSession } from "@pulsi/shared";
 
 import {
   getActiveMemberships,
+  getAthleteHomePath,
   getDashboardPath,
   getDefaultAppPath,
   getNoAccessPath
@@ -76,7 +77,7 @@ test("getDefaultAppPath returns the no-access route when there are no active mem
   assert.equal(getDefaultAppPath(session), getNoAccessPath());
 });
 
-test("getDefaultAppPath returns the no-access route for athlete actors", () => {
+test("getDefaultAppPath returns the athlete home route for athlete actors", () => {
   const session: Extract<ActorSession, { actorType: "athlete" }> = {
     actorType: "athlete",
     athleteProfile: {
@@ -101,5 +102,5 @@ test("getDefaultAppPath returns the no-access route for athlete actors", () => {
     }
   };
 
-  assert.equal(getDefaultAppPath(session), getNoAccessPath());
+  assert.equal(getDefaultAppPath(session), getAthleteHomePath());
 });

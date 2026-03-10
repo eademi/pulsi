@@ -57,6 +57,13 @@
       "when": 1773178240436,
       "tag": "0007_cold_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773179996552,
+      "tag": "0008_equal_warhawk",
+      "breakpoints": true
     }
   ]
 }

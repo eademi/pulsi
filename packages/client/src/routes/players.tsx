@@ -2,7 +2,7 @@ import { Form, redirect, useActionData, useLoaderData, useNavigation } from "rea
 import { hasTenantCapability } from "@pulsi/shared";
 
 import { apiClient } from "../lib/api";
-import { getDashboardPath } from "../lib/session";
+import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
 export const clientLoader = async ({
   params
@@ -16,6 +16,9 @@ export const clientLoader = async ({
   }
 
   const session = await apiClient.getSession();
+  if (session.actorType === "athlete") {
+    throw redirect(getDefaultAppPath(session));
+  }
   const activeMembership = session.memberships.find(
     (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
   );
@@ -88,6 +91,24 @@ export const clientAction = async ({
       return { success: "Player moved to the selected squad." };
     }
 
+    if (intent === "generate-claim-link") {
+      const athleteId = String(formData.get("athleteId") ?? "").trim();
+      const email = String(formData.get("email") ?? "").trim();
+
+      if (!athleteId || !email) {
+        return { error: "Athlete and email are required to generate a claim link." };
+      }
+
+      const claimLink = await apiClient.createAthleteClaimLink(tenantSlug, athleteId, {
+        email
+      });
+
+      return {
+        claimLink,
+        success: "Athlete claim link generated."
+      };
+    }
+
     return { error: "Unknown player action." };
   } catch (error) {
     return {
@@ -98,7 +119,18 @@ export const clientAction = async ({
 
 export default function PlayersRoute() {
   const { activeMembership, athletes, squads } = useLoaderData<typeof clientLoader>();
-  const actionData = useActionData() as { error?: string; success?: string } | null;
+  const actionData = useActionData() as
+    | {
+        error?: string;
+        success?: string;
+        claimLink?: {
+          athleteName: string;
+          claimUrl: string;
+          email: string;
+          expiresAt: string;
+        };
+      }
+    | null;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const canManage = hasTenantCapability(activeMembership.role, "athletes:manage");
@@ -203,24 +235,40 @@ export default function PlayersRoute() {
                   </div>
 
                   {canManage && squads.length > 0 ? (
-                    <Form className="inline-form" method="post">
-                      <input name="intent" type="hidden" value="move-athlete" />
-                      <input name="athleteId" type="hidden" value={athlete.id} />
-                      <select
-                        className="auth-input inline-select"
-                        defaultValue={athlete.currentSquad?.id ?? ""}
-                        name="squadId"
-                      >
-                        {squads.map((squad) => (
-                          <option key={squad.id} value={squad.id}>
-                            {squad.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button className="ghost-button inline-button" disabled={isSubmitting} type="submit">
-                        Move
-                      </button>
-                    </Form>
+                    <div className="player-card-actions">
+                      <Form className="inline-form" method="post">
+                        <input name="intent" type="hidden" value="move-athlete" />
+                        <input name="athleteId" type="hidden" value={athlete.id} />
+                        <select
+                          className="auth-input inline-select"
+                          defaultValue={athlete.currentSquad?.id ?? ""}
+                          name="squadId"
+                        >
+                          {squads.map((squad) => (
+                            <option key={squad.id} value={squad.id}>
+                              {squad.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button className="ghost-button inline-button" disabled={isSubmitting} type="submit">
+                          Move
+                        </button>
+                      </Form>
+
+                      <Form className="claim-inline-form" method="post">
+                        <input name="intent" type="hidden" value="generate-claim-link" />
+                        <input name="athleteId" type="hidden" value={athlete.id} />
+                        <input
+                          className="auth-input claim-email-input"
+                          name="email"
+                          placeholder="athlete@email.com"
+                          type="email"
+                        />
+                        <button className="ghost-button inline-button" disabled={isSubmitting} type="submit">
+                          Generate claim link
+                        </button>
+                      </Form>
+                    </div>
                   ) : (
                     <span className="pill pill-subtle">{athlete.status}</span>
                   )}
@@ -232,6 +280,23 @@ export default function PlayersRoute() {
           )}
         </section>
       </div>
+
+      {actionData?.claimLink ? (
+        <section className="surface settings-panel">
+          <div className="settings-panel-header">
+            <div>
+              <p className="eyebrow">Latest athlete claim link</p>
+              <h2>{actionData.claimLink.athleteName}</h2>
+            </div>
+          </div>
+
+          <p className="muted">
+            Send this link to {actionData.claimLink.email}. It expires{" "}
+            {new Date(actionData.claimLink.expiresAt).toLocaleString()}.
+          </p>
+          <code className="garmin-status-code">{actionData.claimLink.claimUrl}</code>
+        </section>
+      ) : null}
     </section>
   );
 }

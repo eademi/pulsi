@@ -2,7 +2,12 @@ import { Outlet, redirect, useLoaderData } from "react-router";
 
 import { AppShell } from "../components/app-shell";
 import { apiClient } from "../lib/api";
-import { getActiveMemberships, getDashboardPath, getNoAccessPath } from "../lib/session";
+import {
+  getActiveMemberships,
+  getDashboardPath,
+  getDefaultAppPath,
+  getNoAccessPath
+} from "../lib/session";
 
 export const clientLoader = async ({
   params,
@@ -16,6 +21,10 @@ export const clientLoader = async ({
   if (!session) {
     const next = new URL(request.url).pathname;
     throw redirect(`/auth/sign-in?next=${encodeURIComponent(next)}`);
+  }
+
+  if (session.actorType === "athlete") {
+    throw redirect(getDefaultAppPath(session));
   }
 
   const memberships = getActiveMemberships(session);

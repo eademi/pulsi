@@ -8,6 +8,7 @@ import { toErrorResponse } from "./http/responses";
 import { requestContextMiddleware, tenantScopeMiddleware } from "./http/middleware";
 import { ActivityRepository } from "./repositories/activity-repository";
 import { AthleteAccountRepository } from "./repositories/athlete-account-repository";
+import { AthleteClaimRepository } from "./repositories/athlete-claim-repository";
 import { AthleteRepository } from "./repositories/athlete-repository";
 import { IntegrationRepository } from "./repositories/integration-repository";
 import { InvitationRepository } from "./repositories/invitation-repository";
@@ -15,6 +16,10 @@ import { MembershipRepository } from "./repositories/membership-repository";
 import { ReadinessRepository } from "./repositories/readiness-repository";
 import { TenantRepository } from "./repositories/tenant-repository";
 import { buildActivityRoutes } from "./routes/activities";
+import {
+  buildAthleteAccountRoutes,
+  buildTenantAthleteAccountRoutes
+} from "./routes/athlete-accounts";
 import { buildAthleteRoutes } from "./routes/athletes";
 import { buildGarminPublicRoutes, buildGarminTenantRoutes } from "./routes/garmin";
 import { healthRoutes } from "./routes/health";
@@ -34,6 +39,7 @@ import { GarminBackfillService } from "./services/garmin-backfill-service";
 import { GarminOAuthService } from "./services/garmin-oauth-service";
 import { GarminTokenService } from "./services/garmin-token-service";
 import { ActivityService } from "./services/activity-service";
+import { AthleteAccountService } from "./services/athlete-account-service";
 import { AthleteManagementService } from "./services/athlete-management-service";
 import { MetricIngestionService } from "./services/metric-ingestion-service";
 import { ReadinessEngine } from "./services/readiness-engine";
@@ -44,6 +50,7 @@ import { TenantService } from "./services/tenant-service";
 
 const membershipRepository = new MembershipRepository(db);
 const athleteAccountRepository = new AthleteAccountRepository(db);
+const athleteClaimRepository = new AthleteClaimRepository(db);
 const invitationRepository = new InvitationRepository(db);
 const activityRepository = new ActivityRepository(db);
 const athleteRepository = new AthleteRepository(db);
@@ -67,6 +74,15 @@ const tenantService = new TenantService(
 const tenantAccessService = new TenantAccessService(membershipRepository);
 const activityService = new ActivityService(athleteRepository, activityRepository);
 const athleteManagementService = new AthleteManagementService(db, athleteRepository, squadRepository);
+const athleteAccountService = new AthleteAccountService(
+  db,
+  athleteRepository,
+  athleteAccountRepository,
+  athleteClaimRepository,
+  readinessRepository,
+  garminRepository,
+  env.CLIENT_URL
+);
 const readinessService = new ReadinessService(athleteRepository, readinessRepository);
 const squadService = new SquadService(squadRepository);
 const metricIngestionService = new MetricIngestionService(integrationRepository, readinessEngine);
@@ -128,6 +144,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 app.route("/v1", healthRoutes);
 app.route("/v1", sessionRoutes);
 app.route("/v1", buildTenantRoutes(tenantService));
+app.route("/v1", buildAthleteAccountRoutes(athleteAccountService));
 app.route(
   "/v1",
   buildGarminPublicRoutes(garminOAuthService, garminConnectionService, garminBackfillService)
@@ -137,6 +154,7 @@ const tenantScopedRoutes = new Hono<AppBindings>()
   .use("*", tenantScopeMiddleware(tenantAccessService))
   .route("/", buildTenantAccessRoutes(tenantService))
   .route("/", buildActivityRoutes(activityService))
+  .route("/", buildTenantAthleteAccountRoutes(athleteAccountService))
   .route("/", buildAthleteRoutes(athleteRepository, athleteManagementService))
   .route("/", buildReadinessRoutes(readinessService))
   .route("/", buildSquadRoutes(squadService))

@@ -10,6 +10,10 @@ export const clientLoader = async () => {
     throw redirect("/auth/sign-in");
   }
 
+  if (session.actorType === "athlete") {
+    throw redirect(getDefaultAppPath(session));
+  }
+
   if (hasActiveMemberships(session)) {
     throw redirect(getDefaultAppPath(session));
   }

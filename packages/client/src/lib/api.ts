@@ -2,7 +2,11 @@ import { z } from "zod";
 
 import {
   athleteDeviceConnectionSchema,
+  athleteClaimDetailsSchema,
+  athleteClaimLinkSchema,
+  athletePortalSchema,
   athleteSchema,
+  createAthleteClaimLinkInputSchema,
   actorSessionSchema,
   athleteReadinessSchema,
   createAthleteInputSchema,
@@ -28,6 +32,9 @@ const AUTH_BASE_URL = `${API_BASE_URL}/api/auth`;
 const sessionResponseSchema = createApiSuccessSchema(actorSessionSchema);
 const readinessResponseSchema = createApiSuccessSchema(athleteReadinessSchema.array());
 const athletesResponseSchema = createApiSuccessSchema(athleteSchema.array());
+const athleteClaimLinkResponseSchema = createApiSuccessSchema(athleteClaimLinkSchema);
+const athleteClaimDetailsResponseSchema = createApiSuccessSchema(athleteClaimDetailsSchema);
+const athletePortalResponseSchema = createApiSuccessSchema(athletePortalSchema);
 const tenantsResponseSchema = createApiSuccessSchema(tenantSchema.array());
 const createTenantResponseSchema = createApiSuccessSchema(tenantSchema);
 const tenantMembersResponseSchema = createApiSuccessSchema(tenantMemberSchema.array());
@@ -194,6 +201,59 @@ export const apiClient = {
         body: JSON.stringify(input)
       }
     );
+
+    return parsed.data;
+  },
+
+  async createAthleteClaimLink(
+    tenantSlug: string,
+    athleteId: string,
+    input: z.infer<typeof createAthleteClaimLinkInputSchema>
+  ) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}/claim-links`,
+      athleteClaimLinkResponseSchema,
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async getAthleteClaim(token: string) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/athlete-claims/${token}`,
+      athleteClaimDetailsResponseSchema,
+      {
+        method: "GET"
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async acceptAthleteClaim(token: string) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/athlete-claims/${token}/accept`,
+      createApiSuccessSchema(
+        z.object({
+          accepted: z.boolean()
+        })
+      ),
+      {
+        method: "POST"
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async getAthletePortal() {
+    const parsed = await request(`${API_BASE_URL}/v1/me/athlete`, athletePortalResponseSchema, {
+      method: "GET"
+    });
 
     return parsed.data;
   },

@@ -34,6 +34,12 @@ export const athleteUserAccountStatusEnum = pgEnum("athlete_user_account_status"
   "active",
   "revoked"
 ]);
+export const athleteClaimLinkStatusEnum = pgEnum("athlete_claim_link_status", [
+  "pending",
+  "claimed",
+  "revoked",
+  "expired"
+]);
 export const squadStatusEnum = pgEnum("squad_status", ["active", "inactive"]);
 export const tenantAccessScopeEnum = pgEnum("tenant_access_scope", [
   "all_squads",
@@ -262,6 +268,39 @@ export const athleteUserAccounts = pgTable(
     userLookup: index("athlete_user_accounts_user_idx").on(table.userId, table.status),
     athleteKey: uniqueIndex("athlete_user_accounts_athlete_key").on(table.athleteId),
     userKey: uniqueIndex("athlete_user_accounts_user_key").on(table.userId)
+  })
+);
+
+export const athleteClaimLinks = pgTable(
+  "athlete_claim_links",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    status: athleteClaimLinkStatusEnum("status").default("pending").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    claimedByUserId: text("claimed_by_user_id").references(() => user.id, { onDelete: "set null" }),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tenantLookup: index("athlete_claim_links_tenant_idx").on(table.tenantId, table.status),
+    athleteLookup: index("athlete_claim_links_athlete_idx").on(table.athleteId, table.status),
+    emailLookup: index("athlete_claim_links_email_idx").on(table.email, table.status, table.expiresAt),
+    pendingAthleteKey: uniqueIndex("athlete_claim_links_pending_athlete_key")
+      .on(table.athleteId)
+      .where(sql`${table.status} = 'pending'`),
+    tokenHashKey: uniqueIndex("athlete_claim_links_token_hash_key").on(table.tokenHash)
   })
 );
 

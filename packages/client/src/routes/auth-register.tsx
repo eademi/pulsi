@@ -25,8 +25,9 @@ export const clientAction = async ({ request }: { request: Request }) => {
     });
 
     const session = await apiClient.getSession();
+    const next = new URL(request.url).searchParams.get("next");
 
-    throw redirect(getDefaultAppPath(session));
+    throw redirect(next || getDefaultAppPath(session));
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Unable to create your account."

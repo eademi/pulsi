@@ -13,11 +13,13 @@ export const getPlayersPath = (tenantSlug: string) => `/${tenantSlug}/players`;
 export const getSquadsPath = (tenantSlug: string) => `/${tenantSlug}/squads`;
 export const getOrganizationSettingsPath = (tenantSlug: string) => `/${tenantSlug}/settings`;
 export const getGarminIntegrationPath = (tenantSlug: string) => `/${tenantSlug}/integrations/garmin`;
+export const getAthleteHomePath = () => "/athlete";
+export const getAthleteClaimPath = (token: string) => `/athlete/claim/${token}`;
 export const getNoAccessPath = () => "/welcome";
 
 export const getDefaultAppPath = (session: ActorSession) => {
   if (session.actorType === "athlete") {
-    return getNoAccessPath();
+    return getAthleteHomePath();
   }
 
   const membership = getDefaultMembership(session);

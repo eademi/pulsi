@@ -1,7 +1,8 @@
-import { useLoaderData } from "react-router";
+import { redirect, useLoaderData } from "react-router";
 
 import { DashboardPage } from "../features/dashboard/dashboard-page";
 import { apiClient } from "../lib/api";
+import { getDefaultAppPath } from "../lib/session";
 
 export const clientLoader = async ({
   params
@@ -12,6 +13,11 @@ export const clientLoader = async ({
 
   if (!tenantSlug) {
     throw new Error("Tenant slug is required to load the dashboard.");
+  }
+
+  const session = await apiClient.getSession();
+  if (session.actorType === "athlete") {
+    throw redirect(getDefaultAppPath(session));
   }
 
   const readiness = await apiClient.getTenantReadiness(tenantSlug);
