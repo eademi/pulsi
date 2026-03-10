@@ -1,4 +1,8 @@
-import type { NormalizedMetricIngressRecord, NormalizedWearableMetricRecord } from "../provider.types";
+import type {
+  NormalizedMetricIngressRecord,
+  NormalizedWearableMetricRecord,
+  ProviderHealthSummaryRecord
+} from "../provider.types";
 import {
   garminHealthPushSchema,
   type GarminDailyPushSummary,
@@ -44,32 +48,62 @@ export class GarminMapper {
       ...(extractArray(payload.healthSummaries) ?? [])
     ];
 
-    return containers
-      .filter(isRecord)
-      .map((entry) => ({
-        provider: "garmin" as const,
-        providerUserId:
-          asString(entry.userId) ??
-          asString(payload.userId) ??
-          asString((entry.summary as Record<string, unknown> | undefined)?.userId),
-        metric: this.toInternalMetric(entry)
-      }))
-      .filter(
-        (
-          item
-        ): item is {
-          provider: "garmin";
-          providerUserId: string;
-          metric: NormalizedWearableMetricRecord;
-        } => Boolean(item.providerUserId && item.metric)
-      );
+    const normalized: NormalizedMetricIngressRecord[] = [];
+
+    for (const entry of containers.filter(isRecord)) {
+      const providerUserId =
+        asString(entry.userId) ??
+        asString(payload.userId) ??
+        asString((entry.summary as Record<string, unknown> | undefined)?.userId);
+      const metric = this.toInternalMetric(entry);
+
+      if (!providerUserId || !metric) {
+        continue;
+      }
+
+      normalized.push({
+        provider: "garmin",
+        providerUserId,
+        summaryId: asString(entry.summaryId) ?? undefined,
+        metric
+      });
+    }
+
+    return normalized;
+  }
+
+  public extractSummaryRecordsFromPushPayload(payload: Record<string, unknown>): ProviderHealthSummaryRecord[] {
+    const parsed = garminHealthPushSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      return [];
+    }
+
+    return this.extractTypedSummaryRecords(parsed.data);
   }
 
   private extractTypedMetrics(payload: GarminHealthPushPayload): NormalizedMetricIngressRecord[] {
     return [
-      ...mapPushCollection(payload.dailies, (summary) => this.fromDailySummary(summary)),
-      ...mapPushCollection(payload.sleeps, (summary) => this.fromSleepSummary(summary)),
-      ...mapPushCollection(payload.hrv, (summary) => this.fromHrvSummary(summary))
+      ...mapPushCollection("dailies", payload.dailies, (summary) => this.fromDailySummary(summary)),
+      ...mapPushCollection("sleeps", payload.sleeps, (summary) => this.fromSleepSummary(summary)),
+      ...mapPushCollection("hrv", payload.hrv, (summary) => this.fromHrvSummary(summary))
+    ];
+  }
+
+  private extractTypedSummaryRecords(payload: GarminHealthPushPayload): ProviderHealthSummaryRecord[] {
+    return [
+      ...mapSummaryCollection("dailies", payload.dailies),
+      ...mapSummaryCollection("epochs", payload.epochs),
+      ...mapSummaryCollection("sleeps", payload.sleeps),
+      ...mapSummaryCollection("bodyComps", payload.bodyComps),
+      ...mapSummaryCollection("stressDetails", payload.stressDetails),
+      ...mapSummaryCollection("userMetrics", payload.userMetrics),
+      ...mapSummaryCollection("pulseox", payload.pulseox),
+      ...mapSummaryCollection("allDayRespiration", payload.allDayRespiration),
+      ...mapSummaryCollection("healthSnapshot", payload.healthSnapshot),
+      ...mapSummaryCollection("hrv", payload.hrv),
+      ...mapSummaryCollection("bloodPressures", payload.bloodPressures),
+      ...mapSummaryCollection("skinTemp", payload.skinTemp)
     ];
   }
 
@@ -120,6 +154,7 @@ export class GarminMapper {
 }
 
 const mapPushCollection = <T extends { userId: string }>(
+  summaryType: string,
   collection: T[] | undefined,
   toMetric: (summary: T) => NormalizedWearableMetricRecord | null
 ): NormalizedMetricIngressRecord[] =>
@@ -127,6 +162,8 @@ const mapPushCollection = <T extends { userId: string }>(
     .map((summary) => ({
       provider: "garmin" as const,
       providerUserId: summary.userId,
+      summaryType,
+      summaryId: extractSummaryId(summary),
       metric: toMetric(summary)
     }))
     .filter(
@@ -135,9 +172,43 @@ const mapPushCollection = <T extends { userId: string }>(
       ): item is {
         provider: "garmin";
         providerUserId: string;
+        summaryType: string;
+        summaryId: string;
         metric: NormalizedWearableMetricRecord;
-      } => Boolean(item.metric)
+      } => Boolean(item.metric && item.summaryId)
     );
+
+const mapSummaryCollection = <T extends { userId: string }>(
+  summaryType: string,
+  collection: T[] | undefined
+): ProviderHealthSummaryRecord[] =>
+  (collection ?? [])
+    .map((summary) => ({
+      provider: "garmin" as const,
+      providerUserId: summary.userId,
+      summaryType,
+      summaryId: extractSummaryId(summary),
+      summaryDate: extractSummaryDate(summary),
+      startTimeInSeconds: extractStartTime(summary),
+      durationInSeconds: extractDuration(summary),
+      rawPayload: summary as Record<string, unknown>
+    }))
+    .filter((summary) => summary.summaryId.length > 0);
+
+const extractSummaryId = (summary: { userId: string }) =>
+  asString((summary as Record<string, unknown>).summaryId) ?? "";
+
+const extractSummaryDate = (summary: { userId: string }) =>
+  asString((summary as Record<string, unknown>).calendarDate);
+
+const extractStartTime = (summary: { userId: string }) =>
+  asNumber(
+    (summary as Record<string, unknown>).startTimeInSeconds ??
+      (summary as Record<string, unknown>).measurementTimeInSeconds
+  );
+
+const extractDuration = (summary: { userId: string }) =>
+  asNumber((summary as Record<string, unknown>).durationInSeconds);
 
 const extractArray = (value: unknown): unknown[] | null => (Array.isArray(value) ? value : null);
 

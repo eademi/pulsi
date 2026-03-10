@@ -5,6 +5,7 @@ import type { Database } from "../db/client";
 import {
   athleteDeviceConnections,
   integrationSyncJobs,
+  providerHealthSummaries,
   readinessSnapshots,
   wearableDailyMetrics
 } from "../db/schema";
@@ -146,6 +147,58 @@ export class IntegrationRepository {
     }
 
     return metric;
+  }
+
+  public async upsertHealthSummary(input: {
+    tenantId: string;
+    athleteId: string;
+    connectionId: string;
+    provider: IntegrationProvider;
+    providerUserId: string;
+    summaryType: string;
+    providerSummaryId: string;
+    summaryDate?: string | null;
+    startTimeInSeconds?: number | null;
+    durationInSeconds?: number | null;
+    rawPayload: Record<string, unknown>;
+  }) {
+    const [summary] = await this.db
+      .insert(providerHealthSummaries)
+      .values({
+        tenantId: input.tenantId,
+        athleteId: input.athleteId,
+        connectionId: input.connectionId,
+        provider: input.provider,
+        providerUserId: input.providerUserId,
+        summaryType: input.summaryType,
+        providerSummaryId: input.providerSummaryId,
+        summaryDate: input.summaryDate ?? null,
+        startTimeInSeconds: input.startTimeInSeconds ?? null,
+        durationInSeconds: input.durationInSeconds ?? null,
+        rawPayload: input.rawPayload
+      })
+      .onConflictDoUpdate({
+        target: [
+          providerHealthSummaries.provider,
+          providerHealthSummaries.connectionId,
+          providerHealthSummaries.summaryType,
+          providerHealthSummaries.providerSummaryId
+        ],
+        set: {
+          summaryDate: input.summaryDate ?? null,
+          startTimeInSeconds: input.startTimeInSeconds ?? null,
+          durationInSeconds: input.durationInSeconds ?? null,
+          rawPayload: input.rawPayload,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
+
+    if (!summary) {
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to upsert provider health summary");
+    }
+
+    return summary;
   }
 
   public async upsertReadinessSnapshot(input: {

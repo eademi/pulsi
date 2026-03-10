@@ -461,6 +461,17 @@ Purpose:
 
 - normalized, provider-independent daily data
 
+### `provider_health_summaries`
+
+Purpose:
+
+- structured storage for every Garmin Health summary type Pulsi receives
+
+Important note:
+
+- this table is broader than the readiness model
+- not every stored Garmin summary is currently used in readiness scoring
+
 ### `readiness_snapshots`
 
 Purpose:

@@ -63,6 +63,7 @@ const garminConnectionService = new GarminConnectionService(
   garminTokenService,
   garminApiClient,
   garminMapper,
+  integrationRepository,
   metricIngestionService
 );
 

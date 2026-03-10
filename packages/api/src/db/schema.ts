@@ -246,6 +246,50 @@ export const wearableDailyMetrics = pgTable(
   })
 );
 
+export const providerHealthSummaries = pgTable(
+  "provider_health_summaries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => athleteDeviceConnections.id, { onDelete: "cascade" }),
+    provider: integrationProviderEnum("provider").default("garmin").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    summaryType: text("summary_type").notNull(),
+    providerSummaryId: text("provider_summary_id").notNull(),
+    summaryDate: date("summary_date"),
+    startTimeInSeconds: integer("start_time_in_seconds"),
+    durationInSeconds: integer("duration_in_seconds"),
+    rawPayload: jsonb("raw_payload").$type<Record<string, unknown>>().notNull(),
+    ingestedAt: timestamp("ingested_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tenantLookup: index("provider_health_summaries_tenant_idx").on(
+      table.tenantId,
+      table.summaryType,
+      table.summaryDate
+    ),
+    providerUserLookup: index("provider_health_summaries_provider_user_idx").on(
+      table.provider,
+      table.providerUserId,
+      table.summaryType
+    ),
+    summaryKey: uniqueIndex("provider_health_summaries_summary_key").on(
+      table.provider,
+      table.connectionId,
+      table.summaryType,
+      table.providerSummaryId
+    )
+  })
+);
+
 export const providerWebhookEvents = pgTable(
   "provider_webhook_events",
   {
