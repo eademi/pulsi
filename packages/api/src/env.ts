@@ -1,4 +1,15 @@
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { config as loadDotenv } from "dotenv";
 import { z } from "zod";
+
+const currentDirectory = dirname(fileURLToPath(import.meta.url));
+const packageRoot = resolve(currentDirectory, "..");
+
+// Load package-local env files without overriding variables already provided by the shell.
+loadDotenv({ path: resolve(packageRoot, ".env.local"), override: false, quiet: true });
+loadDotenv({ path: resolve(packageRoot, ".env"), override: false, quiet: true });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
