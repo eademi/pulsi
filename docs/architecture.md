@@ -290,7 +290,9 @@ Implemented in:
 Approach:
 
 - Better Auth manages identity, session cookies, and auth persistence
+- Better Auth persistence lives in the `user`, `session`, `account`, and `verification` tables
 - Pulsi manages tenant memberships and application roles
+- tenant membership is linked through `tenant_memberships.user_id -> user.id`
 - request context resolves the actor once, then tenant scope is applied on top
 
 Roles:

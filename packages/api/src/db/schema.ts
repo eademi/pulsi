@@ -58,6 +58,82 @@ export const webhookDeliveryMethodEnum = pgEnum("webhook_delivery_method", [
   "oauth"
 ]);
 
+export const user = pgTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    image: text("image"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    emailKey: uniqueIndex("user_email_key").on(table.email)
+  })
+);
+
+export const session = pgTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    token: text("token").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tokenKey: uniqueIndex("session_token_key").on(table.token),
+    userLookup: index("session_user_idx").on(table.userId)
+  })
+);
+
+export const account = pgTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    providerAccountKey: uniqueIndex("account_provider_account_key").on(table.providerId, table.accountId),
+    userLookup: index("account_user_idx").on(table.userId)
+  })
+);
+
+export const verification = pgTable(
+  "verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    identifierLookup: index("verification_identifier_idx").on(table.identifier)
+  })
+);
+
 export const tenants = pgTable(
   "tenants",
   {
@@ -79,11 +155,13 @@ export const tenantMemberships = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    userId: text("user_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     role: tenantRoleEnum("role").notNull(),
     status: membershipStatusEnum("status").default("invited").notNull(),
     isDefaultTenant: boolean("is_default_tenant").default(false).notNull(),
-    invitedByUserId: text("invited_by_user_id"),
+    invitedByUserId: text("invited_by_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
@@ -131,7 +209,9 @@ export const garminOauthSessions = pgTable(
     redirectUri: text("redirect_uri").notNull(),
     status: oauthSessionStatusEnum("status").default("pending").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdByUserId: text("created_by_user_id").notNull(),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => user.id),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
@@ -435,7 +515,7 @@ export const integrationSyncJobs = pgTable(
     lastError: text("last_error"),
     cursorStart: text("cursor_start"),
     cursorEnd: text("cursor_end"),
-    createdByUserId: text("created_by_user_id"),
+    createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
@@ -450,7 +530,7 @@ export const auditEvents = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
-    actorUserId: text("actor_user_id"),
+    actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
     action: text("action").notNull(),
     entityType: text("entity_type").notNull(),
     entityId: text("entity_id").notNull(),

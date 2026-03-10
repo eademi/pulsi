@@ -186,6 +186,10 @@ How this is enforced:
 
 Main tables involved:
 
+- `user` (Better Auth identity)
+- `session` (Better Auth sessions)
+- `account` (Better Auth provider/password accounts)
+- `verification` (Better Auth verification tokens)
 - `tenants`
 - `tenant_memberships`
 - `athletes`
@@ -196,6 +200,13 @@ Main tables involved:
 Key file:
 
 - `packages/api/src/db/schema.ts`
+
+How user-to-tenant linkage works:
+
+- Better Auth stores authenticated users in the `user` table
+- Pulsi links those identities to clubs through `tenant_memberships.user_id`
+- `tenant_memberships.user_id` now references `user.id`
+- when a request is authenticated, Pulsi takes `session.user.id` from Better Auth and resolves the active tenant membership from `tenant_memberships`
 
 ## 6. Core Domain Concepts
 
