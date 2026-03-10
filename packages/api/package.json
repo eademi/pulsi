@@ -1,0 +1,26 @@
+{
+  "name": "@pulsi/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/index.ts",
+    "lint": "pnpm --filter @pulsi/shared build && tsc --noEmit",
+    "typecheck": "pnpm --filter @pulsi/shared build && tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "@pulsi/shared": "workspace:*",
+    "better-auth": "^1.2.5",
+    "drizzle-orm": "^0.41.0",
+    "hono": "^4.7.2",
+    "pino": "^9.6.0",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.3"
+  }
+}

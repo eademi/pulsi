@@ -1,0 +1,301 @@
+:root {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #f4efe6;
+  background:
+    radial-gradient(circle at top left, rgba(241, 161, 94, 0.22), transparent 28%),
+    linear-gradient(160deg, #10221e 0%, #0b1413 52%, #162d24 100%);
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  position: relative;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.sidebar {
+  padding: 32px 24px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 13, 12, 0.45);
+  backdrop-filter: blur(16px);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.brand p {
+  margin: 0;
+  color: rgba(244, 239, 230, 0.72);
+}
+
+.content {
+  padding: 32px;
+}
+
+.surface {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.22);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 20px;
+}
+
+.metric-card h3,
+.athlete-card h3 {
+  margin: 0 0 8px;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.athlete-list {
+  margin-top: 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.tabs-root {
+  display: grid;
+  gap: 24px;
+}
+
+.tabs-list {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tabs-tab {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: rgba(244, 239, 230, 0.75);
+  background: transparent;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.tabs-tab[data-active] {
+  color: #08110f;
+}
+
+.tabs-indicator {
+  position: absolute;
+  inset-block: 8px;
+  border-radius: 999px;
+  background: #f1d39e;
+  transition:
+    left 180ms ease,
+    width 180ms ease;
+}
+
+.tabs-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.toolbar-controls {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(244, 239, 230, 0.7);
+}
+
+.select-trigger {
+  display: inline-flex;
+  min-width: 220px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 12px 14px;
+  color: #f4efe6;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+
+.select-trigger[data-popup-open] {
+  border-color: rgba(241, 211, 158, 0.5);
+}
+
+.select-popup {
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: #12211d;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+
+.select-list {
+  display: grid;
+  gap: 4px;
+}
+
+.select-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  outline: none;
+  color: #f4efe6;
+  cursor: default;
+}
+
+.select-item[data-highlighted] {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.select-item[data-selected] {
+  background: rgba(241, 211, 158, 0.15);
+}
+
+.select-arrow {
+  width: 10px;
+  height: 10px;
+  rotate: 45deg;
+  background: #12211d;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.attention-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.attention-card {
+  padding: 20px;
+}
+
+.athlete-card {
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.band-ready {
+  color: #91ffb2;
+}
+
+.band-caution {
+  color: #ffd36e;
+}
+
+.band-restricted {
+  color: #ff8d8d;
+}
+
+.pill {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.muted {
+  color: rgba(244, 239, 230, 0.72);
+}
+
+.empty-state {
+  padding: 32px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .content {
+    padding: 20px;
+  }
+}
