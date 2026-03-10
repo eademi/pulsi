@@ -27,6 +27,7 @@ import {
 import { env } from "../env";
 import { AppError } from "../http/errors";
 import { created, ok, parseOrThrow } from "../http/responses";
+import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { GarminBackfillService } from "../services/garmin-backfill-service";
 import type { GarminConnectionService } from "../services/garmin-connection-service";
 import type { GarminOAuthService } from "../services/garmin-oauth-service";
@@ -34,6 +35,7 @@ import type { GarminOAuthService } from "../services/garmin-oauth-service";
 export const buildGarminTenantRoutes = (
   garminOAuthService: GarminOAuthService,
   garminConnectionService: GarminConnectionService,
+  athleteRepository: AthleteRepository,
   garminRepository: { listConnectionsForTenant: (tenantId: string) => Promise<Array<{
     id: string;
     tenantId: string;
@@ -62,13 +64,22 @@ export const buildGarminTenantRoutes = (
       const requestContext = c.get("requestContext");
       requireMinimumRole(requestContext.tenant!.role, "analyst");
 
-      const connections = await garminRepository.listConnectionsForTenant(requestContext.tenant!.id);
-      const payload = connections.map((connection) => ({
+      const [visibleAthletes, connections] = await Promise.all([
+        athleteRepository.listByTenant(requestContext.tenant!.id, {
+          accessScope: requestContext.tenant!.accessScope,
+          accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+        }),
+        garminRepository.listConnectionsForTenant(requestContext.tenant!.id)
+      ]);
+      const visibleAthleteIds = new Set(visibleAthletes.map((athlete) => athlete.id));
+      const payload = connections
+        .filter((connection) => visibleAthleteIds.has(connection.athleteId))
+        .map((connection) => ({
         ...connection,
         lastSuccessfulSyncAt: connection.lastSuccessfulSyncAt?.toISOString() ?? null,
         lastPermissionsSyncAt: connection.lastPermissionsSyncAt?.toISOString() ?? null,
         lastPermissionChangeAt: connection.lastPermissionChangeAt?.toISOString() ?? null
-      }));
+        }));
 
       createApiSuccessSchema(athleteDeviceConnectionSchema.array()).parse({ data: payload });
 
@@ -81,6 +92,15 @@ export const buildGarminTenantRoutes = (
       const body = parseOrThrow(
         createGarminConnectionSessionInputSchema.safeParse(await c.req.json())
       );
+      const athlete = await athleteRepository.findByIdForTenant(requestContext.tenant!.id, body.athleteId, {
+        accessScope: requestContext.tenant!.accessScope,
+        accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      });
+
+      if (!athlete) {
+        throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete not found in accessible squads");
+      }
+
       const session = await garminOAuthService.createAuthorizationSession({
         tenantId: requestContext.tenant!.id,
         athleteId: body.athleteId,
@@ -107,6 +127,15 @@ export const buildGarminTenantRoutes = (
           athleteId: c.req.param("athleteId")
         })
       );
+      const athlete = await athleteRepository.findByIdForTenant(requestContext.tenant!.id, body.athleteId, {
+        accessScope: requestContext.tenant!.accessScope,
+        accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      });
+
+      if (!athlete) {
+        throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete not found in accessible squads");
+      }
+
       await garminConnectionService.disconnectAthleteConnection({
         tenantId: requestContext.tenant!.id,
         athleteId: body.athleteId

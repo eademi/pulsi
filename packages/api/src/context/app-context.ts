@@ -1,6 +1,6 @@
 import type { Logger } from "pino";
 
-import type { TenantRole } from "@pulsi/shared";
+import type { SquadSummary, TenantAccessScope, TenantRole } from "@pulsi/shared";
 
 export interface TenantMembershipRecord {
   tenantId: string;
@@ -8,6 +8,8 @@ export interface TenantMembershipRecord {
   tenantName: string;
   role: TenantRole;
   status: "active" | "invited" | "disabled";
+  accessScope: TenantAccessScope;
+  assignedSquads: SquadSummary[];
 }
 
 export interface AuthenticatedActor {
@@ -26,6 +28,9 @@ export interface TenantContext {
   name: string;
   timezone: string;
   role: TenantRole;
+  accessScope: TenantAccessScope;
+  accessibleSquadIds: string[];
+  assignedSquads: SquadSummary[];
 }
 
 export interface RequestContext {

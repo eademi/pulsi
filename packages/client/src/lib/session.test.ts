@@ -10,6 +10,19 @@ import {
   getNoAccessPath
 } from "./session";
 
+const createMembership = (
+  overrides: Partial<ActorSession["memberships"][number]> = {}
+): ActorSession["memberships"][number] => ({
+  accessScope: "all_squads",
+  assignedSquads: [],
+  role: "coach",
+  status: "active",
+  tenantId: "tenant-1",
+  tenantName: "Example FC",
+  tenantSlug: "example-fc",
+  ...overrides
+});
+
 const createSession = (overrides?: Partial<ActorSession>): ActorSession => ({
   memberships: [],
   session: {
@@ -27,20 +40,14 @@ const createSession = (overrides?: Partial<ActorSession>): ActorSession => ({
 test("getActiveMemberships returns only active memberships", () => {
   const session = createSession({
     memberships: [
-      {
-        role: "coach",
-        status: "active",
-        tenantId: "tenant-1",
-        tenantName: "Example FC",
-        tenantSlug: "example-fc"
-      },
-      {
+      createMembership(),
+      createMembership({
         role: "analyst",
         status: "disabled",
         tenantId: "tenant-2",
         tenantName: "Reserve FC",
         tenantSlug: "reserve-fc"
-      }
+      })
     ]
   });
 
@@ -52,13 +59,7 @@ test("getActiveMemberships returns only active memberships", () => {
 test("getDefaultAppPath returns the first active tenant dashboard when memberships exist", () => {
   const session = createSession({
     memberships: [
-      {
-        role: "coach",
-        status: "active",
-        tenantId: "tenant-1",
-        tenantName: "Example FC",
-        tenantSlug: "example-fc"
-      }
+      createMembership()
     ]
   });
 

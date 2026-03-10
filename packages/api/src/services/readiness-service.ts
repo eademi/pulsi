@@ -1,4 +1,4 @@
-import type { ListReadinessQuery } from "@pulsi/shared";
+import type { ListReadinessQuery, TenantAccessScope } from "@pulsi/shared";
 
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { ReadinessRepository } from "../repositories/readiness-repository";
@@ -9,15 +9,25 @@ export class ReadinessService {
     private readonly readinessRepository: ReadinessRepository
   ) {}
 
-  public async listTenantReadiness(tenantId: string, query: ListReadinessQuery) {
-    const athletes = await this.athleteRepository.listByTenant(tenantId, {
-      squad: query.squad
+  public async listTenantReadiness(
+    tenant: {
+      id: string;
+      accessScope: TenantAccessScope;
+      accessibleSquadIds: string[];
+    },
+    query: ListReadinessQuery
+  ) {
+    const athletes = await this.athleteRepository.listByTenant(tenant.id, {
+      accessScope: tenant.accessScope,
+      accessibleSquadIds: tenant.accessibleSquadIds,
+      squadId: query.squadId,
+      squadSlug: query.squadSlug ?? query.squad
     });
 
     const limitedAthletes = athletes.slice(0, query.limit);
     const athleteIds = limitedAthletes.map((athlete) => athlete.id);
     const snapshots = await this.readinessRepository.listSnapshotsForAthletes({
-      tenantId,
+      tenantId: tenant.id,
       athleteIds,
       onDate: query.onDate
     });

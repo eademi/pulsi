@@ -17,7 +17,7 @@ export const buildReadinessRoutes = (readinessService: ReadinessService) =>
     requireMinimumRole(requestContext.tenant!.role, "analyst");
 
     const query = parseOrThrow(listReadinessQuerySchema.safeParse(c.req.query()));
-    const readiness = await readinessService.listTenantReadiness(requestContext.tenant!.id, query);
+    const readiness = await readinessService.listTenantReadiness(requestContext.tenant!, query);
 
     createApiSuccessSchema(athleteReadinessSchema.array()).parse({ data: readiness });
 

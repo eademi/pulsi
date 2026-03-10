@@ -29,6 +29,11 @@ export const invitationStatusEnum = pgEnum("invitation_status", [
   "expired"
 ]);
 export const athleteStatusEnum = pgEnum("athlete_status", ["active", "inactive", "rehab"]);
+export const squadStatusEnum = pgEnum("squad_status", ["active", "inactive"]);
+export const tenantAccessScopeEnum = pgEnum("tenant_access_scope", [
+  "all_squads",
+  "assigned_squads"
+]);
 export const readinessBandEnum = pgEnum("readiness_band", ["ready", "caution", "restricted"]);
 export const trainingRecommendationEnum = pgEnum("training_recommendation", [
   "full_load",
@@ -229,6 +234,95 @@ export const athletes = pgTable(
   (table) => ({
     tenantLookup: index("athletes_tenant_idx").on(table.tenantId, table.status),
     tenantExternalRefKey: uniqueIndex("athletes_tenant_external_ref_key").on(table.tenantId, table.externalRef)
+  })
+);
+
+export const squads = pgTable(
+  "squads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    category: text("category"),
+    status: squadStatusEnum("status").default("active").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tenantLookup: index("squads_tenant_idx").on(table.tenantId, table.status),
+    tenantSlugKey: uniqueIndex("squads_tenant_slug_key").on(table.tenantId, table.slug)
+  })
+);
+
+export const athleteSquadAssignments = pgTable(
+  "athlete_squad_assignments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    squadId: uuid("squad_id")
+      .notNull()
+      .references(() => squads.id, { onDelete: "cascade" }),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    athleteLookup: index("athlete_squad_assignments_athlete_idx").on(table.athleteId, table.endedAt),
+    squadLookup: index("athlete_squad_assignments_squad_idx").on(table.squadId, table.endedAt),
+    tenantLookup: index("athlete_squad_assignments_tenant_idx").on(table.tenantId, table.endedAt),
+    activeAthleteKey: uniqueIndex("athlete_squad_assignments_active_athlete_key")
+      .on(table.athleteId)
+      .where(sql`${table.endedAt} is null`)
+  })
+);
+
+export const tenantUserAccessScopes = pgTable(
+  "tenant_user_access_scopes",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessScope: tenantAccessScopeEnum("access_scope").default("all_squads").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.tenantId, table.userId] }),
+    userLookup: index("tenant_user_access_scopes_user_idx").on(table.userId),
+    tenantLookup: index("tenant_user_access_scopes_tenant_idx").on(table.tenantId)
+  })
+);
+
+export const tenantUserSquadAccess = pgTable(
+  "tenant_user_squad_access",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    squadId: uuid("squad_id")
+      .notNull()
+      .references(() => squads.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.tenantId, table.userId, table.squadId] }),
+    tenantLookup: index("tenant_user_squad_access_tenant_idx").on(table.tenantId, table.userId),
+    squadLookup: index("tenant_user_squad_access_squad_idx").on(table.squadId)
   })
 );
 

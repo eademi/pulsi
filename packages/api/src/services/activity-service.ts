@@ -1,4 +1,4 @@
-import type { ListAthleteActivitiesQuery } from "@pulsi/shared";
+import type { ListAthleteActivitiesQuery, TenantAccessScope } from "@pulsi/shared";
 
 import { AppError } from "../http/errors";
 import type { ActivityRepository } from "../repositories/activity-repository";
@@ -11,18 +11,25 @@ export class ActivityService {
   ) {}
 
   public async listAthleteActivities(
-    tenantId: string,
+    tenant: {
+      id: string;
+      accessScope: TenantAccessScope;
+      accessibleSquadIds: string[];
+    },
     athleteId: string,
     query: ListAthleteActivitiesQuery
   ) {
-    const athlete = await this.athleteRepository.findByIdForTenant(tenantId, athleteId);
+    const athlete = await this.athleteRepository.findByIdForTenant(tenant.id, athleteId, {
+      accessScope: tenant.accessScope,
+      accessibleSquadIds: tenant.accessibleSquadIds
+    });
 
     if (!athlete) {
       throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete not found");
     }
 
     const activities = await this.activityRepository.listAthleteActivities({
-      tenantId,
+      tenantId: tenant.id,
       athleteId,
       query
     });

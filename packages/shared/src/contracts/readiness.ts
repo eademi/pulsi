@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { squadSummarySchema } from "./squads";
 
 export const athleteStatusSchema = z.enum(["active", "inactive", "rehab"]);
 export const readinessBandSchema = z.enum(["ready", "caution", "restricted"]);
@@ -16,6 +17,7 @@ export const athleteSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   squad: z.string().nullable(),
+  currentSquad: squadSummarySchema.nullable(),
   position: z.string().nullable(),
   status: athleteStatusSchema,
   externalRef: z.string().nullable(),
@@ -55,7 +57,9 @@ export const athleteReadinessSchema = z.object({
 
 export const listReadinessQuerySchema = z.object({
   onDate: z.string().date().optional(),
-  squad: z.string().min(1).max(80).optional(),
+  squadId: z.string().uuid().optional(),
+  squadSlug: z.string().min(1).max(64).optional(),
+  squad: z.string().min(1).max(64).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25)
 });
 

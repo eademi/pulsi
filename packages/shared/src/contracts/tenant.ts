@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { membershipStatusSchema, tenantRoleSchema } from "./auth";
+import { squadSummarySchema, tenantAccessScopeSchema } from "./squads";
 
 export const tenantSchema = z.object({
   id: z.string().uuid(),
@@ -32,8 +33,14 @@ export const tenantMemberSchema = z.object({
   name: z.string(),
   role: tenantRoleSchema,
   status: membershipStatusSchema,
+  accessScope: tenantAccessScopeSchema,
+  assignedSquads: z.array(squadSummarySchema),
   isDefaultTenant: z.boolean(),
   joinedAt: z.string().datetime()
+});
+
+export const listSquadsQuerySchema = z.object({
+  status: z.enum(["active", "inactive", "all"]).default("active")
 });
 
 export const tenantInvitationSchema = z.object({
@@ -55,3 +62,4 @@ export type InviteTenantMemberInput = z.infer<typeof inviteTenantMemberInputSche
 export type InvitationStatus = z.infer<typeof invitationStatusSchema>;
 export type TenantMember = z.infer<typeof tenantMemberSchema>;
 export type TenantInvitation = z.infer<typeof tenantInvitationSchema>;
+export type ListSquadsQuery = z.infer<typeof listSquadsQuerySchema>;

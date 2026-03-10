@@ -36,6 +36,13 @@
       "when": 1773119536076,
       "tag": "0004_long_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773173040754,
+      "tag": "0005_yummy_nomad",
+      "breakpoints": true
     }
   ]
 }

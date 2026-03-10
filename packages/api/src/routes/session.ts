@@ -28,7 +28,9 @@ export const sessionRoutes = new Hono<AppBindings>()
         tenantSlug: membership.tenantSlug,
         tenantName: membership.tenantName,
         role: membership.role,
-        status: membership.status
+        status: membership.status,
+        accessScope: membership.accessScope,
+        assignedSquads: membership.assignedSquads
       }))
     };
 

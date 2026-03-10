@@ -91,7 +91,10 @@ export const tenantScopeMiddleware =
         slug: membership.tenantSlug,
         name: membership.tenantName,
         timezone: membership.timezone,
-        role: membership.role
+        role: membership.role,
+        accessScope: membership.accessScope,
+        accessibleSquadIds: membership.assignedSquads.map((squad) => squad.id),
+        assignedSquads: membership.assignedSquads
       }
     });
 

@@ -18,7 +18,7 @@ export const buildActivityRoutes = (activityService: ActivityService) =>
 
     const query = parseOrThrow(listAthleteActivitiesQuerySchema.safeParse(c.req.query()));
     const payload = await activityService.listAthleteActivities(
-      requestContext.tenant!.id,
+      requestContext.tenant!,
       c.req.param("athleteId"),
       query
     );

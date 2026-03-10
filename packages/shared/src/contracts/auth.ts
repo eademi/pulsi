@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { squadSummarySchema, tenantAccessScopeSchema } from "./squads";
 
 export const tenantRoleSchema = z.enum([
   "club_owner",
@@ -26,7 +27,9 @@ export const tenantMembershipSchema = z.object({
   tenantSlug: z.string(),
   tenantName: z.string(),
   role: tenantRoleSchema,
-  status: membershipStatusSchema
+  status: membershipStatusSchema,
+  accessScope: tenantAccessScopeSchema,
+  assignedSquads: z.array(squadSummarySchema)
 });
 
 export const actorSessionSchema = z.object({
