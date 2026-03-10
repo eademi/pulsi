@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -282,6 +283,70 @@ export const providerHealthSummaries = pgTable(
       table.summaryType
     ),
     summaryKey: uniqueIndex("provider_health_summaries_summary_key").on(
+      table.provider,
+      table.athleteId,
+      table.summaryType,
+      table.providerSummaryId
+    )
+  })
+);
+
+export const providerActivitySummaries = pgTable(
+  "provider_activity_summaries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => athleteDeviceConnections.id, { onDelete: "cascade" }),
+    provider: integrationProviderEnum("provider").default("garmin").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    summaryType: text("summary_type").notNull(),
+    providerSummaryId: text("provider_summary_id").notNull(),
+    activityDate: date("activity_date"),
+    activityType: text("activity_type"),
+    activityName: text("activity_name"),
+    startTimeInSeconds: integer("start_time_in_seconds"),
+    durationInSeconds: integer("duration_in_seconds"),
+    distanceInMeters: doublePrecision("distance_in_meters"),
+    activeKilocalories: integer("active_kilocalories"),
+    averageHeartRateInBeatsPerMinute: integer("average_heart_rate_in_beats_per_minute"),
+    maxHeartRateInBeatsPerMinute: integer("max_heart_rate_in_beats_per_minute"),
+    averageSpeedInMetersPerSecond: doublePrecision("average_speed_in_meters_per_second"),
+    maxSpeedInMetersPerSecond: doublePrecision("max_speed_in_meters_per_second"),
+    averageCadenceInStepsPerMinute: doublePrecision("average_cadence_in_steps_per_minute"),
+    maxCadenceInStepsPerMinute: doublePrecision("max_cadence_in_steps_per_minute"),
+    elevationGainInMeters: doublePrecision("elevation_gain_in_meters"),
+    elevationLossInMeters: doublePrecision("elevation_loss_in_meters"),
+    deviceName: text("device_name"),
+    isManual: boolean("is_manual").default(false).notNull(),
+    isWebUpload: boolean("is_web_upload").default(false).notNull(),
+    rawPayload: jsonb("raw_payload").$type<Record<string, unknown>>().notNull(),
+    ingestedAt: timestamp("ingested_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tenantLookup: index("provider_activity_summaries_tenant_idx").on(
+      table.tenantId,
+      table.summaryType,
+      table.activityDate
+    ),
+    athleteLookup: index("provider_activity_summaries_athlete_idx").on(
+      table.athleteId,
+      table.activityDate,
+      table.startTimeInSeconds
+    ),
+    providerUserLookup: index("provider_activity_summaries_provider_user_idx").on(
+      table.provider,
+      table.providerUserId,
+      table.summaryType
+    ),
+    summaryKey: uniqueIndex("provider_activity_summaries_summary_key").on(
       table.provider,
       table.athleteId,
       table.summaryType,

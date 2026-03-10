@@ -242,7 +242,7 @@ Garmin integration has 4 major responsibilities:
 1. connect users with OAuth 2.0 PKCE
 2. store and refresh tokens safely
 3. receive Garmin notifications
-4. map Garmin summaries into Pulsi readiness data
+4. map Garmin Health summaries into Pulsi readiness data and Garmin Activity summaries into coach session context
 
 ## 8. Garmin OAuth Flow
 
@@ -308,6 +308,10 @@ Pulsi endpoint:
 
 - `POST /v1/webhooks/garmin/:webhookToken/health`
 
+For Garmin Activity Summaries:
+
+- `POST /v1/webhooks/garmin/:webhookToken/activity`
+
 In Push mode, Pulsi does not need to make another request to Garmin for that specific notification because the data is already in the request body.
 
 ### Ping
@@ -324,7 +328,11 @@ So Ping is basically:
 
 Pulsi endpoint:
 
-- `POST /v1/webhooks/garmin/:webhookToken/ping`
+- `POST /v1/webhooks/garmin/:webhookToken/health/ping`
+
+For Garmin Activity Summaries:
+
+- `POST /v1/webhooks/garmin/:webhookToken/activity/ping`
 
 Important rule from Garmin:
 
@@ -506,6 +514,10 @@ Raw incoming Garmin events for:
 - deregistration
 - permission changes
 
+### `provider_activity_summaries`
+
+Structured Garmin Activity Summary records for coach-facing recent session views.
+
 ### `wearable_daily_metrics`
 
 Pulsi-normalized daily wearable record.
@@ -596,7 +608,26 @@ Normal workflow:
 
 The migration runner is `packages/api/src/db/migrate.ts`. Use that script as the standard way to apply migrations in local, staging, and production environments.
 
-## 22. Recommended Reading Order
+## 22. Environment Files
+
+For the API package:
+
+- `packages/api/.env`: shared local defaults
+- `packages/api/.env.local`: local-only secrets and overrides
+
+The load order is:
+
+1. `.env`
+2. `.env.local`
+
+That means `.env.local` wins if the same variable is defined in both files.
+
+Recommended split:
+
+- `.env`: port, URLs, local database URL, log level
+- `.env.local`: Better Auth secret, Garmin client credentials, Garmin webhook secret, token encryption key
+
+## 23. Recommended Reading Order
 
 If you want to understand the system fast, read in this order:
 
@@ -611,7 +642,7 @@ If you want to understand the system fast, read in this order:
 9. `packages/api/src/integrations/garmin/garmin-mapper.ts`
 10. `packages/api/src/services/metric-ingestion-service.ts`
 
-## 23. Common Mistakes To Avoid
+## 24. Common Mistakes To Avoid
 
 - putting business logic directly into routes
 - forgetting tenant scoping in repository queries
@@ -621,7 +652,7 @@ If you want to understand the system fast, read in this order:
 - overwriting metric rows instead of merging partial day data
 - assuming that typed Garmin summary support means product support
 
-## 24. Short Glossary
+## 25. Short Glossary
 
 ### PKCE
 

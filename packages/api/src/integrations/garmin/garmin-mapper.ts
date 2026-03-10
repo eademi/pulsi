@@ -1,8 +1,14 @@
 import type {
   NormalizedMetricIngressRecord,
+  ProviderActivitySummaryRecord,
   NormalizedWearableMetricRecord,
   ProviderHealthSummaryRecord
 } from "../provider.types";
+import {
+  garminActivityPushSchema,
+  type GarminActivityPushPayload,
+  type GarminActivityPushSummary
+} from "./activity-api.contracts";
 import {
   garminHealthPushSchema,
   type GarminDailyPushSummary,
@@ -82,6 +88,18 @@ export class GarminMapper {
     return this.extractTypedSummaryRecords(parsed.data);
   }
 
+  public extractActivitySummaryRecordsFromPushPayload(
+    payload: Record<string, unknown>
+  ): ProviderActivitySummaryRecord[] {
+    const parsed = garminActivityPushSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      return [];
+    }
+
+    return this.extractTypedActivitySummaryRecords(parsed.data);
+  }
+
   private extractTypedMetrics(payload: GarminHealthPushPayload): NormalizedMetricIngressRecord[] {
     return [
       ...mapPushCollection("dailies", payload.dailies, (summary) => this.fromDailySummary(summary)),
@@ -105,6 +123,12 @@ export class GarminMapper {
       ...mapSummaryCollection("bloodPressures", payload.bloodPressures),
       ...mapSummaryCollection("skinTemp", payload.skinTemp)
     ];
+  }
+
+  private extractTypedActivitySummaryRecords(
+    payload: GarminActivityPushPayload
+  ): ProviderActivitySummaryRecord[] {
+    return mapActivitySummaryCollection("activitySummaries", payload.activitySummaries);
   }
 
   private fromDailySummary(summary: GarminDailyPushSummary): NormalizedWearableMetricRecord {
@@ -195,12 +219,52 @@ const mapSummaryCollection = <T extends { userId: string }>(
     }))
     .filter((summary) => summary.summaryId.length > 0);
 
+const mapActivitySummaryCollection = (
+  summaryType: string,
+  collection: GarminActivityPushSummary[] | undefined
+): ProviderActivitySummaryRecord[] =>
+  (collection ?? [])
+    .map((summary) => ({
+      provider: "garmin" as const,
+      providerUserId: summary.userId,
+      summaryType,
+      summaryId: extractActivitySummaryId(summary),
+      summaryDate: extractActivityDate(summary),
+      startTimeInSeconds: extractStartTime(summary),
+      durationInSeconds: extractActivityDuration(summary),
+      activityType: asString(summary.activityType) ?? null,
+      activityName: asString(summary.activityName) ?? null,
+      distanceInMeters: asNumber(summary.distanceInMeters),
+      activeKilocalories: asInteger(summary.activeKilocalories),
+      averageHeartRateInBeatsPerMinute: asInteger(summary.averageHeartRateInBeatsPerMinute),
+      maxHeartRateInBeatsPerMinute: asInteger(summary.maxHeartRateInBeatsPerMinute),
+      averageSpeedInMetersPerSecond: asNumber(summary.averageSpeedInMetersPerSecond),
+      maxSpeedInMetersPerSecond: asNumber(summary.maxSpeedInMetersPerSecond),
+      averageCadenceInStepsPerMinute: asNumber(summary.averageRunCadenceInStepsPerMinute),
+      maxCadenceInStepsPerMinute: asNumber(summary.maxRunCadenceInStepsPerMinute),
+      elevationGainInMeters:
+        asNumber(summary.totalElevationGainInMeters) ?? asNumber(summary.elevationGainInMeters),
+      elevationLossInMeters:
+        asNumber(summary.totalElevationLossInMeters) ?? asNumber(summary.elevationLossInMeters),
+      deviceName: asString(summary.deviceName) ?? null,
+      isManual: asBoolean(summary.isManual) ?? asBoolean(summary.manual) ?? false,
+      isWebUpload: asBoolean(summary.isWebUpload) ?? asBoolean(summary.webUpload) ?? false,
+      rawPayload: summary as Record<string, unknown>
+    }))
+    .filter((summary) => summary.summaryId.length > 0);
+
 const extractSummaryId = (summary: { userId: string }) =>
   asString((summary as Record<string, unknown>).summaryId) ?? "";
+
+const extractActivitySummaryId = (summary: GarminActivityPushSummary) =>
+  asString(summary.summaryId) ?? asString(summary.activityId) ?? "";
 
 const extractSummaryDate = (summary: { userId: string }) =>
   asString((summary as Record<string, unknown>).calendarDate) ??
   deriveLocalCalendarDate(summary as Record<string, unknown>);
+
+const extractActivityDate = (summary: GarminActivityPushSummary) =>
+  asString(summary.calendarDate) ?? deriveLocalCalendarDate(summary as Record<string, unknown>);
 
 const extractStartTime = (summary: { userId: string }) =>
   asNumber(
@@ -210,6 +274,9 @@ const extractStartTime = (summary: { userId: string }) =>
 
 const extractDuration = (summary: { userId: string }) =>
   asNumber((summary as Record<string, unknown>).durationInSeconds);
+
+const extractActivityDuration = (summary: GarminActivityPushSummary) =>
+  asInteger(summary.durationInSeconds);
 
 const deriveLocalCalendarDate = (summary: Record<string, unknown>): string | null => {
   const timestamp =
@@ -244,6 +311,19 @@ const asString = (value: unknown): string | null => (typeof value === "string" ?
 
 const asNumber = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
+
+const asInteger = (value: unknown): number | null => {
+  const number = asNumber(value);
+
+  if (number === null) {
+    return null;
+  }
+
+  return Math.round(number);
+};
+
+const asBoolean = (value: unknown): boolean | null =>
+  typeof value === "boolean" ? value : null;
 
 const toMinutes = (value: unknown): number | null => {
   const number = asNumber(value);

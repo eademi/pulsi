@@ -376,3 +376,20 @@ That gives the coaching staff the most practical value fastest:
 - what training happened
 - how hard it was
 - whether it explains readiness today
+
+## 10. Current Implementation Status
+
+Pulsi now implements Garmin Activity Summaries end to end:
+
+- typed Garmin Activity Summary payload contracts
+- push ingestion
+- ping ingestion with callback fetching
+- structured summary storage in `provider_activity_summaries`
+- tenant-safe coach API at `GET /v1/tenants/:tenantSlug/athletes/:athleteId/activities`
+
+Still pending:
+
+- Activity Details
+- Manually Updated Activities as a distinct lower-trust path
+- Move IQ
+- Activity Files

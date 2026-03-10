@@ -5,6 +5,7 @@ import type { Database } from "../db/client";
 import {
   athleteDeviceConnections,
   integrationSyncJobs,
+  providerActivitySummaries,
   providerHealthSummaries,
   readinessSnapshots,
   wearableDailyMetrics
@@ -196,6 +197,103 @@ export class IntegrationRepository {
 
     if (!summary) {
       throw new AppError(500, "INTERNAL_ERROR", "Failed to upsert provider health summary");
+    }
+
+    return summary;
+  }
+
+  public async upsertActivitySummary(input: {
+    tenantId: string;
+    athleteId: string;
+    connectionId: string;
+    provider: IntegrationProvider;
+    providerUserId: string;
+    summaryType: string;
+    providerSummaryId: string;
+    activityDate?: string | null;
+    activityType?: string | null;
+    activityName?: string | null;
+    startTimeInSeconds?: number | null;
+    durationInSeconds?: number | null;
+    distanceInMeters?: number | null;
+    activeKilocalories?: number | null;
+    averageHeartRateInBeatsPerMinute?: number | null;
+    maxHeartRateInBeatsPerMinute?: number | null;
+    averageSpeedInMetersPerSecond?: number | null;
+    maxSpeedInMetersPerSecond?: number | null;
+    averageCadenceInStepsPerMinute?: number | null;
+    maxCadenceInStepsPerMinute?: number | null;
+    elevationGainInMeters?: number | null;
+    elevationLossInMeters?: number | null;
+    deviceName?: string | null;
+    isManual: boolean;
+    isWebUpload: boolean;
+    rawPayload: Record<string, unknown>;
+  }) {
+    const [summary] = await this.db
+      .insert(providerActivitySummaries)
+      .values({
+        tenantId: input.tenantId,
+        athleteId: input.athleteId,
+        connectionId: input.connectionId,
+        provider: input.provider,
+        providerUserId: input.providerUserId,
+        summaryType: input.summaryType,
+        providerSummaryId: input.providerSummaryId,
+        activityDate: input.activityDate ?? null,
+        activityType: input.activityType ?? null,
+        activityName: input.activityName ?? null,
+        startTimeInSeconds: input.startTimeInSeconds ?? null,
+        durationInSeconds: input.durationInSeconds ?? null,
+        distanceInMeters: input.distanceInMeters ?? null,
+        activeKilocalories: input.activeKilocalories ?? null,
+        averageHeartRateInBeatsPerMinute: input.averageHeartRateInBeatsPerMinute ?? null,
+        maxHeartRateInBeatsPerMinute: input.maxHeartRateInBeatsPerMinute ?? null,
+        averageSpeedInMetersPerSecond: input.averageSpeedInMetersPerSecond ?? null,
+        maxSpeedInMetersPerSecond: input.maxSpeedInMetersPerSecond ?? null,
+        averageCadenceInStepsPerMinute: input.averageCadenceInStepsPerMinute ?? null,
+        maxCadenceInStepsPerMinute: input.maxCadenceInStepsPerMinute ?? null,
+        elevationGainInMeters: input.elevationGainInMeters ?? null,
+        elevationLossInMeters: input.elevationLossInMeters ?? null,
+        deviceName: input.deviceName ?? null,
+        isManual: input.isManual,
+        isWebUpload: input.isWebUpload,
+        rawPayload: input.rawPayload
+      })
+      .onConflictDoUpdate({
+        target: [
+          providerActivitySummaries.provider,
+          providerActivitySummaries.athleteId,
+          providerActivitySummaries.summaryType,
+          providerActivitySummaries.providerSummaryId
+        ],
+        set: {
+          activityDate: input.activityDate ?? null,
+          activityType: input.activityType ?? null,
+          activityName: input.activityName ?? null,
+          startTimeInSeconds: input.startTimeInSeconds ?? null,
+          durationInSeconds: input.durationInSeconds ?? null,
+          distanceInMeters: input.distanceInMeters ?? null,
+          activeKilocalories: input.activeKilocalories ?? null,
+          averageHeartRateInBeatsPerMinute: input.averageHeartRateInBeatsPerMinute ?? null,
+          maxHeartRateInBeatsPerMinute: input.maxHeartRateInBeatsPerMinute ?? null,
+          averageSpeedInMetersPerSecond: input.averageSpeedInMetersPerSecond ?? null,
+          maxSpeedInMetersPerSecond: input.maxSpeedInMetersPerSecond ?? null,
+          averageCadenceInStepsPerMinute: input.averageCadenceInStepsPerMinute ?? null,
+          maxCadenceInStepsPerMinute: input.maxCadenceInStepsPerMinute ?? null,
+          elevationGainInMeters: input.elevationGainInMeters ?? null,
+          elevationLossInMeters: input.elevationLossInMeters ?? null,
+          deviceName: input.deviceName ?? null,
+          isManual: input.isManual,
+          isWebUpload: input.isWebUpload,
+          rawPayload: input.rawPayload,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
+
+    if (!summary) {
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to upsert provider activity summary");
     }
 
     return summary;

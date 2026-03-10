@@ -32,3 +32,29 @@ export interface ProviderHealthSummaryRecord {
   durationInSeconds?: number | null;
   rawPayload: Record<string, unknown>;
 }
+
+export interface ProviderActivitySummaryRecord {
+  providerUserId: string;
+  provider: IntegrationProvider;
+  summaryType: string;
+  summaryId: string;
+  summaryDate?: string | null;
+  startTimeInSeconds?: number | null;
+  durationInSeconds?: number | null;
+  activityType?: string | null;
+  activityName?: string | null;
+  distanceInMeters?: number | null;
+  activeKilocalories?: number | null;
+  averageHeartRateInBeatsPerMinute?: number | null;
+  maxHeartRateInBeatsPerMinute?: number | null;
+  averageSpeedInMetersPerSecond?: number | null;
+  maxSpeedInMetersPerSecond?: number | null;
+  averageCadenceInStepsPerMinute?: number | null;
+  maxCadenceInStepsPerMinute?: number | null;
+  elevationGainInMeters?: number | null;
+  elevationLossInMeters?: number | null;
+  deviceName?: string | null;
+  isManual: boolean;
+  isWebUpload: boolean;
+  rawPayload: Record<string, unknown>;
+}

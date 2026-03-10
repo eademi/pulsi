@@ -6,11 +6,13 @@ import type { AppBindings } from "./context/app-context";
 import { auth } from "./auth/auth";
 import { toErrorResponse } from "./http/responses";
 import { requestContextMiddleware, tenantScopeMiddleware } from "./http/middleware";
+import { ActivityRepository } from "./repositories/activity-repository";
 import { AthleteRepository } from "./repositories/athlete-repository";
 import { IntegrationRepository } from "./repositories/integration-repository";
 import { MembershipRepository } from "./repositories/membership-repository";
 import { ReadinessRepository } from "./repositories/readiness-repository";
 import { TenantRepository } from "./repositories/tenant-repository";
+import { buildActivityRoutes } from "./routes/activities";
 import { buildAthleteRoutes } from "./routes/athletes";
 import { buildGarminPublicRoutes, buildGarminTenantRoutes } from "./routes/garmin";
 import { healthRoutes } from "./routes/health";
@@ -26,6 +28,7 @@ import { GarminRepository } from "./repositories/garmin-repository";
 import { GarminConnectionService } from "./services/garmin-connection-service";
 import { GarminOAuthService } from "./services/garmin-oauth-service";
 import { GarminTokenService } from "./services/garmin-token-service";
+import { ActivityService } from "./services/activity-service";
 import { MetricIngestionService } from "./services/metric-ingestion-service";
 import { ReadinessEngine } from "./services/readiness-engine";
 import { ReadinessService } from "./services/readiness-service";
@@ -33,6 +36,7 @@ import { TenantAccessService } from "./services/tenant-access-service";
 import { TenantService } from "./services/tenant-service";
 
 const membershipRepository = new MembershipRepository(db);
+const activityRepository = new ActivityRepository(db);
 const athleteRepository = new AthleteRepository(db);
 const readinessRepository = new ReadinessRepository(db);
 const tenantRepository = new TenantRepository(db);
@@ -45,6 +49,7 @@ const tokenCipher = new TokenCipher();
 
 const tenantService = new TenantService(tenantRepository, membershipRepository);
 const tenantAccessService = new TenantAccessService(membershipRepository);
+const activityService = new ActivityService(athleteRepository, activityRepository);
 const readinessService = new ReadinessService(athleteRepository, readinessRepository);
 const metricIngestionService = new MetricIngestionService(integrationRepository, readinessEngine);
 const garminTokenService = new GarminTokenService(
@@ -102,6 +107,7 @@ app.route("/v1", buildGarminPublicRoutes(garminOAuthService, garminConnectionSer
 
 const tenantScopedRoutes = new Hono<AppBindings>()
   .use("*", tenantScopeMiddleware(tenantAccessService))
+  .route("/", buildActivityRoutes(activityService))
   .route("/", buildAthleteRoutes(athleteRepository))
   .route("/", buildReadinessRoutes(readinessService))
   .route("/", buildGarminTenantRoutes(garminOAuthService, garminConnectionService));

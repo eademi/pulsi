@@ -126,10 +126,12 @@ Defined in `packages/api/src/routes/garmin.ts`.
 Routes:
 
 - `GET /v1/integrations/garmin/callback`
-- `POST /v1/webhooks/garmin/:webhookToken/deregistrations`
-- `POST /v1/webhooks/garmin/:webhookToken/user-permissions`
-- `POST /v1/webhooks/garmin/:webhookToken/ping`
+- `POST /v1/webhooks/garmin/:webhookToken/common/deregistrations`
+- `POST /v1/webhooks/garmin/:webhookToken/common/user-permissions`
+- `POST /v1/webhooks/garmin/:webhookToken/health/ping`
+- `POST /v1/webhooks/garmin/:webhookToken/activity/ping`
 - `POST /v1/webhooks/garmin/:webhookToken/health`
+- `POST /v1/webhooks/garmin/:webhookToken/activity`
 
 These routes are public because Garmin, not an authenticated browser session, is the caller.
 
@@ -160,13 +162,13 @@ Responsibilities:
 - call Garmin user ID endpoint
 - call Garmin permissions endpoint
 - call Garmin delete-registration endpoint
-- fetch and validate Garmin ping callback URLs
+- fetch and validate Garmin health and activity ping callback URLs
 - apply retry and backoff behavior for rate limits and transient failures
 
 Pulsi uses:
 
 - fixed Garmin OAuth domains for consent and token exchange
-- `GARMIN_API_BASE_URL` for wellness API endpoints
+- `GARMIN_API_BASE_URL` for wellness and activity API endpoints
 
 ## 6. PKCE And OAuth Session Handling In Pulsi
 

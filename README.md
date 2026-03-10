@@ -11,9 +11,10 @@ Pulsi includes a local PostgreSQL dev environment with Docker Compose.
 Quick start:
 
 1. copy [packages/api/.env.example](/Users/ea/Desktop/projects/pulsi-app/packages/api/.env.example) to `packages/api/.env`
-2. start Postgres with `pnpm db:up`
-3. apply schema with `pnpm db:migrate:api`
-4. start the API with `pnpm dev:api`
+2. copy [packages/api/.env.local.example](/Users/ea/Desktop/projects/pulsi-app/packages/api/.env.local.example) to `packages/api/.env.local`
+3. start Postgres with `pnpm db:up`
+4. apply schema with `pnpm db:migrate:api`
+5. start the API with `pnpm dev:api`
 
 Useful commands:
 

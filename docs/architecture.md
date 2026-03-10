@@ -263,13 +263,16 @@ Implemented endpoint examples:
 - `POST /v1/tenants`
 - `GET /v1/tenants/:tenantSlug/athletes`
 - `GET /v1/tenants/:tenantSlug/readiness`
+- `GET /v1/tenants/:tenantSlug/athletes/:athleteId/activities`
 - `POST /v1/tenants/:tenantSlug/integrations/garmin/connection-sessions`
 - `DELETE /v1/tenants/:tenantSlug/integrations/garmin/connections/:athleteId`
 - `GET /v1/integrations/garmin/callback`
-- `POST /v1/webhooks/garmin/:webhookToken/ping`
-- `POST /v1/webhooks/garmin/:webhookToken/deregistrations`
-- `POST /v1/webhooks/garmin/:webhookToken/user-permissions`
+- `POST /v1/webhooks/garmin/:webhookToken/health/ping`
+- `POST /v1/webhooks/garmin/:webhookToken/activity/ping`
+- `POST /v1/webhooks/garmin/:webhookToken/common/deregistrations`
+- `POST /v1/webhooks/garmin/:webhookToken/common/user-permissions`
 - `POST /v1/webhooks/garmin/:webhookToken/health`
+- `POST /v1/webhooks/garmin/:webhookToken/activity`
 
 Design rules:
 

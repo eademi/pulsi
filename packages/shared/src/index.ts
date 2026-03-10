@@ -1,4 +1,5 @@
 export * from "./contracts/api";
+export * from "./contracts/activity";
 export * from "./contracts/auth";
 export * from "./contracts/integrations";
 export * from "./contracts/readiness";

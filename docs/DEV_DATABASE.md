@@ -54,19 +54,20 @@ That makes fresh local environments predictable and keeps migrations self-contai
 ## Standard workflow
 
 1. Copy [packages/api/.env.example](/Users/ea/Desktop/projects/pulsi-app/packages/api/.env.example) to `packages/api/.env`
-2. Start PostgreSQL:
+2. Copy [packages/api/.env.local.example](/Users/ea/Desktop/projects/pulsi-app/packages/api/.env.local.example) to `packages/api/.env.local`
+3. Start PostgreSQL:
 
 ```bash
 pnpm db:up
 ```
 
-3. Apply migrations:
+4. Apply migrations:
 
 ```bash
 pnpm db:migrate:api
 ```
 
-4. Start the API:
+5. Start the API:
 
 ```bash
 pnpm dev:api
@@ -78,6 +79,16 @@ Use this in `packages/api/.env`:
 
 ```env
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/pulsi
+```
+
+Use this in `packages/api/.env.local` for local-only secrets:
+
+```env
+BETTER_AUTH_SECRET=replace-with-a-32-character-secret
+GARMIN_CLIENT_ID=replace-with-garmin-client-id
+GARMIN_CLIENT_SECRET=replace-with-garmin-client-secret
+GARMIN_TOKEN_ENCRYPTION_KEY=replace-with-a-32-character-encryption-key
+GARMIN_WEBHOOK_SECRET=replace-with-a-webhook-secret
 ```
 
 ## Operational commands
@@ -117,3 +128,4 @@ pnpm db:ps
 - `docker compose down` stops containers but keeps the named volume, so data persists.
 - if you want a clean reset later, you can remove the volume manually with Docker Desktop or `docker compose down -v`
 - do not use the local `postgres/postgres` credentials outside development
+- `.env` is for shared local defaults, `.env.local` is for machine-specific or secret overrides

@@ -1,6 +1,10 @@
 import { AppError } from "../../http/errors";
 import { env } from "../../env";
 import {
+  parseGarminActivityCallbackPayload,
+  type GarminActivityNotificationSummaryType
+} from "./activity-api.contracts";
+import {
   garminPermissionsResponseSchema,
   garminTokenResponseSchema,
   garminUserIdResponseSchema
@@ -92,7 +96,7 @@ export class GarminApiClient {
     summaryType: GarminNotificationSummaryType,
     callbackUrl: string
   ) {
-    const url = this.validateGarminCallbackUrl(callbackUrl);
+    const url = this.validateGarminCallbackUrl(callbackUrl, ["/wellness-api/rest/"]);
 
     return this.withRetry(async () => {
       const response = await fetch(url.toString(), {
@@ -117,6 +121,38 @@ export class GarminApiClient {
       }
 
       return parseGarminHealthCallbackPayload(summaryType, await response.json());
+    });
+  }
+
+  public async fetchActivityPingCallbackData(
+    summaryType: GarminActivityNotificationSummaryType,
+    callbackUrl: string
+  ) {
+    const url = this.validateGarminCallbackUrl(callbackUrl, ["/activity-api/rest/"]);
+
+    return this.withRetry(async () => {
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          accept: "application/json"
+        }
+      });
+
+      if (response.status === 429) {
+        const retryAfterSeconds = Number(response.headers.get("retry-after") ?? "5");
+        throw new GarminRetryableError("Garmin rate limited activity callback fetch", retryAfterSeconds * 1000);
+      }
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new AppError(502, "EXTERNAL_SERVICE_FAILURE", "Garmin activity ping callback failed", {
+          summaryType,
+          status: response.status,
+          body
+        });
+      }
+
+      return parseGarminActivityCallbackPayload(summaryType, await response.json());
     });
   }
 
@@ -235,7 +271,7 @@ export class GarminApiClient {
     return new URL(path, env.GARMIN_API_BASE_URL).toString();
   }
 
-  private validateGarminCallbackUrl(callbackUrl: string): URL {
+  private validateGarminCallbackUrl(callbackUrl: string, allowedPathPrefixes: string[]): URL {
     const url = new URL(callbackUrl);
     const expectedHost = new URL(env.GARMIN_API_BASE_URL).host;
 
@@ -250,9 +286,10 @@ export class GarminApiClient {
       });
     }
 
-    if (!url.pathname.startsWith("/wellness-api/rest/")) {
+    if (!allowedPathPrefixes.some((prefix) => url.pathname.startsWith(prefix))) {
       throw new AppError(400, "VALIDATION_ERROR", "Garmin callback URL path is invalid", {
-        path: url.pathname
+        path: url.pathname,
+        allowedPathPrefixes
       });
     }
 
