@@ -93,7 +93,7 @@ export class InvitationRepository {
   public async create(input: {
     tenantId: string;
     email: string;
-    role: "club_owner" | "coach" | "performance_staff" | "analyst";
+    role: "club_owner" | "org_admin" | "coach" | "performance_staff" | "analyst";
     invitedByUserId: string;
     expiresAt: Date;
   }, executor: DbExecutor = this.db) {

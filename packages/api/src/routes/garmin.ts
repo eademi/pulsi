@@ -11,7 +11,7 @@ import {
 } from "@pulsi/shared";
 
 import type { AppBindings } from "../context/app-context";
-import { requireMinimumRole } from "../auth/authorization";
+import { requireCapability } from "../auth/authorization";
 import {
   garminDeregistrationWebhookSchema,
   garminUserPermissionsWebhookSchema
@@ -53,7 +53,7 @@ export const buildGarminTenantRoutes = (
   new Hono<AppBindings>()
     .get("/integrations/garmin/status", async (c) => {
       const requestContext = c.get("requestContext");
-      requireMinimumRole(requestContext.tenant!.role, "analyst");
+      requireCapability(requestContext.tenant!.role, "athletes:view");
 
       const payload = garminOAuthService.getIntegrationStatus();
       createApiSuccessSchema(garminIntegrationStatusSchema).parse({ data: payload });
@@ -62,7 +62,7 @@ export const buildGarminTenantRoutes = (
     })
     .get("/integrations/garmin/connections", async (c) => {
       const requestContext = c.get("requestContext");
-      requireMinimumRole(requestContext.tenant!.role, "analyst");
+      requireCapability(requestContext.tenant!.role, "athletes:view");
 
       const [visibleAthletes, connections] = await Promise.all([
         athleteRepository.listByTenant(requestContext.tenant!.id, {
@@ -87,7 +87,7 @@ export const buildGarminTenantRoutes = (
     })
     .post("/integrations/garmin/connection-sessions", async (c) => {
       const requestContext = c.get("requestContext");
-      requireMinimumRole(requestContext.tenant!.role, "performance_staff");
+      requireCapability(requestContext.tenant!.role, "garmin:manage");
 
       const body = parseOrThrow(
         createGarminConnectionSessionInputSchema.safeParse(await c.req.json())
@@ -120,7 +120,7 @@ export const buildGarminTenantRoutes = (
     })
     .delete("/integrations/garmin/connections/:athleteId", async (c) => {
       const requestContext = c.get("requestContext");
-      requireMinimumRole(requestContext.tenant!.role, "performance_staff");
+      requireCapability(requestContext.tenant!.role, "garmin:manage");
 
       const body = parseOrThrow(
         disconnectGarminConnectionInputSchema.safeParse({

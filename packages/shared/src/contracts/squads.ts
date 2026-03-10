@@ -20,7 +20,19 @@ export const squadSchema = z.object({
   createdAt: z.string().datetime()
 });
 
+export const createSquadInputSchema = z.object({
+  name: z.string().min(2).max(120),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9-]+$/)
+    .min(2)
+    .max(64)
+    .optional(),
+  category: z.string().trim().min(1).max(80).nullable().optional()
+});
+
 export type TenantAccessScope = z.infer<typeof tenantAccessScopeSchema>;
 export type SquadStatus = z.infer<typeof squadStatusSchema>;
 export type SquadSummary = z.infer<typeof squadSummarySchema>;
 export type Squad = z.infer<typeof squadSchema>;
+export type CreateSquadInput = z.infer<typeof createSquadInputSchema>;

@@ -975,6 +975,70 @@ button {
   overflow-wrap: anywhere;
 }
 
+.settings-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.players-grid {
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+}
+
+.player-card,
+.member-access-card {
+  align-items: flex-start;
+}
+
+.inline-form,
+.member-access-form {
+  display: grid;
+  gap: 0.7rem;
+  justify-items: end;
+}
+
+.inline-form {
+  grid-template-columns: minmax(10rem, 14rem) auto;
+  align-items: center;
+}
+
+.inline-select {
+  min-width: 11rem;
+}
+
+.inline-button {
+  width: auto;
+  min-width: 8rem;
+}
+
+.compact-field {
+  min-width: min(20rem, 100%);
+}
+
+.checkbox-grid {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.checkbox-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(29, 38, 35, 0.05);
+  border: 1px solid rgba(29, 38, 35, 0.08);
+  font-size: 0.9rem;
+}
+
+.checkbox-pill input {
+  margin: 0;
+}
+
 .garmin-grid {
   display: grid;
   gap: 0.9rem;

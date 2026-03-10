@@ -166,6 +166,45 @@ export class MembershipRepository {
     return membership ?? null;
   }
 
+  public async findForTenantByUserId(tenantId: string, userId: string) {
+    const [membership] = await this.db
+      .select({
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        role: tenantMemberships.role,
+        status: tenantMemberships.status,
+        accessScope: tenantUserAccessScopes.accessScope,
+        isDefaultTenant: tenantMemberships.isDefaultTenant,
+        joinedAt: tenantMemberships.createdAt
+      })
+      .from(tenantMemberships)
+      .innerJoin(user, eq(tenantMemberships.userId, user.id))
+      .leftJoin(
+        tenantUserAccessScopes,
+        and(
+          eq(tenantUserAccessScopes.tenantId, tenantMemberships.tenantId),
+          eq(tenantUserAccessScopes.userId, tenantMemberships.userId)
+        )
+      )
+      .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, userId)))
+      .limit(1);
+
+    if (!membership) {
+      return null;
+    }
+
+    const [hydrated] = await this.attachAssignedSquads([
+      {
+        ...membership,
+        tenantId,
+        accessScope: membership.accessScope ?? "all_squads"
+      }
+    ]);
+
+    return hydrated ?? null;
+  }
+
   public async findAnyActiveMembershipByEmail(email: string) {
     const [membership] = await this.db
       .select({
@@ -197,7 +236,7 @@ export class MembershipRepository {
   public async upsertMembership(input: {
     tenantId: string;
     userId: string;
-    role: "club_owner" | "coach" | "performance_staff" | "analyst";
+    role: "club_owner" | "org_admin" | "coach" | "performance_staff" | "analyst";
     invitedByUserId?: string | null;
     isDefaultTenant?: boolean;
   }, executor: DbExecutor = this.db) {
@@ -232,6 +271,51 @@ export class MembershipRepository {
       .onConflictDoNothing();
 
     return membership ?? null;
+  }
+
+  public async replaceAccessScope(
+    input: {
+      tenantId: string;
+      userId: string;
+      accessScope: "all_squads" | "assigned_squads";
+      squadIds: string[];
+    },
+    executor: DbExecutor = this.db
+  ) {
+    await executor
+      .insert(tenantUserAccessScopes)
+      .values({
+        tenantId: input.tenantId,
+        userId: input.userId,
+        accessScope: input.accessScope
+      })
+      .onConflictDoUpdate({
+        target: [tenantUserAccessScopes.tenantId, tenantUserAccessScopes.userId],
+        set: {
+          accessScope: input.accessScope,
+          updatedAt: new Date()
+        }
+      });
+
+    await executor
+      .delete(tenantUserSquadAccess)
+      .where(
+        and(
+          eq(tenantUserSquadAccess.tenantId, input.tenantId),
+          eq(tenantUserSquadAccess.userId, input.userId)
+        )
+      );
+
+    if (input.accessScope === "assigned_squads" && input.squadIds.length > 0) {
+      // Replace grants atomically so stale squad access cannot survive scope updates.
+      await executor.insert(tenantUserSquadAccess).values(
+        input.squadIds.map((squadId) => ({
+          tenantId: input.tenantId,
+          userId: input.userId,
+          squadId
+        }))
+      );
+    }
   }
 
   private async attachAssignedSquads<

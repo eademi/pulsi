@@ -23,7 +23,7 @@ const createTenantService = () => {
     expiresAt: Date;
     id: string;
     invitedByUserId: string;
-    role: "club_owner" | "coach" | "performance_staff" | "analyst";
+    role: "club_owner" | "org_admin" | "coach" | "performance_staff" | "analyst";
     status: "pending" | "accepted" | "revoked" | "expired";
     tenantId: string;
     tenantName: string;
@@ -47,6 +47,17 @@ const createTenantService = () => {
     tenantName: string;
     userId: string;
   } = null;
+  let membershipByUserId: null | {
+    accessScope: "all_squads" | "assigned_squads";
+    assignedSquads: Array<{ id: string; name: string; slug: string }>;
+    email: string;
+    joinedAt: Date;
+    name: string;
+    role: "club_owner" | "org_admin" | "coach" | "performance_staff" | "analyst";
+    status: "active" | "invited" | "disabled";
+    userId: string;
+  } = null;
+  let validSquads: Array<{ id: string }> = [];
 
   const db = {
     transaction: async <T>(callback: (_tx: unknown) => Promise<T>) => callback({})
@@ -61,8 +72,13 @@ const createTenantService = () => {
     findAnyActiveMembership: async () => activeMembershipByUserId,
     findAnyActiveMembershipByEmail: async () => activeMembershipByEmail,
     findForTenantByEmail: async () => existingMember,
+    findForTenantByUserId: async () => membershipByUserId,
     listForTenant: async () => [],
     listForUser: async () => userMemberships,
+    replaceAccessScope: async (input: Record<string, unknown>) => {
+      calls.memberships.push(input);
+      return null;
+    },
     upsertMembership: async (input: Record<string, unknown>) => {
       calls.memberships.push(input);
       return input;
@@ -78,7 +94,7 @@ const createTenantService = () => {
         email: input.email as string,
         expiresAt: input.expiresAt as Date,
         id: "new-invite",
-        role: input.role as "club_owner" | "coach" | "performance_staff" | "analyst",
+        role: input.role as "club_owner" | "org_admin" | "coach" | "performance_staff" | "analyst",
         status: "pending" as const,
         tenantId: input.tenantId as string
       };
@@ -97,13 +113,18 @@ const createTenantService = () => {
     }
   };
 
+  const squadRepository = {
+    listByIdsForTenant: async () => validSquads
+  };
+
   return {
     calls,
     service: new TenantService(
       db as never,
       tenantRepository as never,
       membershipRepository as never,
-      invitationRepository as never
+      invitationRepository as never,
+      squadRepository as never
     ),
     setExistingMember(value: typeof existingMember) {
       existingMember = value;
@@ -114,11 +135,17 @@ const createTenantService = () => {
     setActiveMembershipByUserId(value: typeof activeMembershipByUserId) {
       activeMembershipByUserId = value;
     },
+    setMembershipByUserId(value: typeof membershipByUserId) {
+      membershipByUserId = value;
+    },
     setInvitationById(value: typeof invitationById) {
       invitationById = value;
     },
     setPendingInvitation(value: typeof pendingInvitation) {
       pendingInvitation = value;
+    },
+    setValidSquads(value: typeof validSquads) {
+      validSquads = value;
     },
     setUserMemberships(value: typeof userMemberships) {
       userMemberships = value;
@@ -303,6 +330,61 @@ test("acceptInvitation rejects joining a second organization", async () => {
     (error) => {
       assert.ok(error instanceof AppError);
       assert.equal(error.code, "CONFLICT");
+      return true;
+    }
+  );
+});
+
+test("updateMemberAccess rejects restricting a club owner", async () => {
+  const harness = createTenantService();
+  harness.setMembershipByUserId({
+    accessScope: "all_squads",
+    assignedSquads: [],
+    email: "owner@club.com",
+    joinedAt: new Date("2026-03-10T08:00:00.000Z"),
+    name: "Owner User",
+    role: "club_owner",
+    status: "active",
+    userId: "user-1"
+  });
+
+  await assert.rejects(
+    () =>
+      harness.service.updateMemberAccess("tenant-1", "user-1", {
+        accessScope: "assigned_squads",
+        squadIds: ["squad-1"]
+      }),
+    (error) => {
+      assert.ok(error instanceof AppError);
+      assert.equal(error.code, "VALIDATION_ERROR");
+      return true;
+    }
+  );
+});
+
+test("updateMemberAccess rejects unknown squad ids", async () => {
+  const harness = createTenantService();
+  harness.setMembershipByUserId({
+    accessScope: "all_squads",
+    assignedSquads: [],
+    email: "coach@club.com",
+    joinedAt: new Date("2026-03-10T08:00:00.000Z"),
+    name: "Coach User",
+    role: "coach",
+    status: "active",
+    userId: "user-2"
+  });
+  harness.setValidSquads([{ id: "squad-1" }]);
+
+  await assert.rejects(
+    () =>
+      harness.service.updateMemberAccess("tenant-1", "user-2", {
+        accessScope: "assigned_squads",
+        squadIds: ["squad-1", "missing-squad"]
+      }),
+    (error) => {
+      assert.ok(error instanceof AppError);
+      assert.equal(error.code, "VALIDATION_ERROR");
       return true;
     }
   );

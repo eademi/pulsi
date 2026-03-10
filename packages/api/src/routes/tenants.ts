@@ -7,13 +7,15 @@ import {
   inviteTenantMemberInputSchema,
   tenantInvitationSchema,
   tenantMemberSchema,
-  tenantSchema
+  tenantSchema,
+  updateTenantMemberAccessInputSchema
 } from "@pulsi/shared";
 
 import type { AppBindings } from "../context/app-context";
+import { AppError } from "../http/errors";
 import { requireAuth } from "../http/middleware";
 import { created, ok, parseOrThrow } from "../http/responses";
-import { requireMinimumRole } from "../auth/authorization";
+import { requireCapability } from "../auth/authorization";
 import type { TenantService } from "../services/tenant-service";
 
 export const buildTenantRoutes = (tenantService: TenantService) =>
@@ -89,6 +91,7 @@ export const buildTenantAccessRoutes = (tenantService: TenantService) =>
     .use("*", requireAuth)
     .get("/memberships", async (c) => {
       const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "staff:manage");
       const members = await tenantService.listTenantMembers(requestContext.tenant!.id);
       const payload = members.map((member) => ({
         ...member,
@@ -101,6 +104,7 @@ export const buildTenantAccessRoutes = (tenantService: TenantService) =>
     })
     .get("/invitations", async (c) => {
       const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "staff:manage");
       const invitations = await tenantService.listTenantInvitations(requestContext.tenant!.id);
       const payload = invitations.map(toTenantInvitationDto);
 
@@ -110,8 +114,15 @@ export const buildTenantAccessRoutes = (tenantService: TenantService) =>
     })
     .post("/invitations", async (c) => {
       const requestContext = c.get("requestContext");
-      requireMinimumRole(requestContext.tenant!.role, "club_owner");
+      requireCapability(requestContext.tenant!.role, "staff:manage");
       const body = parseOrThrow(inviteTenantMemberInputSchema.safeParse(await c.req.json()));
+      if (body.role === "club_owner") {
+        throw new AppError(
+          403,
+          "FORBIDDEN",
+          "Club owner invitations are not supported through this route"
+        );
+      }
       const invitation = await tenantService.inviteTenantMember(
         requestContext.tenant!.id,
         body,
@@ -127,6 +138,24 @@ export const buildTenantAccessRoutes = (tenantService: TenantService) =>
       createApiSuccessSchema(tenantInvitationSchema).parse({ data: payload });
 
       return created(c, payload);
+    })
+    .patch("/memberships/:userId/access", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "staff:manage");
+      const body = parseOrThrow(updateTenantMemberAccessInputSchema.safeParse(await c.req.json()));
+      const member = await tenantService.updateMemberAccess(
+        requestContext.tenant!.id,
+        c.req.param("userId"),
+        body
+      );
+      const payload = {
+        ...member,
+        joinedAt: toIsoString(member.joinedAt)
+      };
+
+      createApiSuccessSchema(tenantMemberSchema).parse({ data: payload });
+
+      return ok(c, payload);
     });
 
 const toIsoString = (value: Date | string) => new Date(value).toISOString();
@@ -137,7 +166,7 @@ const toTenantInvitationDto = (invitation: {
   tenantSlug: string;
   tenantName: string;
   email: string;
-  role: "club_owner" | "coach" | "performance_staff" | "analyst";
+  role: "club_owner" | "org_admin" | "coach" | "performance_staff" | "analyst";
   status: "pending" | "accepted" | "revoked" | "expired";
   expiresAt: Date | string;
   createdAt: Date | string;

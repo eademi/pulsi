@@ -1,6 +1,6 @@
 import { startTransition, useState } from "react";
 import { redirect, useLoaderData, useRevalidator } from "react-router";
-
+import { hasTenantCapability } from "@pulsi/shared";
 import type {
   Athlete,
   AthleteDeviceConnection,
@@ -334,5 +334,4 @@ const GarminAthleteCard = ({
   </article>
 );
 
-const hasManageAccess = (role: TenantRole) =>
-  role === "club_owner" || role === "coach" || role === "performance_staff";
+const hasManageAccess = (role: TenantRole) => hasTenantCapability(role, "garmin:manage");

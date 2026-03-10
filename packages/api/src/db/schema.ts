@@ -17,6 +17,7 @@ import {
 
 export const tenantRoleEnum = pgEnum("tenant_role", [
   "club_owner",
+  "org_admin",
   "coach",
   "performance_staff",
   "analyst"

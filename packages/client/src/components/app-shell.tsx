@@ -1,11 +1,14 @@
 import type { PropsWithChildren } from "react";
 import { Form, NavLink } from "react-router";
+import { hasTenantCapability } from "@pulsi/shared";
 import type { ActorSession, TenantMembership } from "@pulsi/shared";
 
 import {
   getDashboardPath,
   getGarminIntegrationPath,
-  getOrganizationSettingsPath
+  getOrganizationSettingsPath,
+  getPlayersPath,
+  getSquadsPath
 } from "../lib/session";
 
 export const AppShell = ({
@@ -59,13 +62,29 @@ export const AppShell = ({
 
             <NavLink
               className={({ isActive }) => `section-link${isActive ? " is-active" : ""}`}
+              to={getPlayersPath(activeMembership.tenantSlug)}
+            >
+              <span className="section-link-title">Players</span>
+              <span className="section-link-copy">Create athlete profiles and manage squad placement.</span>
+            </NavLink>
+
+            <NavLink
+              className={({ isActive }) => `section-link${isActive ? " is-active" : ""}`}
+              to={getSquadsPath(activeMembership.tenantSlug)}
+            >
+              <span className="section-link-title">Squads</span>
+              <span className="section-link-copy">Review squad structure and create new club squads.</span>
+            </NavLink>
+
+            <NavLink
+              className={({ isActive }) => `section-link${isActive ? " is-active" : ""}`}
               to={getGarminIntegrationPath(activeMembership.tenantSlug)}
             >
               <span className="section-link-title">Garmin integration</span>
               <span className="section-link-copy">Connect athletes and review Garmin sync state.</span>
             </NavLink>
 
-            {activeMembership.role === "club_owner" ? (
+            {hasTenantCapability(activeMembership.role, "staff:manage") ? (
               <NavLink
                 className={({ isActive }) => `section-link${isActive ? " is-active" : ""}`}
                 to={getOrganizationSettingsPath(activeMembership.tenantSlug)}

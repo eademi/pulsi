@@ -1,9 +1,14 @@
-import type { CreateTenantInput, InviteTenantMemberInput } from "@pulsi/shared";
+import type {
+  CreateTenantInput,
+  InviteTenantMemberInput,
+  UpdateTenantMemberAccessInput
+} from "@pulsi/shared";
 
 import type { Database } from "../db/client";
 import { AppError } from "../http/errors";
 import type { InvitationRepository } from "../repositories/invitation-repository";
 import type { MembershipRepository } from "../repositories/membership-repository";
+import type { SquadRepository } from "../repositories/squad-repository";
 import type { TenantRepository } from "../repositories/tenant-repository";
 
 export class TenantService {
@@ -11,7 +16,8 @@ export class TenantService {
     private readonly db: Database,
     private readonly tenantRepository: TenantRepository,
     private readonly membershipRepository: MembershipRepository,
-    private readonly invitationRepository: InvitationRepository
+    private readonly invitationRepository: InvitationRepository,
+    private readonly squadRepository: SquadRepository
   ) {}
 
   public async listMemberships(userId: string) {
@@ -167,6 +173,63 @@ export class TenantService {
     });
 
     return invitation;
+  }
+
+  public async updateMemberAccess(
+    tenantId: string,
+    targetUserId: string,
+    input: UpdateTenantMemberAccessInput
+  ) {
+    const membership = await this.membershipRepository.findForTenantByUserId(tenantId, targetUserId);
+
+    if (!membership) {
+      throw new AppError(404, "RESOURCE_NOT_FOUND", "Tenant member not found");
+    }
+
+    if (membership.role === "club_owner") {
+      if (input.accessScope !== "all_squads" || input.squadIds.length > 0) {
+        throw new AppError(
+          400,
+          "VALIDATION_ERROR",
+          "Club owners always retain all-squad organization access"
+        );
+      }
+    }
+
+    if (input.accessScope === "assigned_squads" && input.squadIds.length === 0) {
+      throw new AppError(
+        400,
+        "VALIDATION_ERROR",
+        "Assigned-squad access requires at least one squad"
+      );
+    }
+
+    const uniqueSquadIds = Array.from(new Set(input.squadIds));
+    const validSquads = await this.squadRepository.listByIdsForTenant(tenantId, uniqueSquadIds);
+
+    if (uniqueSquadIds.length !== validSquads.length) {
+      throw new AppError(400, "VALIDATION_ERROR", "One or more squads are invalid for this tenant");
+    }
+
+    await this.db.transaction(async (tx) => {
+      await this.membershipRepository.replaceAccessScope(
+        {
+          tenantId,
+          userId: targetUserId,
+          accessScope: input.accessScope,
+          squadIds: input.accessScope === "assigned_squads" ? uniqueSquadIds : []
+        },
+        tx
+      );
+    });
+
+    const updatedMembership = await this.membershipRepository.findForTenantByUserId(tenantId, targetUserId);
+
+    if (!updatedMembership) {
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to load updated tenant member");
+    }
+
+    return updatedMembership;
   }
 }
 

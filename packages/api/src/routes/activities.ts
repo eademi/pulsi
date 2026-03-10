@@ -7,14 +7,14 @@ import {
 } from "@pulsi/shared";
 
 import type { AppBindings } from "../context/app-context";
-import { requireMinimumRole } from "../auth/authorization";
+import { requireCapability } from "../auth/authorization";
 import { ok, parseOrThrow } from "../http/responses";
 import type { ActivityService } from "../services/activity-service";
 
 export const buildActivityRoutes = (activityService: ActivityService) =>
   new Hono<AppBindings>().get("/athletes/:athleteId/activities", async (c) => {
     const requestContext = c.get("requestContext");
-    requireMinimumRole(requestContext.tenant!.role, "analyst");
+    requireCapability(requestContext.tenant!.role, "activities:view");
 
     const query = parseOrThrow(listAthleteActivitiesQuerySchema.safeParse(c.req.query()));
     const payload = await activityService.listAthleteActivities(

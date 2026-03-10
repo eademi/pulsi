@@ -2,9 +2,10 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import type { TenantAccessScope } from "@pulsi/shared";
 
-import type { Database } from "../db/client";
+import type { Database, DbExecutor } from "../db/client";
 import { athleteSquadAssignments, athletes, squads } from "../db/schema";
 import { canAccessSquad } from "../domain/squad-access";
+import { AppError } from "../http/errors";
 
 export interface AthleteVisibilityFilter {
   accessScope?: TenantAccessScope;
@@ -72,6 +73,78 @@ export class AthleteRepository {
       .orderBy(asc(athletes.lastName), asc(athletes.firstName));
 
     return rows.map(mapAthleteRecord);
+  }
+
+  public async create(
+    input: {
+      tenantId: string;
+      firstName: string;
+      lastName: string;
+      externalRef?: string | null;
+      position?: string | null;
+      status: "active" | "inactive" | "rehab";
+    },
+    executor: DbExecutor = this.db
+  ) {
+    const [athlete] = await executor
+      .insert(athletes)
+      .values({
+        tenantId: input.tenantId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        externalRef: input.externalRef ?? null,
+        position: input.position ?? null,
+        status: input.status
+      })
+      .returning();
+
+    if (!athlete) {
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to create athlete");
+    }
+
+    return athlete;
+  }
+
+  public async replaceActiveSquadAssignment(
+    input: {
+      tenantId: string;
+      athleteId: string;
+      squadId: string;
+      startedAt: Date;
+    },
+    executor: DbExecutor = this.db
+  ) {
+    // End any existing active assignment before creating the next one so
+    // athletes cannot end up active in two squads at the same time.
+    await executor
+      .update(athleteSquadAssignments)
+      .set({
+        endedAt: input.startedAt,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(athleteSquadAssignments.tenantId, input.tenantId),
+          eq(athleteSquadAssignments.athleteId, input.athleteId),
+          isNull(athleteSquadAssignments.endedAt)
+        )
+      );
+
+    const [assignment] = await executor
+      .insert(athleteSquadAssignments)
+      .values({
+        tenantId: input.tenantId,
+        athleteId: input.athleteId,
+        squadId: input.squadId,
+        startedAt: input.startedAt
+      })
+      .returning();
+
+    if (!assignment) {
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to assign athlete to squad");
+    }
+
+    return assignment;
   }
 }
 

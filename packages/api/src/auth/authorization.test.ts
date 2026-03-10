@@ -2,18 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { AppError } from "../http/errors";
-import { requireMinimumRole } from "./authorization";
+import { requireCapability } from "./authorization";
 
-test("requireMinimumRole allows equal role access", () => {
-  assert.doesNotThrow(() => requireMinimumRole("coach", "coach"));
+test("requireCapability allows org admins to manage staff access", () => {
+  assert.doesNotThrow(() => requireCapability("org_admin", "staff:manage"));
 });
 
-test("requireMinimumRole allows higher role access", () => {
-  assert.doesNotThrow(() => requireMinimumRole("club_owner", "coach"));
+test("requireCapability allows performance staff to manage Garmin", () => {
+  assert.doesNotThrow(() => requireCapability("performance_staff", "garmin:manage"));
 });
 
-test("requireMinimumRole rejects lower role access", () => {
-  assert.throws(() => requireMinimumRole("analyst", "coach"), (error) => {
+test("requireCapability rejects coaches from managing staff access", () => {
+  assert.throws(() => requireCapability("coach", "staff:manage"), (error) => {
     assert.ok(error instanceof AppError);
     assert.equal(error.statusCode, 403);
     assert.equal(error.code, "FORBIDDEN");

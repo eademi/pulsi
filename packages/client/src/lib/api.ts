@@ -5,15 +5,21 @@ import {
   athleteSchema,
   actorSessionSchema,
   athleteReadinessSchema,
+  createAthleteInputSchema,
   createApiSuccessSchema,
+  createSquadInputSchema,
   createTenantInputSchema,
   createGarminConnectionSessionInputSchema,
   garminConnectionSessionSchema,
   garminIntegrationStatusSchema,
   inviteTenantMemberInputSchema,
+  listSquadsQuerySchema,
+  squadSchema,
   tenantInvitationSchema,
   tenantMemberSchema,
-  tenantSchema
+  tenantSchema,
+  updateAthleteSquadInputSchema,
+  updateTenantMemberAccessInputSchema
 } from "@pulsi/shared";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -27,6 +33,8 @@ const createTenantResponseSchema = createApiSuccessSchema(tenantSchema);
 const tenantMembersResponseSchema = createApiSuccessSchema(tenantMemberSchema.array());
 const tenantInvitationsResponseSchema = createApiSuccessSchema(tenantInvitationSchema.array());
 const inviteTenantMemberResponseSchema = createApiSuccessSchema(tenantInvitationSchema);
+const squadsResponseSchema = createApiSuccessSchema(squadSchema.array());
+const squadResponseSchema = createApiSuccessSchema(squadSchema);
 const garminConnectionsResponseSchema = createApiSuccessSchema(athleteDeviceConnectionSchema.array());
 const createGarminConnectionSessionResponseSchema = createApiSuccessSchema(garminConnectionSessionSchema);
 const garminIntegrationStatusResponseSchema = createApiSuccessSchema(garminIntegrationStatusSchema);
@@ -160,6 +168,36 @@ export const apiClient = {
     return parsed.data;
   },
 
+  async createAthlete(tenantSlug: string, input: z.infer<typeof createAthleteInputSchema>) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes`,
+      createApiSuccessSchema(athleteSchema),
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async updateAthleteSquad(
+    tenantSlug: string,
+    athleteId: string,
+    input: z.infer<typeof updateAthleteSquadInputSchema>
+  ) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}/squad`,
+      createApiSuccessSchema(athleteSchema),
+      {
+        method: "PATCH",
+        body: JSON.stringify(input)
+      }
+    );
+
+    return parsed.data;
+  },
+
   async listTenants() {
     const parsed = await request(`${API_BASE_URL}/v1/tenants`, tenantsResponseSchema, {
       method: "GET"
@@ -204,6 +242,23 @@ export const apiClient = {
     return parsed.data;
   },
 
+  async updateTenantMemberAccess(
+    tenantSlug: string,
+    userId: string,
+    input: z.infer<typeof updateTenantMemberAccessInputSchema>
+  ) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/memberships/${userId}/access`,
+      createApiSuccessSchema(tenantMemberSchema),
+      {
+        method: "PATCH",
+        body: JSON.stringify(input)
+      }
+    );
+
+    return parsed.data;
+  },
+
   async getTenantInvitations(tenantSlug: string) {
     const parsed = await request(
       `${API_BASE_URL}/v1/tenants/${tenantSlug}/invitations`,
@@ -223,6 +278,39 @@ export const apiClient = {
         method: "GET"
       }
     );
+    return parsed.data;
+  },
+
+  async getTenantSquads(
+    tenantSlug: string,
+    query: z.infer<typeof listSquadsQuerySchema> = { status: "active" }
+  ) {
+    const search = new URLSearchParams();
+    if (query.status) {
+      search.set("status", query.status);
+    }
+
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/squads?${search.toString()}`,
+      squadsResponseSchema,
+      {
+        method: "GET"
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async createSquad(tenantSlug: string, input: z.infer<typeof createSquadInputSchema>) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/squads`,
+      squadResponseSchema,
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      }
+    );
+
     return parsed.data;
   },
 

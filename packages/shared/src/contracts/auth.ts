@@ -3,6 +3,7 @@ import { squadSummarySchema, tenantAccessScopeSchema } from "./squads";
 
 export const tenantRoleSchema = z.enum([
   "club_owner",
+  "org_admin",
   "coach",
   "performance_staff",
   "analyst"

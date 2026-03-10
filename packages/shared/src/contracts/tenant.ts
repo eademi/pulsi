@@ -27,6 +27,11 @@ export const inviteTenantMemberInputSchema = z.object({
   role: tenantRoleSchema
 });
 
+export const updateTenantMemberAccessInputSchema = z.object({
+  accessScope: tenantAccessScopeSchema,
+  squadIds: z.array(z.string().uuid()).default([])
+});
+
 export const tenantMemberSchema = z.object({
   userId: z.string(),
   email: z.string().email(),
@@ -59,6 +64,7 @@ export const tenantInvitationSchema = z.object({
 export type Tenant = z.infer<typeof tenantSchema>;
 export type CreateTenantInput = z.infer<typeof createTenantInputSchema>;
 export type InviteTenantMemberInput = z.infer<typeof inviteTenantMemberInputSchema>;
+export type UpdateTenantMemberAccessInput = z.infer<typeof updateTenantMemberAccessInputSchema>;
 export type InvitationStatus = z.infer<typeof invitationStatusSchema>;
 export type TenantMember = z.infer<typeof tenantMemberSchema>;
 export type TenantInvitation = z.infer<typeof tenantInvitationSchema>;

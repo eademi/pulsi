@@ -10,6 +10,8 @@ export default [
   route("auth/sign-out", "routes/auth-sign-out.tsx"),
   layout("routes/tenant-layout.tsx", [
     route(":tenantSlug/dashboard", "routes/dashboard.tsx"),
+    route(":tenantSlug/players", "routes/players.tsx"),
+    route(":tenantSlug/squads", "routes/squads.tsx"),
     route(":tenantSlug/settings", "routes/organization-settings.tsx"),
     route(":tenantSlug/integrations/garmin", "routes/garmin-integration.tsx")
   ])
