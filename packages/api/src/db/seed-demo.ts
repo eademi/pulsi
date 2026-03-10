@@ -834,6 +834,19 @@ const daysAgo = (date: Date, days: number) => new Date(date.getTime() - days * 2
 const daysFrom = (date: Date, days: number) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 const toDateString = (date: Date) => date.toISOString().slice(0, 10);
 
+const formatSeedError = (error: unknown) => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "42P01"
+  ) {
+    return "Database schema is missing. Run `pnpm db:migrate:api` before `pnpm db:seed:demo`.";
+  }
+
+  return error instanceof Error ? error.stack ?? error.message : String(error);
+};
+
 const shutdown = async (exitCode: number) => {
   try {
     await closeDatabase();
@@ -849,7 +862,7 @@ const shutdown = async (exitCode: number) => {
 void main()
   .then(() => shutdown(0))
   .catch(async (error) => {
-    const message = error instanceof Error ? error.stack ?? error.message : String(error);
+    const message = formatSeedError(error);
     process.stderr.write(`Demo seed failed.\n${message}\n`);
     await shutdown(1);
   });
