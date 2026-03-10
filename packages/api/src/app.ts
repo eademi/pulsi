@@ -26,6 +26,7 @@ import { env } from "./env";
 import { logger } from "./telemetry/logger";
 import { GarminRepository } from "./repositories/garmin-repository";
 import { GarminConnectionService } from "./services/garmin-connection-service";
+import { GarminBackfillService } from "./services/garmin-backfill-service";
 import { GarminOAuthService } from "./services/garmin-oauth-service";
 import { GarminTokenService } from "./services/garmin-token-service";
 import { ActivityService } from "./services/activity-service";
@@ -56,6 +57,13 @@ const garminTokenService = new GarminTokenService(
   garminRepository,
   garminApiClient,
   tokenCipher
+);
+const garminBackfillService = new GarminBackfillService(
+  garminApiClient,
+  garminTokenService,
+  garminMapper,
+  integrationRepository,
+  metricIngestionService
 );
 const garminOAuthService = new GarminOAuthService(
   athleteRepository,
@@ -103,7 +111,10 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 app.route("/v1", healthRoutes);
 app.route("/v1", sessionRoutes);
 app.route("/v1", buildTenantRoutes(tenantService));
-app.route("/v1", buildGarminPublicRoutes(garminOAuthService, garminConnectionService));
+app.route(
+  "/v1",
+  buildGarminPublicRoutes(garminOAuthService, garminConnectionService, garminBackfillService)
+);
 
 const tenantScopedRoutes = new Hono<AppBindings>()
   .use("*", tenantScopeMiddleware(tenantAccessService))

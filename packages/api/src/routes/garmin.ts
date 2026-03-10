@@ -25,6 +25,7 @@ import {
 import { env } from "../env";
 import { AppError } from "../http/errors";
 import { created, ok, parseOrThrow } from "../http/responses";
+import type { GarminBackfillService } from "../services/garmin-backfill-service";
 import type { GarminConnectionService } from "../services/garmin-connection-service";
 import type { GarminOAuthService } from "../services/garmin-oauth-service";
 
@@ -79,11 +80,13 @@ export const buildGarminTenantRoutes = (
 
 export const buildGarminPublicRoutes = (
   garminOAuthService: GarminOAuthService,
-  garminConnectionService: GarminConnectionService
+  garminConnectionService: GarminConnectionService,
+  garminBackfillService: GarminBackfillService
 ) =>
   new Hono<AppBindings>()
     // OAuth callback after the user completes Garmin consent in the browser.
     .get("/integrations/garmin/callback", async (c) => {
+      const requestContext = c.get("requestContext");
       const query = parseOrThrow(
         garminOauthCallbackQuerySchema.safeParse({
           code: c.req.query("code"),
@@ -91,6 +94,27 @@ export const buildGarminPublicRoutes = (
         })
       );
       const result = await garminOAuthService.completeAuthorization(query);
+
+      void garminBackfillService
+        .startOnboardingBackfill({
+          tenantId: result.tenantId,
+          athleteId: result.athleteId,
+          connectionId: result.connectionId,
+          providerUserId: result.providerUserId,
+          createdByUserId: result.createdByUserId
+        })
+        .catch((error) => {
+          requestContext.logger.error(
+            {
+              err: error,
+              provider: "garmin",
+              tenantId: result.tenantId,
+              athleteId: result.athleteId,
+              connectionId: result.connectionId
+            },
+            "garmin_onboarding_backfill_schedule_failed"
+          );
+        });
 
       const redirectUrl = new URL(`${env.CLIENT_URL}/${result.tenantSlug}/dashboard`);
       redirectUrl.searchParams.set("garmin", "connected");

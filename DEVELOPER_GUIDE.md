@@ -267,6 +267,7 @@ Flow:
    - local connection record
    - encrypted access token
    - encrypted refresh token
+10. Pulsi starts an asynchronous onboarding backfill for recent Garmin Health data
 
 Key files:
 
@@ -289,6 +290,33 @@ Behavior:
 - Pulsi decrypts tokens only when needed
 - Pulsi refreshes access tokens automatically
 - Pulsi fails explicitly when refresh tokens are no longer usable
+
+## 9.1 Onboarding Backfill
+
+After Garmin OAuth completes, Pulsi starts a bounded Garmin Health backfill in the background.
+
+This is implemented in:
+
+- `packages/api/src/services/garmin-backfill-service.ts`
+
+Why it exists:
+
+- coaches should not land on an empty dashboard immediately after connect
+- recent Garmin history can be imported without waiting for the next webhook delivery
+
+The window is controlled by:
+
+- a fixed 30-day onboarding import window
+
+Current default:
+
+- `30`
+
+Backfill uses:
+
+- Garmin Health backfill endpoints
+- the same `GarminMapper` path used for webhook data
+- the same `MetricIngestionService` path used for readiness derivation
 
 ## 10. Garmin Notification Models: Ping, Pull, Push
 

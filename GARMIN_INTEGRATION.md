@@ -205,11 +205,13 @@ Pulsi flow:
 8. Pulsi fetches Garmin granted permissions
 9. Pulsi upserts the local athlete connection
 10. Pulsi encrypts and stores the token pair
+11. Pulsi schedules an onboarding Health backfill job for the recent configured window
 
 This implementation lives in:
 
 - `packages/api/src/services/garmin-oauth-service.ts`
 - `packages/api/src/repositories/garmin-repository.ts`
+- `packages/api/src/services/garmin-backfill-service.ts`
 
 ## 7. Token Storage And Refresh
 
@@ -243,6 +245,28 @@ Behavior:
 - if the access token is near expiry, Pulsi refreshes it
 - Pulsi refreshes with a 10-minute buffer, matching Garmin’s guidance to refresh ahead of expiry
 - if the refresh token is expired, Pulsi fails explicitly instead of silently operating with stale credentials
+
+## 7.1 Onboarding Backfill
+
+Pulsi automatically starts a Garmin Health backfill after a successful connection.
+
+Purpose:
+
+- avoid an empty day-one dashboard
+- populate recent readiness context immediately after onboarding
+- reuse the same mapper and ingestion path used by live webhook data
+
+Current behavior:
+
+- always imports the last 30 days
+- runs asynchronously after OAuth completion
+- creates an `integration_sync_jobs` row
+- fetches Garmin Health backfill endpoints for the supported summary families
+- stores raw summaries and derives readiness from the mapped subset
+
+Current default:
+
+- last 30 days
 
 ## 8. Garmin User Identity And Permission State
 

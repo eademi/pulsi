@@ -27,3 +27,5 @@ Useful commands:
 The default local database URL is already aligned with the API env example:
 
 `postgres://postgres:postgres@localhost:5432/pulsi`
+
+Garmin onboarding imports the last 30 days of Health data automatically after first connect.

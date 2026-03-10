@@ -93,8 +93,11 @@ export class GarminOAuthService {
       await this.repository.markOauthSessionStatus(session.id, "completed");
 
       return {
+        tenantId: session.tenantId,
         tenantSlug,
         athleteId: session.athleteId,
+        connectionId: connection.id,
+        createdByUserId: session.createdByUserId,
         providerUserId: userId,
         grantedPermissions: permissions
       };

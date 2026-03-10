@@ -40,6 +40,21 @@ export const garminBackfillSummaryTypeSchema = z.enum([
   "skinTemp"
 ]);
 
+export const garminBackfillSummaryTypeToNotificationSummaryType = {
+  dailies: "dailies",
+  epochs: "epochs",
+  sleeps: "sleeps",
+  bodyComps: "bodyComps",
+  stressDetails: "stressDetails",
+  userMetrics: "userMetrics",
+  pulseOx: "pulseox",
+  respiration: "allDayRespiration",
+  healthSnapshot: "healthSnapshot",
+  hrv: "hrv",
+  bloodPressures: "bloodPressures",
+  skinTemp: "skinTemp"
+} as const satisfies Record<string, z.infer<typeof garminNotificationSummaryTypeSchema>>;
+
 export const garminPingNotificationItemSchema = z.object({
   userId: garminPushUserIdSchema,
   callbackURL: z.string().url().optional()
@@ -386,6 +401,15 @@ export const parseGarminHealthCallbackPayload = (
   summaryType: GarminNotificationSummaryType,
   payload: unknown
 ) => garminHealthCallbackResponseSchemas[summaryType].parse(payload);
+
+export const parseGarminHealthBackfillPayload = (
+  summaryType: GarminBackfillSummaryType,
+  payload: unknown
+) =>
+  parseGarminHealthCallbackPayload(
+    garminBackfillSummaryTypeToNotificationSummaryType[summaryType],
+    payload
+  );
 
 export type GarminNotificationSummaryType = z.infer<typeof garminNotificationSummaryTypeSchema>;
 export type GarminBackfillSummaryType = z.infer<typeof garminBackfillSummaryTypeSchema>;

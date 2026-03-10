@@ -10,7 +10,9 @@ import {
   garminUserIdResponseSchema
 } from "./garmin.contracts";
 import {
+  parseGarminHealthBackfillPayload,
   parseGarminHealthCallbackPayload,
+  type GarminBackfillSummaryType,
   type GarminNotificationSummaryType
 } from "./health-api.contracts";
 import type { GarminTokenBundle } from "./garmin.types";
@@ -121,6 +123,45 @@ export class GarminApiClient {
       }
 
       return parseGarminHealthCallbackPayload(summaryType, await response.json());
+    });
+  }
+
+  public async fetchHealthBackfill(
+    summaryType: GarminBackfillSummaryType,
+    query: {
+      summaryStartTimeInSeconds: number;
+      summaryEndTimeInSeconds: number;
+    },
+    accessToken: string
+  ) {
+    const url = new URL(`/wellness-api/rest/backfill/${summaryType}`, env.GARMIN_API_BASE_URL);
+    url.searchParams.set("summaryStartTimeInSeconds", String(query.summaryStartTimeInSeconds));
+    url.searchParams.set("summaryEndTimeInSeconds", String(query.summaryEndTimeInSeconds));
+
+    return this.withRetry(async () => {
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          accept: "application/json"
+        }
+      });
+
+      if (response.status === 429) {
+        const retryAfterSeconds = Number(response.headers.get("retry-after") ?? "5");
+        throw new GarminRetryableError("Garmin rate limited backfill request", retryAfterSeconds * 1000);
+      }
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new AppError(502, "EXTERNAL_SERVICE_FAILURE", "Garmin health backfill request failed", {
+          summaryType,
+          status: response.status,
+          body
+        });
+      }
+
+      return parseGarminHealthBackfillPayload(summaryType, await response.json());
     });
   }
 
