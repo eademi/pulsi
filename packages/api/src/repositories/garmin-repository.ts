@@ -235,6 +235,18 @@ export class GarminRepository {
     return connection ?? null;
   }
 
+  public async listConnectionsForTenant(tenantId: string) {
+    return this.db
+      .select()
+      .from(athleteDeviceConnections)
+      .where(
+        and(
+          eq(athleteDeviceConnections.tenantId, tenantId),
+          eq(athleteDeviceConnections.provider, "garmin")
+        )
+      );
+  }
+
   public async updateConnectionPermissionsByIds(
     connectionIds: string[],
     permissions: string[],

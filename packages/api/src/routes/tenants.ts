@@ -1,10 +1,19 @@
 import { Hono } from "hono";
+import { z } from "zod";
 
-import { createTenantInputSchema, createApiSuccessSchema, tenantSchema } from "@pulsi/shared";
+import {
+  createApiSuccessSchema,
+  createTenantInputSchema,
+  inviteTenantMemberInputSchema,
+  tenantInvitationSchema,
+  tenantMemberSchema,
+  tenantSchema
+} from "@pulsi/shared";
 
 import type { AppBindings } from "../context/app-context";
 import { requireAuth } from "../http/middleware";
 import { created, ok, parseOrThrow } from "../http/responses";
+import { requireMinimumRole } from "../auth/authorization";
 import type { TenantService } from "../services/tenant-service";
 
 export const buildTenantRoutes = (tenantService: TenantService) =>
@@ -40,6 +49,102 @@ export const buildTenantRoutes = (tenantService: TenantService) =>
       createApiSuccessSchema(tenantSchema).parse({ data: payload });
 
       return created(c, payload);
+    })
+    .get("/invitations", async (c) => {
+      const requestContext = c.get("requestContext");
+      const invitations = await tenantService.listPendingInvitations(
+        requestContext.actor!.email,
+        requestContext.now
+      );
+      const payload = invitations.map(toTenantInvitationDto);
+
+      createApiSuccessSchema(tenantInvitationSchema.array()).parse({ data: payload });
+
+      return ok(c, payload);
+    })
+    .post("/invitations/:invitationId/accept", async (c) => {
+      const requestContext = c.get("requestContext");
+      await tenantService.acceptInvitation(
+        c.req.param("invitationId"),
+        {
+          userId: requestContext.actor!.userId,
+          email: requestContext.actor!.email
+        },
+        requestContext.now
+      );
+
+      createApiSuccessSchema(
+        z.object({
+          accepted: z.boolean()
+        })
+      ).parse({
+        data: { accepted: true }
+      });
+
+      return ok(c, { accepted: true });
+    });
+
+export const buildTenantAccessRoutes = (tenantService: TenantService) =>
+  new Hono<AppBindings>()
+    .use("*", requireAuth)
+    .get("/memberships", async (c) => {
+      const requestContext = c.get("requestContext");
+      const members = await tenantService.listTenantMembers(requestContext.tenant!.id);
+      const payload = members.map((member) => ({
+        ...member,
+        joinedAt: toIsoString(member.joinedAt)
+      }));
+
+      createApiSuccessSchema(tenantMemberSchema.array()).parse({ data: payload });
+
+      return ok(c, payload);
+    })
+    .get("/invitations", async (c) => {
+      const requestContext = c.get("requestContext");
+      const invitations = await tenantService.listTenantInvitations(requestContext.tenant!.id);
+      const payload = invitations.map(toTenantInvitationDto);
+
+      createApiSuccessSchema(tenantInvitationSchema.array()).parse({ data: payload });
+
+      return ok(c, payload);
+    })
+    .post("/invitations", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireMinimumRole(requestContext.tenant!.role, "club_owner");
+      const body = parseOrThrow(inviteTenantMemberInputSchema.safeParse(await c.req.json()));
+      const invitation = await tenantService.inviteTenantMember(
+        requestContext.tenant!.id,
+        body,
+        requestContext.actor!.userId,
+        requestContext.now
+      );
+      const payload = toTenantInvitationDto({
+        ...invitation,
+        tenantSlug: requestContext.tenant!.slug,
+        tenantName: requestContext.tenant!.name
+      });
+
+      createApiSuccessSchema(tenantInvitationSchema).parse({ data: payload });
+
+      return created(c, payload);
     });
 
 const toIsoString = (value: Date | string) => new Date(value).toISOString();
+
+const toTenantInvitationDto = (invitation: {
+  id: string;
+  tenantId: string;
+  tenantSlug: string;
+  tenantName: string;
+  email: string;
+  role: "club_owner" | "coach" | "performance_staff" | "analyst";
+  status: "pending" | "accepted" | "revoked" | "expired";
+  expiresAt: Date | string;
+  createdAt: Date | string;
+  acceptedAt?: Date | string | null;
+}) => ({
+  ...invitation,
+  expiresAt: toIsoString(invitation.expiresAt),
+  createdAt: toIsoString(invitation.createdAt),
+  acceptedAt: invitation.acceptedAt ? toIsoString(invitation.acceptedAt) : null
+});

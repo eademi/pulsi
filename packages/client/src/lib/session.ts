@@ -9,6 +9,8 @@ export const getDefaultMembership = (session: ActorSession): TenantMembership | 
   getActiveMemberships(session)[0] ?? null;
 
 export const getDashboardPath = (tenantSlug: string) => `/${tenantSlug}/dashboard`;
+export const getOrganizationSettingsPath = (tenantSlug: string) => `/${tenantSlug}/settings`;
+export const getGarminIntegrationPath = (tenantSlug: string) => `/${tenantSlug}/integrations/garmin`;
 export const getNoAccessPath = () => "/welcome";
 
 export const getDefaultAppPath = (session: ActorSession) => {

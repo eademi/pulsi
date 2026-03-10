@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "tenant_memberships_active_user_key" ON "tenant_memberships" USING btree ("user_id") WHERE "tenant_memberships"."status" = 'active';

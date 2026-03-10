@@ -8,5 +8,9 @@ export default [
     route("auth/register", "routes/auth-register.tsx")
   ]),
   route("auth/sign-out", "routes/auth-sign-out.tsx"),
-  layout("routes/tenant-layout.tsx", [route(":tenantSlug/dashboard", "routes/dashboard.tsx")])
+  layout("routes/tenant-layout.tsx", [
+    route(":tenantSlug/dashboard", "routes/dashboard.tsx"),
+    route(":tenantSlug/settings", "routes/organization-settings.tsx"),
+    route(":tenantSlug/integrations/garmin", "routes/garmin-integration.tsx")
+  ])
 ] satisfies RouteConfig;

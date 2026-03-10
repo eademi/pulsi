@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import {
+  athleteDeviceConnectionSchema,
   createApiSuccessSchema,
   createGarminConnectionSessionInputSchema,
   disconnectGarminConnectionInputSchema,
@@ -31,9 +32,38 @@ import type { GarminOAuthService } from "../services/garmin-oauth-service";
 
 export const buildGarminTenantRoutes = (
   garminOAuthService: GarminOAuthService,
-  garminConnectionService: GarminConnectionService
+  garminConnectionService: GarminConnectionService,
+  garminRepository: { listConnectionsForTenant: (tenantId: string) => Promise<Array<{
+    id: string;
+    tenantId: string;
+    athleteId: string;
+    provider: "garmin";
+    providerUserId: string;
+    status: "active" | "revoked";
+    lastSuccessfulSyncAt: Date | null;
+    lastCursor: string | null;
+    grantedPermissions: string[];
+    lastPermissionsSyncAt: Date | null;
+    lastPermissionChangeAt: Date | null;
+  }>> }
 ) =>
   new Hono<AppBindings>()
+    .get("/integrations/garmin/connections", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireMinimumRole(requestContext.tenant!.role, "analyst");
+
+      const connections = await garminRepository.listConnectionsForTenant(requestContext.tenant!.id);
+      const payload = connections.map((connection) => ({
+        ...connection,
+        lastSuccessfulSyncAt: connection.lastSuccessfulSyncAt?.toISOString() ?? null,
+        lastPermissionsSyncAt: connection.lastPermissionsSyncAt?.toISOString() ?? null,
+        lastPermissionChangeAt: connection.lastPermissionChangeAt?.toISOString() ?? null
+      }));
+
+      createApiSuccessSchema(athleteDeviceConnectionSchema.array()).parse({ data: payload });
+
+      return ok(c, payload);
+    })
     .post("/integrations/garmin/connection-sessions", async (c) => {
       const requestContext = c.get("requestContext");
       requireMinimumRole(requestContext.tenant!.role, "performance_staff");

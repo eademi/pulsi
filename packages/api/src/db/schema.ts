@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -21,6 +22,12 @@ export const tenantRoleEnum = pgEnum("tenant_role", [
   "analyst"
 ]);
 export const membershipStatusEnum = pgEnum("membership_status", ["active", "invited", "disabled"]);
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "revoked",
+  "expired"
+]);
 export const athleteStatusEnum = pgEnum("athlete_status", ["active", "inactive", "rehab"]);
 export const readinessBandEnum = pgEnum("readiness_band", ["ready", "caution", "restricted"]);
 export const trainingRecommendationEnum = pgEnum("training_recommendation", [
@@ -168,7 +175,38 @@ export const tenantMemberships = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.tenantId, table.userId] }),
     userLookup: index("tenant_memberships_user_idx").on(table.userId),
-    tenantLookup: index("tenant_memberships_tenant_idx").on(table.tenantId)
+    tenantLookup: index("tenant_memberships_tenant_idx").on(table.tenantId),
+    activeUserKey: uniqueIndex("tenant_memberships_active_user_key")
+      .on(table.userId)
+      .where(sql`${table.status} = 'active'`)
+  })
+);
+
+export const tenantInvitations = pgTable(
+  "tenant_invitations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: tenantRoleEnum("role").notNull(),
+    status: invitationStatusEnum("status").default("pending").notNull(),
+    invitedByUserId: text("invited_by_user_id")
+      .notNull()
+      .references(() => user.id),
+    acceptedByUserId: text("accepted_by_user_id").references(() => user.id, { onDelete: "set null" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    tenantLookup: index("tenant_invitations_tenant_idx").on(table.tenantId, table.status, table.createdAt),
+    emailLookup: index("tenant_invitations_email_idx").on(table.email, table.status, table.expiresAt),
+    pendingInviteKey: uniqueIndex("tenant_invitations_pending_key")
+      .on(table.tenantId, table.email)
+      .where(sql`${table.status} = 'pending'`)
   })
 );
 

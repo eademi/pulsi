@@ -28,7 +28,6 @@ export const clientLoader = async ({
 
   return {
     activeMembership,
-    memberships,
     session
   };
 };
@@ -37,11 +36,7 @@ export default function TenantLayoutRoute() {
   const data = useLoaderData<typeof clientLoader>();
 
   return (
-    <AppShell
-      activeMembership={data.activeMembership}
-      memberships={data.memberships}
-      session={data.session}
-    >
+    <AppShell activeMembership={data.activeMembership} session={data.session}>
       <Outlet />
     </AppShell>
   );

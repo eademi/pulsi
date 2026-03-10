@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { membershipStatusSchema, tenantRoleSchema } from "./auth";
 
 export const tenantSchema = z.object({
   id: z.string().uuid(),
@@ -18,5 +19,39 @@ export const createTenantInputSchema = z.object({
   timezone: z.string().min(2).max(64)
 });
 
+export const invitationStatusSchema = z.enum(["pending", "accepted", "revoked", "expired"]);
+
+export const inviteTenantMemberInputSchema = z.object({
+  email: z.string().email(),
+  role: tenantRoleSchema
+});
+
+export const tenantMemberSchema = z.object({
+  userId: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  role: tenantRoleSchema,
+  status: membershipStatusSchema,
+  isDefaultTenant: z.boolean(),
+  joinedAt: z.string().datetime()
+});
+
+export const tenantInvitationSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  tenantSlug: z.string(),
+  tenantName: z.string(),
+  email: z.string().email(),
+  role: tenantRoleSchema,
+  status: invitationStatusSchema,
+  expiresAt: z.string().datetime(),
+  createdAt: z.string().datetime(),
+  acceptedAt: z.string().datetime().nullable().optional()
+});
+
 export type Tenant = z.infer<typeof tenantSchema>;
 export type CreateTenantInput = z.infer<typeof createTenantInputSchema>;
+export type InviteTenantMemberInput = z.infer<typeof inviteTenantMemberInputSchema>;
+export type InvitationStatus = z.infer<typeof invitationStatusSchema>;
+export type TenantMember = z.infer<typeof tenantMemberSchema>;
+export type TenantInvitation = z.infer<typeof tenantInvitationSchema>;

@@ -9,6 +9,7 @@
     "db:migrate": "node --import tsx src/db/migrate.ts",
     "dev": "tsx watch src/index.ts",
     "lint": "pnpm --filter @pulsi/shared build && tsc --noEmit",
+    "test": "pnpm --filter @pulsi/shared build && node --import ./node_modules/tsx/dist/loader.mjs --test src/**/*.test.ts",
     "typecheck": "pnpm --filter @pulsi/shared build && tsc --noEmit"
   },
   "dependencies": {

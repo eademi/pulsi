@@ -192,6 +192,7 @@ Main tables involved:
 - `verification` (Better Auth verification tokens)
 - `tenants`
 - `tenant_memberships`
+- `tenant_invitations`
 - `athletes`
 - `athlete_device_connections`
 - `wearable_daily_metrics`
@@ -207,6 +208,16 @@ How user-to-tenant linkage works:
 - Pulsi links those identities to clubs through `tenant_memberships.user_id`
 - `tenant_memberships.user_id` now references `user.id`
 - when a request is authenticated, Pulsi takes `session.user.id` from Better Auth and resolves the active tenant membership from `tenant_memberships`
+- Pulsi now allows only one active tenant membership per user account at a time
+- that rule is enforced in both service logic and the database
+
+How pending access works:
+
+- club owners create email-based invitations in `tenant_invitations`
+- invited users see those invitations on `/welcome`
+- accepting an invitation creates or reactivates the `tenant_memberships` row
+- only active memberships grant tenant-scoped access
+- invitations to users who already belong to another organization are rejected
 
 ## 6. Core Domain Concepts
 
@@ -217,6 +228,28 @@ A club or organization.
 ### Athlete
 
 A player belonging to one tenant.
+
+### Squad
+
+A squad should be treated as an internal organizational boundary inside one tenant.
+
+Recommended future design:
+
+- `squads` table scoped to `tenant_id`
+- `athlete_squad_memberships` if athletes can move across squads over time, or `athletes.squad_id` if one active squad is enough
+- `tenant_user_squad_access` join table for non-owner staff who should only see selected squads
+- an access scope model such as `all_squads` vs `assigned_squads`
+
+Recommended permission model:
+
+- `club_owner`: always full-tenant visibility
+- `coach`, `performance_staff`, `analyst`: tenant member first, then restricted by squad access when needed
+
+This keeps the core organization model clean:
+
+- one user account belongs to one organization
+- one athlete belongs to one organization
+- multiple squads live inside that organization
 
 ### AthleteDeviceConnection
 
@@ -255,7 +288,23 @@ Garmin integration has 4 major responsibilities:
 3. receive Garmin notifications
 4. map Garmin Health summaries into Pulsi readiness data and Garmin Activity summaries into coach session context
 
-## 8. Garmin OAuth Flow
+## 8. Testing
+
+Pulsi now has a small initial automated test baseline:
+
+- API unit tests for role authorization
+- API unit tests for tenant invitation and acceptance rules
+- client unit tests for session redirect helpers
+
+Run them with:
+
+- `pnpm test`
+- `pnpm test:api`
+- `pnpm test:client`
+
+The medium-term test roadmap is documented in `docs/TESTING_STRATEGY.md`.
+
+## 9. Garmin OAuth Flow
 
 Pulsi starts Garmin connection from:
 
@@ -286,7 +335,7 @@ Key files:
 - `packages/api/src/services/garmin-oauth-service.ts`
 - `packages/api/src/repositories/garmin-repository.ts`
 
-## 9. Garmin Tokens
+## 10. Garmin Tokens
 
 Garmin tokens are stored encrypted.
 
@@ -302,7 +351,7 @@ Behavior:
 - Pulsi refreshes access tokens automatically
 - Pulsi fails explicitly when refresh tokens are no longer usable
 
-## 9.1 Onboarding Backfill
+## 10.1 Onboarding Backfill
 
 After Garmin OAuth completes, Pulsi starts a bounded Garmin Health backfill in the background.
 
@@ -329,7 +378,7 @@ Backfill uses:
 - the same `GarminMapper` path used for webhook data
 - the same `MetricIngestionService` path used for readiness derivation
 
-## 10. Garmin Notification Models: Ping, Pull, Push
+## 11. Garmin Notification Models: Ping, Pull, Push
 
 This is the most confusing part, so here is the plain-English version.
 
@@ -421,7 +470,7 @@ Pull:
 
 - in Garmin Health API, this should only happen as a result of Ping callback URLs
 
-## 11. How Ping Works In Pulsi
+## 12. How Ping Works In Pulsi
 
 Flow:
 
@@ -441,7 +490,7 @@ Key files:
 - `packages/api/src/integrations/garmin/health-api.contracts.ts`
 - `packages/api/src/services/garmin-connection-service.ts`
 
-## 12. How Push Works In Pulsi
+## 13. How Push Works In Pulsi
 
 Flow:
 
@@ -451,7 +500,7 @@ Flow:
 4. `MetricIngestionService` stores them
 5. `ReadinessEngine` computes readiness output
 
-## 13. How Garmin Data Becomes Readiness
+## 14. How Garmin Data Becomes Readiness
 
 This is the most important internal transformation.
 
@@ -492,7 +541,7 @@ Key files:
 - `packages/api/src/services/readiness-engine.ts`
 - `packages/api/src/repositories/integration-repository.ts`
 
-## 14. Health API Contracts
+## 15. Health API Contracts
 
 Garmin Health API summary schemas live in:
 
@@ -521,7 +570,7 @@ Important distinction:
 - typed/validated does not mean fully used in the product
 - some Garmin summary types are understood structurally, but not yet mapped into Pulsi readiness logic
 
-## 15. What Is Persisted
+## 16. What Is Persisted
 
 Important tables:
 
@@ -565,7 +614,7 @@ Pulsi-normalized daily wearable record.
 
 Coach-facing readiness output.
 
-## 16. Why The Upsert Logic Matters
+## 17. Why The Upsert Logic Matters
 
 Garmin may send multiple summary types for the same athlete and same day.
 
@@ -583,7 +632,7 @@ This logic lives in:
 
 - `packages/api/src/repositories/integration-repository.ts`
 
-## 17. Frontend Mental Model
+## 18. Frontend Mental Model
 
 The frontend is intentionally simple.
 
@@ -600,7 +649,7 @@ Good starting files:
 - `packages/client/src/lib/api.ts`
 - `packages/client/src/features/dashboard/dashboard-page.tsx`
 
-## 18. How To Add New Product Features
+## 19. How To Add New Product Features
 
 For normal REST features:
 
@@ -611,7 +660,7 @@ For normal REST features:
 5. add client API call
 6. add UI
 
-## 19. How To Add Support For Another Garmin Summary Type
+## 20. How To Add Support For Another Garmin Summary Type
 
 Example: support `stressDetails`.
 
@@ -624,7 +673,7 @@ Typical path:
 5. update readiness logic if the new metric should affect recommendations
 6. expose it in API/client if you want it visible in UI
 
-## 20. How To Add Another Provider
+## 21. How To Add Another Provider
 
 The pattern to follow is:
 
@@ -634,7 +683,7 @@ The pattern to follow is:
 4. reuse `MetricIngestionService`
 5. avoid leaking provider-specific field names into core services
 
-## 21. Database Migrations
+## 22. Database Migrations
 
 Pulsi uses Drizzle SQL migrations stored in `packages/api/drizzle`.
 
@@ -647,7 +696,7 @@ Normal workflow:
 
 The migration runner is `packages/api/src/db/migrate.ts`. Use that script as the standard way to apply migrations in local, staging, and production environments.
 
-## 22. Environment Files
+## 23. Environment Files
 
 For the API package:
 
@@ -666,7 +715,7 @@ Recommended split:
 - `.env`: port, URLs, local database URL, log level
 - `.env.local`: Better Auth secret, Garmin client credentials, Garmin webhook secret, token encryption key
 
-## 23. Recommended Reading Order
+## 24. Recommended Reading Order
 
 If you want to understand the system fast, read in this order:
 
@@ -681,7 +730,7 @@ If you want to understand the system fast, read in this order:
 9. `packages/api/src/integrations/garmin/garmin-mapper.ts`
 10. `packages/api/src/services/metric-ingestion-service.ts`
 
-## 24. Common Mistakes To Avoid
+## 25. Common Mistakes To Avoid
 
 - putting business logic directly into routes
 - forgetting tenant scoping in repository queries
@@ -691,7 +740,7 @@ If you want to understand the system fast, read in this order:
 - overwriting metric rows instead of merging partial day data
 - assuming that typed Garmin summary support means product support
 
-## 25. Short Glossary
+## 26. Short Glossary
 
 ### PKCE
 
