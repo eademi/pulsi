@@ -1,4 +1,5 @@
-import { Form, redirect, useLoaderData } from "react-router";
+import { startTransition, useState } from "react";
+import { Form, redirect, useLoaderData, useRevalidator, useSearchParams } from "react-router";
 
 import { apiClient } from "../lib/api";
 import { getDefaultAppPath } from "../lib/session";
@@ -15,16 +16,71 @@ export const clientLoader = async ({ request }: { request: Request }) => {
     throw redirect(getDefaultAppPath(session));
   }
 
-  const portal = await apiClient.getAthletePortal();
+  const [portal, garmin] = await Promise.all([
+    apiClient.getAthletePortal(),
+    apiClient.getAthleteGarminConnection()
+  ]);
 
   return {
+    garmin,
     portal,
     session
   };
 };
 
 export default function AthleteHomeRoute() {
-  const { portal, session } = useLoaderData<typeof clientLoader>();
+  const { garmin, portal, session } = useLoaderData<typeof clientLoader>();
+  const revalidator = useRevalidator();
+  const [searchParams] = useSearchParams();
+  const [pendingAction, setPendingAction] = useState<"connect" | "disconnect" | null>(null);
+  const [message, setMessage] = useState<{
+    kind: "error" | "success";
+    text: string;
+  } | null>(
+    searchParams.get("garmin") === "connected"
+      ? {
+          kind: "success",
+          text: "Garmin connected successfully."
+        }
+      : null
+  );
+
+  const connectGarmin = async () => {
+    setMessage(null);
+    setPendingAction("connect");
+
+    try {
+      const connectionSession = await apiClient.createAthleteGarminConnectionSession();
+      window.location.assign(connectionSession.authorizationUrl);
+    } catch (error) {
+      setMessage({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Unable to start Garmin connection."
+      });
+      setPendingAction(null);
+    }
+  };
+
+  const disconnectGarmin = async () => {
+    setMessage(null);
+    setPendingAction("disconnect");
+
+    try {
+      await apiClient.disconnectAthleteGarminConnection();
+      setMessage({
+        kind: "success",
+        text: "Garmin disconnected."
+      });
+      startTransition(() => revalidator.revalidate());
+    } catch (error) {
+      setMessage({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Unable to disconnect Garmin."
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
 
   return (
     <main className="athlete-shell">
@@ -45,6 +101,10 @@ export default function AthleteHomeRoute() {
           </Form>
         </div>
 
+        {message ? (
+          <p className={message.kind === "success" ? "form-success" : "form-error"}>{message.text}</p>
+        ) : null}
+
         <div className="athlete-summary-grid">
           <article className="settings-card">
             <div className="settings-card-copy">
@@ -63,9 +123,33 @@ export default function AthleteHomeRoute() {
           <article className="settings-card">
             <div className="settings-card-copy">
               <strong>Garmin connection</strong>
-              <p className="muted">{portal.garminConnected ? "Connected" : "Not connected yet"}</p>
+              <p className="muted">
+                {garmin.connection ? "Connected" : "Not connected yet"}
+                {!garmin.configured && garmin.reason ? ` · ${garmin.reason}` : ""}
+              </p>
             </div>
-            <span className="pill pill-subtle">{portal.garminConnected ? "active" : "pending"}</span>
+            <span className="pill pill-subtle">{garmin.connection ? "active" : "pending"}</span>
+            <div className="athlete-action-row">
+              {garmin.connection ? (
+                <button
+                  className="ghost-button"
+                  disabled={pendingAction === "disconnect"}
+                  onClick={() => void disconnectGarmin()}
+                  type="button"
+                >
+                  {pendingAction === "disconnect" ? "Disconnecting..." : "Disconnect Garmin"}
+                </button>
+              ) : (
+                <button
+                  className="primary-button"
+                  disabled={!garmin.configured || pendingAction === "connect"}
+                  onClick={() => void connectGarmin()}
+                  type="button"
+                >
+                  {pendingAction === "connect" ? "Connecting..." : "Connect Garmin"}
+                </button>
+              )}
+            </div>
           </article>
         </div>
 
@@ -87,8 +171,8 @@ export default function AthleteHomeRoute() {
             </>
           ) : (
             <p className="muted">
-              Pulsi will start showing personal recovery and readiness context here once Garmin data
-              is available for your profile.
+              Pulsi will start showing personal recovery and readiness context here once Garmin
+              data is available for your profile.
             </p>
           )}
         </section>

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import {
+  athleteGarminConnectionSchema,
   athleteDeviceConnectionSchema,
   createApiSuccessSchema,
   createGarminConnectionSessionInputSchema,
@@ -26,11 +27,31 @@ import {
 } from "../integrations/garmin/health-api.contracts";
 import { env } from "../env";
 import { AppError } from "../http/errors";
+import { requireAuth } from "../http/middleware";
 import { created, ok, parseOrThrow } from "../http/responses";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { GarminBackfillService } from "../services/garmin-backfill-service";
 import type { GarminConnectionService } from "../services/garmin-connection-service";
 import type { GarminOAuthService } from "../services/garmin-oauth-service";
+
+const serializeConnection = (connection: {
+  id: string;
+  tenantId: string;
+  athleteId: string;
+  provider: "garmin";
+  providerUserId: string;
+  status: "active" | "revoked";
+  lastSuccessfulSyncAt: Date | null;
+  lastCursor: string | null;
+  grantedPermissions: string[];
+  lastPermissionsSyncAt: Date | null;
+  lastPermissionChangeAt: Date | null;
+}) => ({
+  ...connection,
+  lastSuccessfulSyncAt: connection.lastSuccessfulSyncAt?.toISOString() ?? null,
+  lastPermissionsSyncAt: connection.lastPermissionsSyncAt?.toISOString() ?? null,
+  lastPermissionChangeAt: connection.lastPermissionChangeAt?.toISOString() ?? null
+});
 
 export const buildGarminTenantRoutes = (
   garminOAuthService: GarminOAuthService,
@@ -74,12 +95,7 @@ export const buildGarminTenantRoutes = (
       const visibleAthleteIds = new Set(visibleAthletes.map((athlete) => athlete.id));
       const payload = connections
         .filter((connection) => visibleAthleteIds.has(connection.athleteId))
-        .map((connection) => ({
-        ...connection,
-        lastSuccessfulSyncAt: connection.lastSuccessfulSyncAt?.toISOString() ?? null,
-        lastPermissionsSyncAt: connection.lastPermissionsSyncAt?.toISOString() ?? null,
-        lastPermissionChangeAt: connection.lastPermissionChangeAt?.toISOString() ?? null
-        }));
+        .map((connection) => serializeConnection(connection));
 
       createApiSuccessSchema(athleteDeviceConnectionSchema.array()).parse({ data: payload });
 
@@ -147,6 +163,89 @@ export const buildGarminTenantRoutes = (
       });
     });
 
+export const buildGarminAthleteRoutes = (
+  garminOAuthService: GarminOAuthService,
+  garminConnectionService: GarminConnectionService,
+  garminRepository: {
+    findConnectionByAthlete: (tenantId: string, athleteId: string) => Promise<{
+      id: string;
+      tenantId: string;
+      athleteId: string;
+      provider: "garmin";
+      providerUserId: string;
+      status: "active" | "revoked";
+      lastSuccessfulSyncAt: Date | null;
+      lastCursor: string | null;
+      grantedPermissions: string[];
+      lastPermissionsSyncAt: Date | null;
+      lastPermissionChangeAt: Date | null;
+    } | null>;
+  }
+) =>
+  new Hono<AppBindings>()
+    .use("*", requireAuth)
+    // Athlete-facing Garmin status for the signed-in claimed profile only.
+    .get("/me/athlete/garmin", async (c) => {
+      const actor = c.get("requestContext").actor!;
+
+      if (actor.actorType !== "athlete") {
+        throw new AppError(403, "FORBIDDEN", "Athlete access is required");
+      }
+
+      const connection = await garminRepository.findConnectionByAthlete(
+        actor.athleteProfile.tenantId,
+        actor.athleteProfile.athleteId
+      );
+      const payload = {
+        ...garminOAuthService.getIntegrationStatus(),
+        connection: connection ? serializeConnection(connection) : null
+      };
+
+      createApiSuccessSchema(athleteGarminConnectionSchema).parse({ data: payload });
+      return ok(c, payload);
+    })
+    // Athlete-initiated Garmin connect is always scoped to the signed-in athlete profile.
+    .post("/me/athlete/garmin/connection-sessions", async (c) => {
+      const actor = c.get("requestContext").actor!;
+
+      if (actor.actorType !== "athlete") {
+        throw new AppError(403, "FORBIDDEN", "Athlete access is required");
+      }
+
+      const session = await garminOAuthService.createAuthorizationSession({
+        tenantId: actor.athleteProfile.tenantId,
+        athleteId: actor.athleteProfile.athleteId,
+        actorUserId: actor.userId,
+        redirectUri: env.GARMIN_OAUTH_REDIRECT_URI
+      });
+      const payload = {
+        authorizationUrl: session.authorizationUrl,
+        state: session.state,
+        expiresAt: session.expiresAt.toISOString()
+      };
+
+      createApiSuccessSchema(garminConnectionSessionSchema).parse({ data: payload });
+      return created(c, payload);
+    })
+    // Athlete disconnect only affects the signed-in athlete profile, never another player.
+    .delete("/me/athlete/garmin", async (c) => {
+      const actor = c.get("requestContext").actor!;
+
+      if (actor.actorType !== "athlete") {
+        throw new AppError(403, "FORBIDDEN", "Athlete access is required");
+      }
+
+      await garminConnectionService.disconnectAthleteConnection({
+        tenantId: actor.athleteProfile.tenantId,
+        athleteId: actor.athleteProfile.athleteId
+      });
+
+      return ok(c, {
+        athleteId: actor.athleteProfile.athleteId,
+        disconnected: true
+      });
+    });
+
 export const buildGarminPublicRoutes = (
   garminOAuthService: GarminOAuthService,
   garminConnectionService: GarminConnectionService,
@@ -185,7 +284,7 @@ export const buildGarminPublicRoutes = (
           );
         });
 
-      const redirectUrl = new URL(`${env.CLIENT_URL}/${result.tenantSlug}/dashboard`);
+      const redirectUrl = new URL(result.redirectPath, env.CLIENT_URL);
       redirectUrl.searchParams.set("garmin", "connected");
       redirectUrl.searchParams.set("athleteId", result.athleteId);
 

@@ -1180,6 +1180,11 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
 
+.athlete-action-row {
+  width: min(100%, 15rem);
+  margin-left: auto;
+}
+
 .athlete-insight-panel {
   display: grid;
   gap: 0.75rem;

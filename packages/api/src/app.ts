@@ -21,7 +21,11 @@ import {
   buildTenantAthleteAccountRoutes
 } from "./routes/athlete-accounts";
 import { buildAthleteRoutes } from "./routes/athletes";
-import { buildGarminPublicRoutes, buildGarminTenantRoutes } from "./routes/garmin";
+import {
+  buildGarminAthleteRoutes,
+  buildGarminPublicRoutes,
+  buildGarminTenantRoutes
+} from "./routes/garmin";
 import { healthRoutes } from "./routes/health";
 import { buildReadinessRoutes } from "./routes/readiness";
 import { buildSquadRoutes } from "./routes/squads";
@@ -100,6 +104,7 @@ const garminBackfillService = new GarminBackfillService(
 );
 const garminOAuthService = new GarminOAuthService(
   athleteRepository,
+  athleteAccountRepository,
   garminRepository,
   garminApiClient,
   garminTokenService
@@ -145,6 +150,7 @@ app.route("/v1", healthRoutes);
 app.route("/v1", sessionRoutes);
 app.route("/v1", buildTenantRoutes(tenantService));
 app.route("/v1", buildAthleteAccountRoutes(athleteAccountService));
+app.route("/v1", buildGarminAthleteRoutes(garminOAuthService, garminConnectionService, garminRepository));
 app.route(
   "/v1",
   buildGarminPublicRoutes(garminOAuthService, garminConnectionService, garminBackfillService)

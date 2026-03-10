@@ -2,6 +2,7 @@ import { env } from "../env";
 import { AppError } from "../http/errors";
 import type { GarminApiClient } from "../integrations/garmin/garmin-client";
 import { createPkcePair } from "../integrations/garmin/pkce";
+import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { GarminRepository } from "../repositories/garmin-repository";
 import type { GarminTokenService } from "./garmin-token-service";
@@ -11,6 +12,7 @@ const OAUTH_SESSION_TTL_MS = 15 * 60 * 1000;
 export class GarminOAuthService {
   public constructor(
     private readonly athleteRepository: AthleteRepository,
+    private readonly athleteAccountRepository: AthleteAccountRepository,
     private readonly repository: GarminRepository,
     private readonly apiClient: GarminApiClient,
     private readonly tokenService: GarminTokenService
@@ -108,7 +110,12 @@ export class GarminOAuthService {
         connectionId: connection.id,
         createdByUserId: session.createdByUserId,
         providerUserId: userId,
-        grantedPermissions: permissions
+        grantedPermissions: permissions,
+        redirectPath: await this.resolvePostAuthorizationPath({
+          athleteId: session.athleteId,
+          createdByUserId: session.createdByUserId,
+          tenantSlug
+        })
       };
     } catch (error) {
       await this.repository.markOauthSessionStatus(session.id, "failed");
@@ -127,6 +134,23 @@ export class GarminOAuthService {
 
   private isConfigured() {
     return !isPlaceholder(env.GARMIN_CLIENT_ID) && !isPlaceholder(env.GARMIN_CLIENT_SECRET);
+  }
+
+  private async resolvePostAuthorizationPath(input: {
+    athleteId: string;
+    createdByUserId: string;
+    tenantSlug: string;
+  }) {
+    // Redirect based on the actor that initiated OAuth. Athlete accounts should
+    // land back on the athlete surface, while staff accounts return to the
+    // organization dashboard they were working from.
+    const athleteAccount = await this.athleteAccountRepository.findActiveByUserId(input.createdByUserId);
+
+    if (athleteAccount?.athleteId === input.athleteId) {
+      return "/athlete";
+    }
+
+    return `/${input.tenantSlug}/dashboard`;
   }
 }
 

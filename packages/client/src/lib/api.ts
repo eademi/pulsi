@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  athleteGarminConnectionSchema,
   athleteDeviceConnectionSchema,
   athleteClaimDetailsSchema,
   athleteClaimLinkSchema,
@@ -35,6 +36,7 @@ const athletesResponseSchema = createApiSuccessSchema(athleteSchema.array());
 const athleteClaimLinkResponseSchema = createApiSuccessSchema(athleteClaimLinkSchema);
 const athleteClaimDetailsResponseSchema = createApiSuccessSchema(athleteClaimDetailsSchema);
 const athletePortalResponseSchema = createApiSuccessSchema(athletePortalSchema);
+const athleteGarminConnectionResponseSchema = createApiSuccessSchema(athleteGarminConnectionSchema);
 const tenantsResponseSchema = createApiSuccessSchema(tenantSchema.array());
 const createTenantResponseSchema = createApiSuccessSchema(tenantSchema);
 const tenantMembersResponseSchema = createApiSuccessSchema(tenantMemberSchema.array());
@@ -258,6 +260,18 @@ export const apiClient = {
     return parsed.data;
   },
 
+  async getAthleteGarminConnection() {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/me/athlete/garmin`,
+      athleteGarminConnectionResponseSchema,
+      {
+        method: "GET"
+      }
+    );
+
+    return parsed.data;
+  },
+
   async listTenants() {
     const parsed = await request(`${API_BASE_URL}/v1/tenants`, tenantsResponseSchema, {
       method: "GET"
@@ -400,9 +414,37 @@ export const apiClient = {
     return parsed.data;
   },
 
+  async createAthleteGarminConnectionSession() {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/me/athlete/garmin/connection-sessions`,
+      createGarminConnectionSessionResponseSchema,
+      {
+        method: "POST",
+        body: JSON.stringify({})
+      }
+    );
+
+    return parsed.data;
+  },
+
   async disconnectGarminConnection(tenantSlug: string, athleteId: string) {
     return request(
       `${API_BASE_URL}/v1/tenants/${tenantSlug}/integrations/garmin/connections/${athleteId}`,
+      createApiSuccessSchema(
+        z.object({
+          athleteId: z.string().uuid(),
+          disconnected: z.boolean()
+        })
+      ),
+      {
+        method: "DELETE"
+      }
+    );
+  },
+
+  async disconnectAthleteGarminConnection() {
+    return request(
+      `${API_BASE_URL}/v1/me/athlete/garmin`,
       createApiSuccessSchema(
         z.object({
           athleteId: z.string().uuid(),
