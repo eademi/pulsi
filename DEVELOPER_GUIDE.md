@@ -583,7 +583,20 @@ The pattern to follow is:
 4. reuse `MetricIngestionService`
 5. avoid leaking provider-specific field names into core services
 
-## 21. Recommended Reading Order
+## 21. Database Migrations
+
+Pulsi uses Drizzle SQL migrations stored in `packages/api/drizzle`.
+
+Normal workflow:
+
+1. change the schema in `packages/api/src/db/schema.ts`
+2. generate SQL with `pnpm db:generate:api`
+3. review the generated SQL in `packages/api/drizzle/*.sql`
+4. apply migrations with `pnpm db:migrate:api`
+
+The migration runner is `packages/api/src/db/migrate.ts`. Use that script as the standard way to apply migrations in local, staging, and production environments.
+
+## 22. Recommended Reading Order
 
 If you want to understand the system fast, read in this order:
 
@@ -598,7 +611,7 @@ If you want to understand the system fast, read in this order:
 9. `packages/api/src/integrations/garmin/garmin-mapper.ts`
 10. `packages/api/src/services/metric-ingestion-service.ts`
 
-## 22. Common Mistakes To Avoid
+## 23. Common Mistakes To Avoid
 
 - putting business logic directly into routes
 - forgetting tenant scoping in repository queries
@@ -608,7 +621,7 @@ If you want to understand the system fast, read in this order:
 - overwriting metric rows instead of merging partial day data
 - assuming that typed Garmin summary support means product support
 
-## 23. Short Glossary
+## 24. Short Glossary
 
 ### PKCE
 

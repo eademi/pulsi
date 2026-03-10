@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
     "dev": "tsx watch src/index.ts",
     "lint": "pnpm --filter @pulsi/shared build && tsc --noEmit",
     "typecheck": "pnpm --filter @pulsi/shared build && tsc --noEmit"
