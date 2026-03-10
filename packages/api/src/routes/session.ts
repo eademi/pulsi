@@ -13,6 +13,7 @@ export const sessionRoutes = new Hono<AppBindings>()
     const actor = requestContext.actor!;
 
     const payload = {
+      actorType: actor.actorType,
       user: {
         id: actor.userId,
         email: actor.email,
@@ -23,6 +24,7 @@ export const sessionRoutes = new Hono<AppBindings>()
         id: actor.sessionId,
         expiresAt: actor.sessionExpiresAt
       },
+      athleteProfile: actor.athleteProfile,
       memberships: actor.memberships.map((membership) => ({
         tenantId: membership.tenantId,
         tenantSlug: membership.tenantSlug,

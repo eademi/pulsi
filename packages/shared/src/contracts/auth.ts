@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { squadSummarySchema, tenantAccessScopeSchema } from "./squads";
+import { athleteStatusSchema } from "./athletes";
 
 export const tenantRoleSchema = z.enum([
   "club_owner",
@@ -10,6 +11,7 @@ export const tenantRoleSchema = z.enum([
 ]);
 
 export const membershipStatusSchema = z.enum(["active", "invited", "disabled"]);
+export const actorTypeSchema = z.enum(["staff", "athlete"]);
 
 export const authUserSchema = z.object({
   id: z.string(),
@@ -33,14 +35,43 @@ export const tenantMembershipSchema = z.object({
   assignedSquads: z.array(squadSummarySchema)
 });
 
-export const actorSessionSchema = z.object({
-  user: authUserSchema,
-  session: sessionSchema,
-  memberships: z.array(tenantMembershipSchema)
+export const athleteActorProfileSchema = z.object({
+  athleteId: z.string().uuid(),
+  athleteName: z.string(),
+  tenantId: z.string().uuid(),
+  tenantSlug: z.string(),
+  tenantName: z.string(),
+  timezone: z.string(),
+  status: athleteStatusSchema,
+  currentSquad: squadSummarySchema.nullable()
 });
+
+const baseActorSessionSchema = z.object({
+  user: authUserSchema,
+  session: sessionSchema
+});
+
+export const staffActorSessionSchema = baseActorSessionSchema.extend({
+  actorType: z.literal("staff"),
+  memberships: z.array(tenantMembershipSchema),
+  athleteProfile: z.null()
+});
+
+export const athleteActorSessionSchema = baseActorSessionSchema.extend({
+  actorType: z.literal("athlete"),
+  memberships: z.array(tenantMembershipSchema).max(0),
+  athleteProfile: athleteActorProfileSchema
+});
+
+export const actorSessionSchema = z.discriminatedUnion("actorType", [
+  staffActorSessionSchema,
+  athleteActorSessionSchema
+]);
 
 export type TenantRole = z.infer<typeof tenantRoleSchema>;
 export type MembershipStatus = z.infer<typeof membershipStatusSchema>;
+export type ActorType = z.infer<typeof actorTypeSchema>;
 export type AuthUser = z.infer<typeof authUserSchema>;
 export type ActorSession = z.infer<typeof actorSessionSchema>;
 export type TenantMembership = z.infer<typeof tenantMembershipSchema>;
+export type AthleteActorProfile = z.infer<typeof athleteActorProfileSchema>;

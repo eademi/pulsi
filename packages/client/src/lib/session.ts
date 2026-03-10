@@ -16,6 +16,10 @@ export const getGarminIntegrationPath = (tenantSlug: string) => `/${tenantSlug}/
 export const getNoAccessPath = () => "/welcome";
 
 export const getDefaultAppPath = (session: ActorSession) => {
+  if (session.actorType === "athlete") {
+    return getNoAccessPath();
+  }
+
   const membership = getDefaultMembership(session);
   return membership ? getDashboardPath(membership.tenantSlug) : getNoAccessPath();
 };

@@ -7,6 +7,7 @@ import { auth } from "./auth/auth";
 import { toErrorResponse } from "./http/responses";
 import { requestContextMiddleware, tenantScopeMiddleware } from "./http/middleware";
 import { ActivityRepository } from "./repositories/activity-repository";
+import { AthleteAccountRepository } from "./repositories/athlete-account-repository";
 import { AthleteRepository } from "./repositories/athlete-repository";
 import { IntegrationRepository } from "./repositories/integration-repository";
 import { InvitationRepository } from "./repositories/invitation-repository";
@@ -42,6 +43,7 @@ import { SquadService } from "./services/squad-service";
 import { TenantService } from "./services/tenant-service";
 
 const membershipRepository = new MembershipRepository(db);
+const athleteAccountRepository = new AthleteAccountRepository(db);
 const invitationRepository = new InvitationRepository(db);
 const activityRepository = new ActivityRepository(db);
 const athleteRepository = new AthleteRepository(db);
@@ -107,7 +109,7 @@ app.use(
     exposeHeaders: ["X-Request-Id"]
   })
 );
-app.use("*", requestContextMiddleware(membershipRepository));
+app.use("*", requestContextMiddleware(membershipRepository, athleteAccountRepository));
 
 app.onError((error, c) => {
   const requestContext = c.get("requestContext");

@@ -30,6 +30,10 @@ export const invitationStatusEnum = pgEnum("invitation_status", [
   "expired"
 ]);
 export const athleteStatusEnum = pgEnum("athlete_status", ["active", "inactive", "rehab"]);
+export const athleteUserAccountStatusEnum = pgEnum("athlete_user_account_status", [
+  "active",
+  "revoked"
+]);
 export const squadStatusEnum = pgEnum("squad_status", ["active", "inactive"]);
 export const tenantAccessScopeEnum = pgEnum("tenant_access_scope", [
   "all_squads",
@@ -235,6 +239,29 @@ export const athletes = pgTable(
   (table) => ({
     tenantLookup: index("athletes_tenant_idx").on(table.tenantId, table.status),
     tenantExternalRefKey: uniqueIndex("athletes_tenant_external_ref_key").on(table.tenantId, table.externalRef)
+  })
+);
+
+export const athleteUserAccounts = pgTable(
+  "athlete_user_accounts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: athleteUserAccountStatusEnum("status").default("active").notNull(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    athleteLookup: index("athlete_user_accounts_athlete_idx").on(table.athleteId, table.status),
+    userLookup: index("athlete_user_accounts_user_idx").on(table.userId, table.status),
+    athleteKey: uniqueIndex("athlete_user_accounts_athlete_key").on(table.athleteId),
+    userKey: uniqueIndex("athlete_user_accounts_user_key").on(table.userId)
   })
 );
 

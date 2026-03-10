@@ -1,6 +1,11 @@
 import type { Logger } from "pino";
 
-import type { SquadSummary, TenantAccessScope, TenantRole } from "@pulsi/shared";
+import type {
+  AthleteActorProfile,
+  SquadSummary,
+  TenantAccessScope,
+  TenantRole
+} from "@pulsi/shared";
 
 export interface TenantMembershipRecord {
   tenantId: string;
@@ -12,15 +17,29 @@ export interface TenantMembershipRecord {
   assignedSquads: SquadSummary[];
 }
 
-export interface AuthenticatedActor {
+interface BaseAuthenticatedActor {
+  actorType: "staff" | "athlete";
   userId: string;
   email: string;
   name: string;
   image?: string | null;
   sessionId: string;
   sessionExpiresAt: string;
-  memberships: TenantMembershipRecord[];
 }
+
+export interface StaffAuthenticatedActor extends BaseAuthenticatedActor {
+  actorType: "staff";
+  memberships: TenantMembershipRecord[];
+  athleteProfile: null;
+}
+
+export interface AthleteAuthenticatedActor extends BaseAuthenticatedActor {
+  actorType: "athlete";
+  memberships: [];
+  athleteProfile: AthleteActorProfile;
+}
+
+export type AuthenticatedActor = StaffAuthenticatedActor | AthleteAuthenticatedActor;
 
 export interface TenantContext {
   id: string;

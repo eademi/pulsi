@@ -50,6 +50,13 @@
       "when": 1773174798684,
       "tag": "0006_slow_millenium_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773178240436,
+      "tag": "0007_cold_surge",
+      "breakpoints": true
     }
   ]
 }

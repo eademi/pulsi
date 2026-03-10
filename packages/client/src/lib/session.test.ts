@@ -23,7 +23,11 @@ const createMembership = (
   ...overrides
 });
 
-const createSession = (overrides?: Partial<ActorSession>): ActorSession => ({
+const createStaffSession = (
+  overrides?: Partial<Extract<ActorSession, { actorType: "staff" }>>
+): Extract<ActorSession, { actorType: "staff" }> => ({
+  actorType: "staff",
+  athleteProfile: null,
   memberships: [],
   session: {
     expiresAt: "2026-03-11T08:00:00.000Z",
@@ -38,7 +42,7 @@ const createSession = (overrides?: Partial<ActorSession>): ActorSession => ({
 });
 
 test("getActiveMemberships returns only active memberships", () => {
-  const session = createSession({
+  const session = createStaffSession({
     memberships: [
       createMembership(),
       createMembership({
@@ -57,7 +61,7 @@ test("getActiveMemberships returns only active memberships", () => {
 });
 
 test("getDefaultAppPath returns the first active tenant dashboard when memberships exist", () => {
-  const session = createSession({
+  const session = createStaffSession({
     memberships: [
       createMembership()
     ]
@@ -67,7 +71,35 @@ test("getDefaultAppPath returns the first active tenant dashboard when membershi
 });
 
 test("getDefaultAppPath returns the no-access route when there are no active memberships", () => {
-  const session = createSession();
+  const session = createStaffSession();
+
+  assert.equal(getDefaultAppPath(session), getNoAccessPath());
+});
+
+test("getDefaultAppPath returns the no-access route for athlete actors", () => {
+  const session: Extract<ActorSession, { actorType: "athlete" }> = {
+    actorType: "athlete",
+    athleteProfile: {
+      athleteId: "8e7998d0-5eea-4c7d-b148-0da8cdb4c09c",
+      athleteName: "Alex Athlete",
+      tenantId: "531a6325-3a8f-4218-bde6-d18c93a883fd",
+      tenantName: "Example FC",
+      tenantSlug: "example-fc",
+      timezone: "Europe/Berlin",
+      status: "active",
+      currentSquad: null
+    },
+    memberships: [],
+    session: {
+      expiresAt: "2026-03-11T08:00:00.000Z",
+      id: "session-1"
+    },
+    user: {
+      email: "athlete@club.com",
+      id: "user-2",
+      name: "Alex Athlete"
+    }
+  };
 
   assert.equal(getDefaultAppPath(session), getNoAccessPath());
 });

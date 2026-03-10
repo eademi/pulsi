@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { athleteSchema, athleteStatusSchema } from "./readiness";
 
+export { athleteStatusSchema };
+
 export const listAthletesQuerySchema = z.object({
   squadId: z.string().uuid().optional(),
   squadSlug: z.string().min(1).max(64).optional()

@@ -2,15 +2,20 @@ import { randomUUID } from "node:crypto";
 
 import type { Context, Next } from "hono";
 
+import { resolveAuthenticatedActor } from "../auth/actor-resolution";
 import { getAuthSession } from "../auth/auth";
 import type { AppBindings, AuthenticatedActor } from "../context/app-context";
 import { logger } from "../telemetry/logger";
+import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
 import type { MembershipRepository } from "../repositories/membership-repository";
 import type { TenantAccessService } from "../services/tenant-access-service";
 import { AppError } from "./errors";
 
 export const requestContextMiddleware =
-  (membershipRepository: MembershipRepository) =>
+  (
+    membershipRepository: MembershipRepository,
+    athleteAccountRepository: AthleteAccountRepository
+  ) =>
   async (c: Context<AppBindings>, next: Next) => {
     const requestId = c.req.header("x-request-id") ?? randomUUID();
     const requestLogger = logger.child({
@@ -23,18 +28,19 @@ export const requestContextMiddleware =
     const session = await getAuthSession(c.req.raw.headers);
 
     if (session) {
-      const memberships = await membershipRepository.listForUser(session.user.id);
-      actor = {
-        userId: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        image: session.user.image,
-        sessionId: session.session.id,
-        sessionExpiresAt: session.session.expiresAt,
-        memberships
-      };
+      const [memberships, athleteProfile] = await Promise.all([
+        membershipRepository.listForUser(session.user.id),
+        athleteAccountRepository.findActiveProfileByUserId(session.user.id)
+      ]);
+
+      actor = resolveAuthenticatedActor({
+        session,
+        memberships,
+        athleteProfile
+      });
       requestLogger.setBindings({
-        userId: actor.userId
+        userId: actor.userId,
+        actorType: actor.actorType
       });
     }
 
@@ -69,6 +75,14 @@ export const tenantScopeMiddleware =
 
     if (!requestContext.actor) {
       throw new AppError(401, "UNAUTHENTICATED", "Authentication required");
+    }
+
+    if (requestContext.actor.actorType !== "staff") {
+      throw new AppError(
+        403,
+        "FORBIDDEN",
+        "Athlete accounts cannot access organization staff routes"
+      );
     }
 
     if (!tenantSlug) {
