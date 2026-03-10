@@ -15,7 +15,7 @@
     "dev:api": "pnpm --filter @pulsi/api dev",
     "dev:client": "pnpm --filter @pulsi/client dev",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm --filter @pulsi/shared build && pnpm --filter @pulsi/api exec tsc --noEmit && pnpm --filter @pulsi/client exec tsc --noEmit"
+    "typecheck": "pnpm --filter @pulsi/shared build && pnpm --filter @pulsi/api exec tsc --noEmit && pnpm --filter @pulsi/client exec react-router typegen && pnpm --filter @pulsi/client exec tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

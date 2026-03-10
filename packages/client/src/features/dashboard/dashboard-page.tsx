@@ -1,154 +1,148 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Field } from "@base-ui/react/field";
-import { Select } from "@base-ui/react/select";
+import { startTransition, useDeferredValue, useState } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 
 import type { AthleteReadiness } from "@pulsi/shared";
 
-import { apiClient } from "../../lib/api";
 import { ReadinessCard } from "./readiness-card";
 
-export const DashboardPage = () => {
-  const { tenantSlug = "" } = useParams();
+export const DashboardPage = ({
+  readiness,
+  tenantSlug
+}: {
+  readiness: AthleteReadiness[];
+  tenantSlug: string;
+}) => {
   const [bandFilter, setBandFilter] = useState<ReadinessFilter>("all");
-  const readinessQuery = useQuery({
-    queryKey: ["readiness", tenantSlug],
-    queryFn: () => apiClient.getTenantReadiness(tenantSlug),
-    enabled: Boolean(tenantSlug)
-  });
+  const deferredBandFilter = useDeferredValue(bandFilter);
 
-  const data: AthleteReadiness[] = readinessQuery.data ?? [];
   const summary = {
-    ready: data.filter((item) => item.latestSnapshot?.readinessBand === "ready").length,
-    caution: data.filter((item) => item.latestSnapshot?.readinessBand === "caution").length,
-    restricted: data.filter((item) => item.latestSnapshot?.readinessBand === "restricted").length
+    ready: readiness.filter((item) => item.latestSnapshot?.readinessBand === "ready").length,
+    caution: readiness.filter((item) => item.latestSnapshot?.readinessBand === "caution").length,
+    restricted: readiness.filter((item) => item.latestSnapshot?.readinessBand === "restricted").length
   };
-  const filteredData =
-    bandFilter === "all"
-      ? data
-      : data.filter((item) => item.latestSnapshot?.readinessBand === bandFilter);
-  const attentionQueue = data.filter(
+
+  const filteredReadiness =
+    deferredBandFilter === "all"
+      ? readiness
+      : readiness.filter((item) => item.latestSnapshot?.readinessBand === deferredBandFilter);
+
+  const attentionQueue = readiness.filter(
     (item) =>
       item.latestSnapshot?.readinessBand === "restricted" ||
       item.latestSnapshot?.recommendation === "recovery_focus"
   );
 
   return (
-    <section>
-      <Tabs.Root defaultValue="board" className="tabs-root">
-        <div className="toolbar">
-          <div>
-            <div className="muted">Training readiness</div>
-            <h2 style={{ margin: "8px 0 0" }}>Daily squad view</h2>
-          </div>
+    <section className="dashboard-stack">
+      <header className="hero surface">
+        <div className="hero-copy">
+          <p className="eyebrow">Daily overview</p>
+          <h1>{tenantSlug.replaceAll("-", " ")} training board</h1>
+          <p className="muted hero-body">
+            Pulsi turns overnight wearable signals into a board that staff can act on before
+            training starts.
+          </p>
+        </div>
 
-          <div className="toolbar-controls">
-            <Field.Root className="field">
-              <Field.Label className="field-label" nativeLabel={false}>
-                Readiness band
-              </Field.Label>
-              <Select.Root value={bandFilter} onValueChange={(value) => setBandFilter(value as ReadinessFilter)}>
-                <Select.Trigger className="select-trigger" aria-label="Readiness band filter">
-                  <Select.Value />
-                  <Select.Icon aria-hidden="true">▾</Select.Icon>
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Positioner sideOffset={8}>
-                    <Select.Popup className="select-popup">
-                      <Select.Arrow className="select-arrow" />
-                      <Select.List className="select-list">
-                        {READINESS_FILTERS.map((item) => (
-                          <Select.Item key={item.value} value={item.value} className="select-item">
-                            <Select.ItemText>{item.label}</Select.ItemText>
-                            <Select.ItemIndicator>•</Select.ItemIndicator>
-                          </Select.Item>
-                        ))}
-                      </Select.List>
-                    </Select.Popup>
-                  </Select.Positioner>
-                </Select.Portal>
-              </Select.Root>
-            </Field.Root>
+        <div className="hero-metrics">
+          <article className="hero-metric-card">
+            <span>Ready</span>
+            <strong className="band-ready">{summary.ready}</strong>
+          </article>
+          <article className="hero-metric-card">
+            <span>Caution</span>
+            <strong className="band-caution">{summary.caution}</strong>
+          </article>
+          <article className="hero-metric-card">
+            <span>Restricted</span>
+            <strong className="band-restricted">{summary.restricted}</strong>
+          </article>
+        </div>
+      </header>
 
-            <div className="pill">{tenantSlug}</div>
+      <Tabs.Root className="tabs-root" defaultValue="board">
+        <div className="dashboard-toolbar">
+          <Tabs.List aria-label="Dashboard views" className="tabs-list">
+            <Tabs.Tab className="tabs-tab" value="board">
+              Readiness board
+            </Tabs.Tab>
+            <Tabs.Tab className="tabs-tab" value="attention">
+              Attention queue
+            </Tabs.Tab>
+            <Tabs.Indicator className="tabs-indicator" />
+          </Tabs.List>
+
+          <div className="filter-cluster" role="tablist" aria-label="Readiness filter">
+            {READINESS_FILTERS.map((filter) => {
+              const active = bandFilter === filter.value;
+
+              return (
+                <button
+                  key={filter.value}
+                  className={`filter-chip${active ? " is-active" : ""}`}
+                  onClick={() => {
+                    startTransition(() => setBandFilter(filter.value));
+                  }}
+                  type="button"
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <Tabs.List className="tabs-list" aria-label="Dashboard views">
-          <Tabs.Tab className="tabs-tab" value="board">
-            Readiness board
-          </Tabs.Tab>
-          <Tabs.Tab className="tabs-tab" value="attention">
-            Attention queue
-          </Tabs.Tab>
-          <Tabs.Indicator className="tabs-indicator" />
-        </Tabs.List>
-
-        <Tabs.Panel value="board" className="tabs-panel">
-          <div className="dashboard-grid">
-            <div className="surface metric-card">
-              <div className="muted">Ready for full load</div>
-              <div className="metric-value band-ready">{summary.ready}</div>
-            </div>
-            <div className="surface metric-card">
-              <div className="muted">Needs caution</div>
-              <div className="metric-value band-caution">{summary.caution}</div>
-            </div>
-            <div className="surface metric-card">
-              <div className="muted">Recovery focus</div>
-              <div className="metric-value band-restricted">{summary.restricted}</div>
-            </div>
-          </div>
-
-          {readinessQuery.isLoading ? (
-            <div className="surface empty-state">
-              Loading readiness view...
-            </div>
-          ) : readinessQuery.isError ? (
-            <div className="surface empty-state">
-              {(readinessQuery.error as Error).message}
-            </div>
-          ) : (
+        <Tabs.Panel className="tabs-panel" value="board">
+          {filteredReadiness.length > 0 ? (
             <div className="athlete-list">
-              {filteredData.map((athleteReadiness) => (
+              {filteredReadiness.map((athleteReadiness) => (
                 <ReadinessCard
-                  key={athleteReadiness.athlete.id}
                   athleteReadiness={athleteReadiness}
+                  key={athleteReadiness.athlete.id}
                 />
               ))}
+            </div>
+          ) : (
+            <div className="surface empty-state">
+              No athletes match the selected readiness band.
             </div>
           )}
         </Tabs.Panel>
 
-        <Tabs.Panel value="attention" className="tabs-panel">
-          <div className="attention-grid">
-            {attentionQueue.length > 0 ? (
-              attentionQueue.map((athleteReadiness) => (
+        <Tabs.Panel className="tabs-panel" value="attention">
+          {attentionQueue.length > 0 ? (
+            <div className="attention-grid">
+              {attentionQueue.map((athleteReadiness) => (
                 <article
-                  key={athleteReadiness.athlete.id}
                   className="surface attention-card"
+                  key={athleteReadiness.athlete.id}
                 >
-                  <div className="muted">Priority review</div>
-                  <h3 style={{ margin: "8px 0" }}>
+                  <div className="attention-card-topline">
+                    <span className="eyebrow">Priority review</span>
+                    <span className="pill">
+                      {athleteReadiness.latestSnapshot?.recommendation.replaceAll("_", " ") ??
+                        "monitor"}
+                    </span>
+                  </div>
+                  <h3>
                     {athleteReadiness.athlete.firstName} {athleteReadiness.athlete.lastName}
                   </h3>
-                  <div className="pill">
-                    {athleteReadiness.latestSnapshot?.recommendation.replaceAll("_", " ") ?? "monitor"}
-                  </div>
-                  <p style={{ marginBottom: 0 }}>
+                  <p className="muted">
+                    {athleteReadiness.athlete.squad ?? "First Team"} ·{" "}
+                    {athleteReadiness.athlete.position ?? "Player"}
+                  </p>
+                  <p className="attention-copy">
                     {athleteReadiness.latestSnapshot?.rationale.join(" · ") ??
-                      "No synced readiness rationale is available yet."}
+                      "No synced rationale is available yet for this athlete."}
                   </p>
                 </article>
-              ))
-            ) : (
-              <div className="surface empty-state">
-                No athletes are currently flagged for priority review.
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="surface empty-state">
+              No athletes are currently flagged for priority review.
+            </div>
+          )}
         </Tabs.Panel>
       </Tabs.Root>
     </section>
@@ -158,7 +152,7 @@ export const DashboardPage = () => {
 type ReadinessFilter = "all" | "ready" | "caution" | "restricted";
 
 const READINESS_FILTERS: Array<{ value: ReadinessFilter; label: string }> = [
-  { value: "all", label: "All athletes" },
+  { value: "all", label: "All" },
   { value: "ready", label: "Ready" },
   { value: "caution", label: "Caution" },
   { value: "restricted", label: "Restricted" }

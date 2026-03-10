@@ -7,39 +7,146 @@ import {
 } from "@pulsi/shared";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+const AUTH_BASE_URL = `${API_BASE_URL}/api/auth`;
 
 const sessionResponseSchema = createApiSuccessSchema(actorSessionSchema);
 const readinessResponseSchema = createApiSuccessSchema(athleteReadinessSchema.array());
+const authSignInResponseSchema = z.object({
+  redirect: z.boolean(),
+  token: z.string(),
+  url: z.string().optional(),
+  user: z.object({
+    id: z.string(),
+    email: z.string().email(),
+    name: z.string(),
+    image: z.string().nullable().optional(),
+    emailVerified: z.boolean().optional()
+  })
+});
+const authSignUpResponseSchema = z.object({
+  token: z.string().nullable(),
+  user: z.object({
+    id: z.string(),
+    email: z.string().email(),
+    name: z.string(),
+    image: z.string().nullable().optional(),
+    emailVerified: z.boolean().optional()
+  })
+});
+const authSignOutResponseSchema = z.object({
+  success: z.boolean()
+});
+
+const getErrorMessage = (payload: unknown) => {
+  if (!payload || typeof payload !== "object") {
+    return "Request failed";
+  }
+
+  const record = payload as Record<string, unknown>;
+
+  if (typeof record.message === "string") {
+    return record.message;
+  }
+
+  if (record.error && typeof record.error === "object") {
+    const nestedError = record.error as Record<string, unknown>;
+    if (typeof nestedError.message === "string") {
+      return nestedError.message;
+    }
+  }
+
+  return "Request failed";
+};
 
 const parseResponse = async <T extends z.ZodTypeAny>(
   response: Response,
   schema: T
 ): Promise<z.infer<T>> => {
-  const payload = await response.json();
+  const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Request failed");
+    throw new Error(getErrorMessage(payload));
   }
 
   return schema.parse(payload);
 };
 
+const request = async <T extends z.ZodTypeAny>(
+  path: string,
+  schema: T,
+  init?: RequestInit
+) => {
+  const headers = new Headers(init?.headers);
+
+  if (init?.body && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+
+  const response = await fetch(path, {
+    credentials: "include",
+    ...init,
+    headers
+  });
+
+  return parseResponse(response, schema);
+};
+
 export const apiClient = {
   async getSession() {
+    const parsed = await request(`${API_BASE_URL}/v1/session`, sessionResponseSchema, {
+      method: "GET"
+    });
+    return parsed.data;
+  },
+
+  async getSessionOptional() {
     const response = await fetch(`${API_BASE_URL}/v1/session`, {
       credentials: "include"
     });
+
+    if (response.status === 401 || response.status === 403) {
+      return null;
+    }
 
     const parsed = await parseResponse(response, sessionResponseSchema);
     return parsed.data;
   },
 
   async getTenantReadiness(tenantSlug: string) {
-    const response = await fetch(`${API_BASE_URL}/v1/tenants/${tenantSlug}/readiness`, {
-      credentials: "include"
-    });
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/readiness`,
+      readinessResponseSchema,
+      {
+        method: "GET"
+      }
+    );
 
-    const parsed = await parseResponse(response, readinessResponseSchema);
     return parsed.data;
+  },
+
+  async signInEmail(input: { email: string; password: string; rememberMe?: boolean }) {
+    return request(`${AUTH_BASE_URL}/sign-in/email`, authSignInResponseSchema, {
+      method: "POST",
+      body: JSON.stringify(input)
+    });
+  },
+
+  async signUpEmail(input: {
+    name: string;
+    email: string;
+    password: string;
+    rememberMe?: boolean;
+  }) {
+    return request(`${AUTH_BASE_URL}/sign-up/email`, authSignUpResponseSchema, {
+      method: "POST",
+      body: JSON.stringify(input)
+    });
+  },
+
+  async signOut() {
+    return request(`${AUTH_BASE_URL}/sign-out`, authSignOutResponseSchema, {
+      method: "POST",
+      // body: JSON.stringify({})
+    });
   }
 };

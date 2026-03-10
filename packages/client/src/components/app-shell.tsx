@@ -1,45 +1,72 @@
-import { Outlet, useParams } from "react-router-dom";
+import type { PropsWithChildren } from "react";
+import { Form, NavLink } from "react-router";
+import type { ActorSession, TenantMembership } from "@pulsi/shared";
 
-import { useSessionQuery } from "../features/auth/use-session";
-import { useTenantMembership } from "../features/tenants/use-tenant-membership";
+import { getDashboardPath } from "../lib/session";
 
-export const AppShell = () => {
-  const { tenantSlug = "" } = useParams();
-  const sessionQuery = useSessionQuery();
-  const membership = useTenantMembership(sessionQuery.data?.memberships ?? [], tenantSlug);
-
-  return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
+export const AppShell = ({
+  session,
+  memberships,
+  activeMembership,
+  children
+}: PropsWithChildren<{
+  session: ActorSession;
+  memberships: TenantMembership[];
+  activeMembership: TenantMembership;
+}>) => (
+  <div className="app-shell">
+    <aside className="sidebar">
+      <div className="brand">
+        <div className="brand-mark">P</div>
+        <div>
           <h1>Pulsi</h1>
-          <p>Coach-facing readiness decisions for training staff.</p>
+          <p>Readiness decisions for coaching staff.</p>
+        </div>
+      </div>
+
+      <section className="surface profile-panel">
+        <div className="eyebrow">Signed in</div>
+        <h2>{session.user.name}</h2>
+        <p className="muted">{session.user.email}</p>
+      </section>
+
+      <section className="rail-section">
+        <div className="rail-header">
+          <span className="eyebrow">Clubs</span>
+          <span className="pill pill-subtle">{activeMembership.role.replaceAll("_", " ")}</span>
         </div>
 
-        {sessionQuery.data ? (
-          <>
-            <div className="surface metric-card">
-              <div className="muted">Signed in</div>
-              <h3>{sessionQuery.data.user.name}</h3>
-              <div className="muted">{sessionQuery.data.user.email}</div>
-            </div>
+        <nav className="tenant-nav" aria-label="Tenant navigation">
+          {memberships.map((membership) => (
+            <NavLink
+              key={membership.tenantId}
+              className={({ isActive }) => `tenant-link${isActive ? " is-active" : ""}`}
+              to={getDashboardPath(membership.tenantSlug)}
+            >
+              <span className="tenant-link-name">{membership.tenantName}</span>
+              <span className="tenant-link-meta">{membership.role.replaceAll("_", " ")}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </section>
 
-            <div className="surface metric-card" style={{ marginTop: 16 }}>
-              <div className="muted">Active tenant</div>
-              <h3>{membership?.tenantName ?? tenantSlug}</h3>
-              <div className="pill">{membership?.role ?? "unknown role"}</div>
-            </div>
-          </>
-        ) : (
-          <div className="surface empty-state">
-            Session unavailable. Connect the client to the API and Better Auth session endpoint.
-          </div>
-        )}
-      </aside>
+      <Form action="/auth/sign-out" className="session-actions" method="post">
+        <button className="ghost-button" type="submit">
+          Sign out
+        </button>
+      </Form>
+    </aside>
 
-      <main className="content">
-        <Outlet />
-      </main>
-    </div>
-  );
-};
+    <main className="content">
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">Active tenant</p>
+          <h2>{activeMembership.tenantName}</h2>
+        </div>
+        <div className="topbar-badge">{activeMembership.role.replaceAll("_", " ")}</div>
+      </header>
+
+      {children}
+    </main>
+  </div>
+);
