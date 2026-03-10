@@ -123,6 +123,19 @@ Show status:
 pnpm db:ps
 ```
 
+Reset only the seeded Pulsi demo organization and demo auth users:
+
+```bash
+pnpm db:reset-demo
+```
+
+Wipe the entire local database schema:
+
+```bash
+pnpm db:wipe
+pnpm db:migrate:api
+```
+
 ## Notes
 
 - `docker compose down` stops containers but keeps the named volume, so data persists.

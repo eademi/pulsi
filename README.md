@@ -23,6 +23,9 @@ Useful commands:
 - `pnpm db:down`: stop containers
 - `pnpm db:logs`: tail PostgreSQL logs
 - `pnpm db:ps`: inspect container status
+- `pnpm db:seed:demo`: populate the local database with the Pulsi demo club
+- `pnpm db:reset-demo`: remove the demo club and demo accounts only
+- `pnpm db:wipe`: wipe the whole local database schema; run `pnpm db:migrate:api` afterward
 
 The default local database URL is already aligned with the API env example:
 
