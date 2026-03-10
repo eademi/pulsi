@@ -6,6 +6,7 @@ import {
   createGarminConnectionSessionInputSchema,
   disconnectGarminConnectionInputSchema,
   garminConnectionSessionSchema,
+  garminIntegrationStatusSchema,
   garminOauthCallbackQuerySchema
 } from "@pulsi/shared";
 
@@ -48,6 +49,15 @@ export const buildGarminTenantRoutes = (
   }>> }
 ) =>
   new Hono<AppBindings>()
+    .get("/integrations/garmin/status", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireMinimumRole(requestContext.tenant!.role, "analyst");
+
+      const payload = garminOAuthService.getIntegrationStatus();
+      createApiSuccessSchema(garminIntegrationStatusSchema).parse({ data: payload });
+
+      return ok(c, payload);
+    })
     .get("/integrations/garmin/connections", async (c) => {
       const requestContext = c.get("requestContext");
       requireMinimumRole(requestContext.tenant!.role, "analyst");

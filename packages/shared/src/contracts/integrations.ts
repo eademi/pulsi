@@ -40,6 +40,11 @@ export const garminConnectionSessionSchema = z.object({
   expiresAt: z.string().datetime()
 });
 
+export const garminIntegrationStatusSchema = z.object({
+  configured: z.boolean(),
+  reason: z.string().nullable()
+});
+
 export const garminOauthCallbackQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1)
@@ -52,3 +57,4 @@ export const disconnectGarminConnectionInputSchema = z.object({
 export type IntegrationProvider = z.infer<typeof integrationProviderSchema>;
 export type AthleteDeviceConnection = z.infer<typeof athleteDeviceConnectionSchema>;
 export type GarminConnectionSession = z.infer<typeof garminConnectionSessionSchema>;
+export type GarminIntegrationStatus = z.infer<typeof garminIntegrationStatusSchema>;

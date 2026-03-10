@@ -9,6 +9,7 @@ import {
   createTenantInputSchema,
   createGarminConnectionSessionInputSchema,
   garminConnectionSessionSchema,
+  garminIntegrationStatusSchema,
   inviteTenantMemberInputSchema,
   tenantInvitationSchema,
   tenantMemberSchema,
@@ -28,6 +29,7 @@ const tenantInvitationsResponseSchema = createApiSuccessSchema(tenantInvitationS
 const inviteTenantMemberResponseSchema = createApiSuccessSchema(tenantInvitationSchema);
 const garminConnectionsResponseSchema = createApiSuccessSchema(athleteDeviceConnectionSchema.array());
 const createGarminConnectionSessionResponseSchema = createApiSuccessSchema(garminConnectionSessionSchema);
+const garminIntegrationStatusResponseSchema = createApiSuccessSchema(garminIntegrationStatusSchema);
 const acceptInvitationResponseSchema = createApiSuccessSchema(
   z.object({
     accepted: z.boolean()
@@ -217,6 +219,17 @@ export const apiClient = {
     const parsed = await request(
       `${API_BASE_URL}/v1/tenants/${tenantSlug}/integrations/garmin/connections`,
       garminConnectionsResponseSchema,
+      {
+        method: "GET"
+      }
+    );
+    return parsed.data;
+  },
+
+  async getGarminIntegrationStatus(tenantSlug: string) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/integrations/garmin/status`,
+      garminIntegrationStatusResponseSchema,
       {
         method: "GET"
       }

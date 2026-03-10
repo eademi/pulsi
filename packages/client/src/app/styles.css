@@ -980,6 +980,30 @@ button {
   gap: 0.9rem;
 }
 
+.garmin-mode-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.garmin-mode-card {
+  min-height: 100%;
+}
+
+.garmin-status-panel {
+  background: rgba(255, 247, 239, 0.96);
+}
+
+.garmin-status-code {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.45rem 0.7rem;
+  border-radius: 12px;
+  background: rgba(29, 38, 35, 0.06);
+  color: #2f3c37;
+  font-size: 0.9rem;
+}
+
 .garmin-card {
   gap: 1rem;
 }
@@ -1004,8 +1028,43 @@ button {
   font-size: 0.92rem;
 }
 
+.garmin-link-panel {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  border-radius: 18px;
+  background: rgba(29, 107, 84, 0.06);
+  border: 1px solid rgba(29, 107, 84, 0.12);
+}
+
+.garmin-link-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.garmin-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.garmin-link-input {
+  min-width: 0;
+}
+
+.garmin-copy-button {
+  width: auto;
+  white-space: nowrap;
+}
+
 .garmin-card-actions {
   width: min(14rem, 100%);
+  display: grid;
+  gap: 0.7rem;
 }
 
 @media (max-width: 1100px) {
@@ -1013,7 +1072,8 @@ button {
   .hero,
   .app-shell,
   .welcome-grid,
-  .settings-grid {
+  .settings-grid,
+  .garmin-mode-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1054,6 +1114,7 @@ button {
   .attention-card-topline,
   .hero,
   .hero-metrics,
+  .garmin-link-row,
   .garmin-card,
   .settings-card,
   .invitation-card,

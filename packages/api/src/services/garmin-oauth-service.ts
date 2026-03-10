@@ -1,3 +1,4 @@
+import { env } from "../env";
 import { AppError } from "../http/errors";
 import type { GarminApiClient } from "../integrations/garmin/garmin-client";
 import { createPkcePair } from "../integrations/garmin/pkce";
@@ -21,6 +22,14 @@ export class GarminOAuthService {
     actorUserId: string;
     redirectUri: string;
   }) {
+    if (!this.isConfigured()) {
+      throw new AppError(
+        400,
+        "VALIDATION_ERROR",
+        "Garmin integration is not configured on the server"
+      );
+    }
+
     const athlete = await this.athleteRepository.findByIdForTenant(input.tenantId, input.athleteId);
 
     if (!athlete) {
@@ -106,4 +115,19 @@ export class GarminOAuthService {
       throw error;
     }
   }
+
+  public getIntegrationStatus() {
+    return {
+      configured: this.isConfigured(),
+      reason: this.isConfigured()
+        ? null
+        : "Set real GARMIN_CLIENT_ID and GARMIN_CLIENT_SECRET values in packages/api/.env.local"
+    };
+  }
+
+  private isConfigured() {
+    return !isPlaceholder(env.GARMIN_CLIENT_ID) && !isPlaceholder(env.GARMIN_CLIENT_SECRET);
+  }
 }
+
+const isPlaceholder = (value: string) => value.startsWith("replace-with-");

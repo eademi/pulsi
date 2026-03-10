@@ -1,7 +1,12 @@
 import { startTransition, useState } from "react";
 import { redirect, useLoaderData, useRevalidator } from "react-router";
 
-import type { Athlete, AthleteDeviceConnection, TenantRole } from "@pulsi/shared";
+import type {
+  Athlete,
+  AthleteDeviceConnection,
+  GarminIntegrationStatus,
+  TenantRole
+} from "@pulsi/shared";
 
 import { apiClient } from "../lib/api";
 import { getDashboardPath } from "../lib/session";
@@ -26,26 +31,34 @@ export const clientLoader = async ({
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
   }
 
-  const [athletes, connections] = await Promise.all([
+  const [athletes, connections, integrationStatus] = await Promise.all([
     apiClient.getTenantAthletes(tenantSlug),
-    apiClient.getGarminConnections(tenantSlug)
+    apiClient.getGarminConnections(tenantSlug),
+    apiClient.getGarminIntegrationStatus(tenantSlug)
   ]);
 
   return {
     activeMembership,
     athletes,
     connections,
+    integrationStatus,
     tenantSlug
   };
 };
 
 export default function GarminIntegrationRoute() {
-  const { activeMembership, athletes, connections, tenantSlug } =
+  const { activeMembership, athletes, connections, integrationStatus, tenantSlug } =
     useLoaderData<typeof clientLoader>();
   const revalidator = useRevalidator();
   const [pendingAthleteId, setPendingAthleteId] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const canManage = hasManageAccess(activeMembership.role);
+  const [message, setMessage] = useState<{
+    kind: "error" | "success";
+    text: string;
+  } | null>(null);
+  const [generatedLinks, setGeneratedLinks] = useState<
+    Record<string, { authorizationUrl: string; expiresAt: string }>
+  >({});
+  const canManage = hasManageAccess(activeMembership.role) && integrationStatus.configured;
   const connectionsByAthlete = new Map(connections.map((connection) => [connection.athleteId, connection]));
 
   const connectAthlete = async (athleteId: string) => {
@@ -58,7 +71,40 @@ export default function GarminIntegrationRoute() {
       });
       window.location.assign(session.authorizationUrl);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to start Garmin connection.");
+      setMessage({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Unable to start Garmin connection."
+      });
+      setPendingAthleteId(null);
+    }
+  };
+
+  const generateConsentLink = async (athleteId: string) => {
+    setMessage(null);
+    setPendingAthleteId(athleteId);
+
+    try {
+      const session = await apiClient.createGarminConnectionSession(tenantSlug, {
+        athleteId
+      });
+
+      setGeneratedLinks((current) => ({
+        ...current,
+        [athleteId]: {
+          authorizationUrl: session.authorizationUrl,
+          expiresAt: session.expiresAt
+        }
+      }));
+      setMessage({
+        kind: "success",
+        text: "Athlete Garmin consent link generated."
+      });
+    } catch (error) {
+      setMessage({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Unable to generate Garmin consent link."
+      });
+    } finally {
       setPendingAthleteId(null);
     }
   };
@@ -69,9 +115,16 @@ export default function GarminIntegrationRoute() {
 
     try {
       await apiClient.disconnectGarminConnection(tenantSlug, athleteId);
+      setMessage({
+        kind: "success",
+        text: "Garmin connection disconnected."
+      });
       startTransition(() => revalidator.revalidate());
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to disconnect Garmin.");
+      setMessage({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Unable to disconnect Garmin."
+      });
     } finally {
       setPendingAthleteId(null);
     }
@@ -90,7 +143,56 @@ export default function GarminIntegrationRoute() {
         </div>
       </header>
 
-      {message ? <p className="form-error">{message}</p> : null}
+      {message ? (
+        <p className={message.kind === "success" ? "form-success" : "form-error"}>{message.text}</p>
+      ) : null}
+
+      {!integrationStatus.configured ? (
+        <section className="surface settings-panel garmin-status-panel">
+          <div className="settings-panel-header">
+            <div>
+              <p className="eyebrow">Garmin setup required</p>
+              <h2>Garmin OAuth is not configured locally</h2>
+            </div>
+          </div>
+          <p className="muted">
+            {integrationStatus.reason ??
+              "Set your real Garmin application credentials before starting athlete connections."}
+          </p>
+          <code className="garmin-status-code">packages/api/.env.local</code>
+        </section>
+      ) : null}
+
+      <section className="surface settings-panel">
+        <div className="settings-panel-header">
+          <div>
+            <p className="eyebrow">Connection modes</p>
+            <h2>Staff-assisted or remote athlete consent</h2>
+          </div>
+        </div>
+
+        <div className="garmin-mode-grid">
+          <article className="settings-card garmin-mode-card">
+            <div className="settings-card-copy">
+              <strong>Connect on this device</strong>
+              <p className="muted">
+                Best when the athlete is present with staff. Open Garmin OAuth immediately and let
+                the athlete sign in on the current device.
+              </p>
+            </div>
+          </article>
+
+          <article className="settings-card garmin-mode-card">
+            <div className="settings-card-copy">
+              <strong>Generate athlete consent link</strong>
+              <p className="muted">
+                Best when the athlete is remote. Pulsi creates a Garmin authorization URL that can
+                be copied and sent without the athlete needing a Pulsi account.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <section className="surface settings-panel">
         <div className="settings-panel-header">
@@ -107,9 +209,12 @@ export default function GarminIntegrationRoute() {
                 athlete={athlete}
                 canManage={canManage}
                 connection={connectionsByAthlete.get(athlete.id) ?? null}
+                generatedLink={generatedLinks[athlete.id] ?? null}
+                integrationStatus={integrationStatus}
                 isPending={pendingAthleteId === athlete.id}
                 key={athlete.id}
                 onConnect={() => connectAthlete(athlete.id)}
+                onGenerateLink={() => generateConsentLink(athlete.id)}
                 onDisconnect={() => disconnectAthlete(athlete.id)}
               />
             ))}
@@ -129,15 +234,21 @@ const GarminAthleteCard = ({
   athlete,
   connection,
   canManage,
+  generatedLink,
+  integrationStatus,
   isPending,
   onConnect,
+  onGenerateLink,
   onDisconnect
 }: {
   athlete: Athlete;
   connection: AthleteDeviceConnection | null;
   canManage: boolean;
+  generatedLink: { authorizationUrl: string; expiresAt: string } | null;
+  integrationStatus: GarminIntegrationStatus;
   isPending: boolean;
   onConnect: () => void;
+  onGenerateLink: () => void;
   onDisconnect: () => void;
 }) => (
   <article className="settings-card garmin-card">
@@ -169,9 +280,37 @@ const GarminAthleteCard = ({
         </div>
       ) : (
         <p className="muted">
-          Start OAuth for this athlete to enable Garmin Health and Activity ingestion.
+          {integrationStatus.configured
+            ? "Start OAuth for this athlete to enable Garmin Health and Activity ingestion."
+            : "Garmin connection is disabled until the local server is configured with real Garmin credentials."}
         </p>
       )}
+
+      {generatedLink ? (
+        <div className="garmin-link-panel">
+          <div className="garmin-link-header">
+            <span className="eyebrow">Athlete consent link</span>
+            <span className="muted">
+              Expires {new Date(generatedLink.expiresAt).toLocaleString()}
+            </span>
+          </div>
+          <div className="garmin-link-row">
+            <input
+              className="auth-input garmin-link-input"
+              readOnly
+              type="text"
+              value={generatedLink.authorizationUrl}
+            />
+            <button
+              className="ghost-button garmin-copy-button"
+              onClick={() => void navigator.clipboard.writeText(generatedLink.authorizationUrl)}
+              type="button"
+            >
+              Copy link
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
 
     {canManage ? (
@@ -181,9 +320,14 @@ const GarminAthleteCard = ({
             Disconnect
           </button>
         ) : (
-          <button className="primary-button" disabled={isPending} onClick={onConnect} type="button">
-            Connect Garmin
-          </button>
+          <>
+            <button className="primary-button" disabled={isPending} onClick={onConnect} type="button">
+              Connect here
+            </button>
+            <button className="ghost-button" disabled={isPending} onClick={onGenerateLink} type="button">
+              Generate link
+            </button>
+          </>
         )}
       </div>
     ) : null}
