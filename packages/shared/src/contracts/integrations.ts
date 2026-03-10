@@ -8,32 +8,47 @@ export const syncStatusSchema = z.enum([
   "retryable_failure",
   "failed"
 ]);
+export const garminOauthSessionStatusSchema = z.enum([
+  "pending",
+  "completed",
+  "expired",
+  "failed"
+]);
+export const webhookEventStatusSchema = z.enum(["received", "processed", "ignored", "failed"]);
 
 export const athleteDeviceConnectionSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
   athleteId: z.string().uuid(),
   provider: integrationProviderSchema,
-  providerAthleteId: z.string(),
+  providerUserId: z.string(),
   status: z.enum(["active", "revoked"]),
   lastSuccessfulSyncAt: z.string().datetime().nullable(),
-  lastCursor: z.string().nullable()
+  lastCursor: z.string().nullable(),
+  grantedPermissions: z.array(z.string()),
+  lastPermissionsSyncAt: z.string().datetime().nullable(),
+  lastPermissionChangeAt: z.string().datetime().nullable()
 });
 
-export const syncJobSchema = z.object({
-  id: z.string().uuid(),
-  tenantId: z.string().uuid(),
-  provider: integrationProviderSchema,
-  status: syncStatusSchema,
-  scheduledFor: z.string().datetime(),
-  attempts: z.number().int().nonnegative(),
-  lastError: z.string().nullable()
+export const createGarminConnectionSessionInputSchema = z.object({
+  athleteId: z.string().uuid()
 });
 
-export const triggerIntegrationSyncInputSchema = z.object({
+export const garminConnectionSessionSchema = z.object({
+  authorizationUrl: z.string().url(),
+  state: z.string(),
+  expiresAt: z.string().datetime()
+});
+
+export const garminOauthCallbackQuerySchema = z.object({
+  code: z.string().min(1),
+  state: z.string().min(1)
+});
+
+export const disconnectGarminConnectionInputSchema = z.object({
   athleteId: z.string().uuid()
 });
 
 export type IntegrationProvider = z.infer<typeof integrationProviderSchema>;
 export type AthleteDeviceConnection = z.infer<typeof athleteDeviceConnectionSchema>;
-export type SyncJob = z.infer<typeof syncJobSchema>;
+export type GarminConnectionSession = z.infer<typeof garminConnectionSessionSchema>;

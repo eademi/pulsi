@@ -38,6 +38,24 @@ export const syncStatusEnum = pgEnum("sync_status", [
   "retryable_failure",
   "failed"
 ]);
+export const oauthSessionStatusEnum = pgEnum("oauth_session_status", [
+  "pending",
+  "completed",
+  "expired",
+  "failed"
+]);
+export const credentialSubjectTypeEnum = pgEnum("credential_subject_type", ["athlete_connection"]);
+export const webhookEventStatusEnum = pgEnum("webhook_event_status", [
+  "received",
+  "processed",
+  "ignored",
+  "failed"
+]);
+export const webhookDeliveryMethodEnum = pgEnum("webhook_delivery_method", [
+  "push",
+  "ping",
+  "oauth"
+]);
 
 export const tenants = pgTable(
   "tenants",
@@ -97,6 +115,32 @@ export const athletes = pgTable(
   })
 );
 
+export const garminOauthSessions = pgTable(
+  "garmin_oauth_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    state: text("state").notNull(),
+    codeVerifier: text("code_verifier").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    status: oauthSessionStatusEnum("status").default("pending").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdByUserId: text("created_by_user_id").notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    stateKey: uniqueIndex("garmin_oauth_sessions_state_key").on(table.state),
+    tenantLookup: index("garmin_oauth_sessions_tenant_idx").on(table.tenantId, table.status)
+  })
+);
+
 export const athleteDeviceConnections = pgTable(
   "athlete_device_connections",
   {
@@ -108,10 +152,14 @@ export const athleteDeviceConnections = pgTable(
       .notNull()
       .references(() => athletes.id, { onDelete: "cascade" }),
     provider: integrationProviderEnum("provider").default("garmin").notNull(),
-    providerAthleteId: text("provider_athlete_id").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
     credentialKey: text("credential_key").notNull(),
     status: connectionStatusEnum("status").default("active").notNull(),
+    grantedPermissions: jsonb("granted_permissions").$type<string[]>().default([]).notNull(),
+    lastPermissionsSyncAt: timestamp("last_permissions_sync_at", { withTimezone: true }),
+    lastPermissionChangeAt: timestamp("last_permission_change_at", { withTimezone: true }),
     lastSuccessfulSyncAt: timestamp("last_successful_sync_at", { withTimezone: true }),
+    disconnectedAt: timestamp("disconnected_at", { withTimezone: true }),
     lastCursor: text("last_cursor"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -119,10 +167,46 @@ export const athleteDeviceConnections = pgTable(
   },
   (table) => ({
     tenantLookup: index("athlete_device_connections_tenant_idx").on(table.tenantId, table.provider),
+    providerUserLookup: index("athlete_device_connections_provider_user_idx").on(
+      table.provider,
+      table.providerUserId
+    ),
     athleteLookup: uniqueIndex("athlete_device_connections_athlete_provider_key").on(
       table.athleteId,
       table.provider
     )
+  })
+);
+
+export const providerCredentials = pgTable(
+  "provider_credentials",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    provider: integrationProviderEnum("provider").notNull(),
+    subjectType: credentialSubjectTypeEnum("subject_type").default("athlete_connection").notNull(),
+    subjectId: uuid("subject_id")
+      .notNull()
+      .references(() => athleteDeviceConnections.id, { onDelete: "cascade" }),
+    encryptedAccessToken: text("encrypted_access_token").notNull(),
+    encryptedRefreshToken: text("encrypted_refresh_token").notNull(),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }).notNull(),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }).notNull(),
+    tokenType: text("token_type").notNull(),
+    scope: jsonb("scope").$type<string[]>().default([]).notNull(),
+    jti: text("jti"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    subjectKey: uniqueIndex("provider_credentials_subject_key").on(
+      table.provider,
+      table.subjectType,
+      table.subjectId
+    ),
+    tenantLookup: index("provider_credentials_tenant_idx").on(table.tenantId, table.provider)
   })
 );
 
@@ -159,6 +243,35 @@ export const wearableDailyMetrics = pgTable(
       table.metricDate,
       table.provider
     )
+  })
+);
+
+export const providerWebhookEvents = pgTable(
+  "provider_webhook_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+    provider: integrationProviderEnum("provider").notNull(),
+    connectionId: uuid("connection_id").references(() => athleteDeviceConnections.id, {
+      onDelete: "set null"
+    }),
+    providerUserId: text("provider_user_id"),
+    notificationType: text("notification_type").notNull(),
+    deliveryMethod: webhookDeliveryMethodEnum("delivery_method").notNull(),
+    status: webhookEventStatusEnum("status").default("received").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    lastError: text("last_error"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true })
+  },
+  (table) => ({
+    providerLookup: index("provider_webhook_events_provider_idx").on(
+      table.provider,
+      table.notificationType,
+      table.status
+    ),
+    tenantLookup: index("provider_webhook_events_tenant_idx").on(table.tenantId, table.receivedAt)
   })
 );
 

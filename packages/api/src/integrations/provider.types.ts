@@ -13,18 +13,9 @@ export interface NormalizedWearableMetricRecord {
   rawPayload: Record<string, unknown>;
 }
 
-export interface ProviderSyncInput {
-  providerAthleteId: string;
-  credentialKey: string;
+export interface NormalizedMetricIngressRecord {
+  providerUserId: string;
+  provider: IntegrationProvider;
+  metric: NormalizedWearableMetricRecord;
   cursor?: string | null;
-}
-
-export interface ProviderSyncResult {
-  metrics: NormalizedWearableMetricRecord[];
-  nextCursor: string | null;
-}
-
-export interface HealthDataProvider {
-  readonly provider: IntegrationProvider;
-  pullAthleteMetrics(input: ProviderSyncInput): Promise<ProviderSyncResult>;
 }

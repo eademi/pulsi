@@ -1,0 +1,235 @@
+import type { GarminMapper } from "../integrations/garmin/garmin-mapper";
+import type {
+  GarminHealthPingPayload,
+  GarminNotificationSummaryType
+} from "../integrations/garmin/health-api.contracts";
+import type { GarminRepository } from "../repositories/garmin-repository";
+import type { GarminApiClient } from "../integrations/garmin/garmin-client";
+import type { MetricIngestionService } from "./metric-ingestion-service";
+import type { GarminTokenService } from "./garmin-token-service";
+import { AppError } from "../http/errors";
+
+export class GarminConnectionService {
+  public constructor(
+    private readonly garminRepository: GarminRepository,
+    private readonly tokenService: GarminTokenService,
+    private readonly apiClient: GarminApiClient,
+    private readonly mapper: GarminMapper,
+    private readonly metricIngestionService: MetricIngestionService
+  ) {}
+
+  public async disconnectAthleteConnection(input: {
+    tenantId: string;
+    athleteId: string;
+  }) {
+    const connection = await this.garminRepository.findConnectionByAthlete(input.tenantId, input.athleteId);
+
+    if (!connection) {
+      throw new AppError(404, "RESOURCE_NOT_FOUND", "No active Garmin connection for athlete");
+    }
+
+    const accessToken = await this.tokenService.getValidAccessToken(connection.id);
+    await this.apiClient.deleteUserRegistration(accessToken);
+    await this.garminRepository.deactivateConnectionsByIds([connection.id]);
+
+    return connection;
+  }
+
+  public async handleDeregistrations(payload: {
+    deregistrations: Array<{ userId: string }>;
+  }) {
+    for (const item of payload.deregistrations) {
+      const connections = await this.garminRepository.listActiveConnectionsByProviderUserId(item.userId);
+      const event = await this.garminRepository.createWebhookEvent({
+        tenantId: connections[0]?.tenantId ?? null,
+        connectionId: connections[0]?.id ?? null,
+        providerUserId: item.userId,
+        notificationType: "deregistration",
+        deliveryMethod: "push",
+        payload: item
+      });
+
+      try {
+        await this.garminRepository.deactivateConnectionsByIds(connections.map((connection) => connection.id));
+        await this.garminRepository.markWebhookEventStatus(event.id, "processed");
+      } catch (error) {
+        await this.garminRepository.markWebhookEventStatus(
+          event.id,
+          "failed",
+          error instanceof Error ? error.message : "Unknown Garmin deregistration failure"
+        );
+        throw error;
+      }
+    }
+  }
+
+  public async handlePermissionChanges(payload: {
+    userPermissionsChange: Array<{
+      userId: string;
+      permissions: string[];
+      changeTimeInSeconds: number;
+    }>;
+  }) {
+    for (const item of payload.userPermissionsChange) {
+      const connections = await this.garminRepository.listActiveConnectionsByProviderUserId(item.userId);
+      const event = await this.garminRepository.createWebhookEvent({
+        tenantId: connections[0]?.tenantId ?? null,
+        connectionId: connections[0]?.id ?? null,
+        providerUserId: item.userId,
+        notificationType: "user_permission",
+        deliveryMethod: "push",
+        payload: {
+          userId: item.userId,
+          permissions: item.permissions,
+          changeTimeInSeconds: item.changeTimeInSeconds
+        }
+      });
+
+      try {
+        await this.garminRepository.updateConnectionPermissionsByIds(
+          connections.map((connection) => connection.id),
+          item.permissions,
+          new Date(item.changeTimeInSeconds * 1000)
+        );
+        await this.garminRepository.markWebhookEventStatus(event.id, "processed");
+      } catch (error) {
+        await this.garminRepository.markWebhookEventStatus(
+          event.id,
+          "failed",
+          error instanceof Error ? error.message : "Unknown Garmin permission webhook failure"
+        );
+        throw error;
+      }
+    }
+  }
+
+  public async handleHealthPush(payload: Record<string, unknown>) {
+    const extracted = this.mapper.extractMetricsFromPushPayload(payload);
+
+    if (extracted.length === 0) {
+      const event = await this.garminRepository.createWebhookEvent({
+        notificationType: "health_push",
+        deliveryMethod: "push",
+        payload
+      });
+      await this.garminRepository.markWebhookEventStatus(event.id, "ignored");
+      return { processed: 0, ignored: true };
+    }
+
+    let processed = 0;
+    for (const item of extracted) {
+      const connections = await this.garminRepository.listActiveConnectionsByProviderUserId(
+        item.providerUserId
+      );
+
+      if (connections.length === 0) {
+        const event = await this.garminRepository.createWebhookEvent({
+          providerUserId: item.providerUserId,
+          notificationType: "health_push",
+          deliveryMethod: "push",
+          payload: item.metric.rawPayload
+        });
+        await this.garminRepository.markWebhookEventStatus(event.id, "ignored");
+        continue;
+      }
+
+      for (const connection of connections) {
+        const event = await this.garminRepository.createWebhookEvent({
+          tenantId: connection.tenantId,
+          connectionId: connection.id,
+          providerUserId: item.providerUserId,
+          notificationType: "health_push",
+          deliveryMethod: "push",
+          payload: item.metric.rawPayload
+        });
+
+        try {
+          await this.metricIngestionService.ingestDailyMetric({
+            tenantId: connection.tenantId,
+            athleteId: connection.athleteId,
+            connectionId: connection.id,
+            provider: "garmin",
+            metric: item.metric,
+            nextCursor: connection.lastCursor
+          });
+          await this.garminRepository.markWebhookEventStatus(event.id, "processed");
+          processed += 1;
+        } catch (error) {
+          await this.garminRepository.markWebhookEventStatus(
+            event.id,
+            "failed",
+            error instanceof Error ? error.message : "Unknown Garmin health push failure"
+          );
+          throw error;
+        }
+      }
+    }
+
+    return { processed, ignored: false };
+  }
+
+  public async handleHealthPing(payload: GarminHealthPingPayload) {
+    const summaryTypes = Object.keys(payload) as GarminNotificationSummaryType[];
+
+    let accepted = 0;
+    for (const summaryType of summaryTypes) {
+      const notifications = payload[summaryType];
+
+      if (!notifications) {
+        continue;
+      }
+
+      for (const notification of notifications) {
+        accepted += 1;
+
+        const event = await this.garminRepository.createWebhookEvent({
+          providerUserId: notification.userId,
+          notificationType: `ping_${summaryType}`,
+          deliveryMethod: "ping",
+          payload: {
+            summaryType,
+            userId: notification.userId,
+            callbackURL: notification.callbackURL ?? null
+          }
+        });
+
+        if (!notification.callbackURL) {
+          await this.garminRepository.markWebhookEventStatus(event.id, "ignored");
+          continue;
+        }
+
+        try {
+          const summaries = await this.apiClient.fetchPingCallbackData(
+            summaryType,
+            notification.callbackURL
+          );
+          const pushPayload = this.toPushPayload(summaryType, notification.userId, summaries);
+          await this.handleHealthPush(pushPayload);
+          await this.garminRepository.markWebhookEventStatus(event.id, "processed");
+        } catch (error) {
+          await this.garminRepository.markWebhookEventStatus(
+            event.id,
+            "failed",
+            error instanceof Error ? error.message : "Unknown Garmin ping processing failure"
+          );
+          throw error;
+        }
+      }
+    }
+
+    return { accepted };
+  }
+
+  private toPushPayload(
+    summaryType: GarminNotificationSummaryType,
+    userId: string,
+    summaries: Array<Record<string, unknown>>
+  ): Record<string, unknown> {
+    return {
+      [summaryType]: summaries.map((summary) => ({
+        ...summary,
+        userId
+      }))
+    };
+  }
+}

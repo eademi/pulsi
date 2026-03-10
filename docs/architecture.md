@@ -2,239 +2,237 @@
 
 ## 1. Executive Summary
 
-Pulsi is implemented as a pnpm monorepo with three workspace packages:
+Pulsi is a multi-tenant sports readiness platform built as a pnpm monorepo with three packages:
 
-- `@pulsi/shared` defines the domain vocabulary, API contracts, and validation schemas.
-- `@pulsi/api` owns authentication, tenant resolution, persistence, wearable ingestion, and REST APIs.
-- `@pulsi/client` consumes the shared contracts and renders coach-facing readiness workflows.
+- `@pulsi/shared` for shared contracts and schemas
+- `@pulsi/api` for authentication, tenancy, persistence, Garmin integration, and readiness logic
+- `@pulsi/client` for the coach-facing web application
 
-The backend architecture is deliberately simple:
+The backend follows a pragmatic layered architecture:
 
-- Transport layer: Hono routes, validation, and HTTP error contracts.
-- Application layer: service classes coordinating use cases.
-- Domain model: tenant, athlete, readiness, and integration concepts.
-- Infrastructure layer: Drizzle repositories, Better Auth, PostgreSQL, and provider adapters.
+- transport: Hono routes, Zod validation, and response envelopes
+- application: service classes orchestrating use cases
+- domain core: readiness scoring plus normalized wearable metrics
+- infrastructure: Drizzle, PostgreSQL, Better Auth, Garmin HTTP client, and token storage
 
-Tenant isolation is enforced by design:
-
-- every tenant-owned table carries `tenant_id`
-- every tenant-scoped route resolves tenant access before service execution
-- repositories always query with `tenant_id`
-- request context carries `tenant`, `requestId`, and authenticated actor state
-- logs and sync jobs include tenant identity
-
-Wearable integrations sit behind an anti-corruption layer so provider payload changes do not leak into the core domain model.
+The key design choice is that vendor-specific behavior stays inside a provider module while Pulsi core only works with normalized data. That is what makes future providers straightforward to add without leaking Garmin concepts into the rest of the system.
 
 ## 2. System Architecture Overview
 
 Dependency direction:
 
-1. `routes` depend on `services` and shared schemas.
-2. `services` depend on `repositories` and integration ports.
-3. `repositories` depend on Drizzle schema and the database client.
-4. `integrations` depends on external HTTP APIs and maps provider payloads into internal records.
-5. `shared` depends on no package-local app code.
+1. `routes` depend on `services` and shared contracts
+2. `services` depend on repositories and provider-specific integration code
+3. `repositories` depend on Drizzle schema and the database client
+4. provider modules depend on external APIs and map vendor payloads into Pulsi’s normalized model
+5. `@pulsi/shared` depends on no package-local application code
 
-Request path:
+Current request shapes:
 
-1. HTTP request enters Hono.
-2. CORS and request context middleware run.
-3. Better Auth session is resolved.
-4. Tenant middleware resolves active membership from `tenantSlug`.
-5. Route validates input using Zod schemas from `@pulsi/shared`.
-6. Service executes tenant-safe business logic.
-7. Repository performs tenant-scoped database access.
-8. Response is serialized using shared response contracts.
-9. Errors are normalized into a predictable error envelope.
+- authenticated tenant routes live under `/v1/tenants/:tenantSlug/*`
+- public Garmin callback and webhook routes live under `/v1/*`
+- Better Auth routes live under `/api/auth/*`
+
+Garmin is intentionally modeled as:
+
+- OAuth connection bootstrap
+- server-to-server webhook delivery
+- normalized metric ingestion
+- coach-facing readiness derivation
+
+It is not modeled as an on-demand pull sync because Garmin’s Health API docs explicitly disallow ad-hoc data retrieval.
 
 ## 3. Monorepo Structure
 
 ```text
 .
+├── GARMIN_INTEGRATION.md
 ├── docs/
 │   └── architecture.md
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
-├── packages/
-│   ├── api/
-│   │   ├── .env.example
-│   │   ├── drizzle.config.ts
-│   │   └── src/
-│   │       ├── app.ts
-│   │       ├── auth/
-│   │       ├── context/
-│   │       ├── db/
-│   │       ├── http/
-│   │       ├── integrations/
-│   │       ├── repositories/
-│   │       ├── routes/
-│   │       ├── services/
-│   │       └── telemetry/
-│   ├── client/
-│   │   ├── .env.example
-│   │   ├── index.html
-│   │   └── src/
-│   │       ├── app/
-│   │       ├── components/
-│   │       ├── features/
-│   │       └── lib/
-│   └── shared/
-│       └── src/
-│           ├── contracts/
-│           └── utils/
+└── packages/
+    ├── api/
+    │   ├── .env.example
+    │   ├── drizzle.config.ts
+    │   └── src/
+    │       ├── app.ts
+    │       ├── auth/
+    │       ├── context/
+    │       ├── db/
+    │       ├── http/
+    │       ├── integrations/
+    │       ├── repositories/
+    │       ├── routes/
+    │       ├── services/
+    │       └── telemetry/
+    ├── client/
+    │   ├── .env.example
+    │   └── src/
+    │       ├── app/
+    │       ├── components/
+    │       ├── features/
+    │       └── lib/
+    └── shared/
+        └── src/
+            ├── contracts/
+            └── utils/
 ```
 
 Build boundaries:
 
-- `@pulsi/shared` is imported by both API and client.
-- `@pulsi/api` and `@pulsi/client` do not import each other.
-- infrastructure code never crosses into `@pulsi/shared`.
-- API response schemas are defined once in `@pulsi/shared` and parsed on both sides.
+- `@pulsi/shared` is the only shared dependency between API and client
+- `@pulsi/api` and `@pulsi/client` do not import each other
+- provider-specific code lives only in `@pulsi/api`
+- shared contracts define request and response shapes once
 
 ## 4. Package Responsibilities
 
 ### `@pulsi/shared`
 
-- Canonical Zod schemas for auth, tenants, readiness, and integrations
-- Shared API envelope definitions
-- Shared tenant utilities such as cache key construction
+- API success and error envelopes
+- auth, tenant, readiness, and integration schemas
+- canonical Zod contracts used by both API and client
 
 ### `@pulsi/api`
 
-- Better Auth session handling
-- tenant provisioning and membership resolution
-- REST API surface
-- PostgreSQL persistence with Drizzle
-- provider registry, anti-corruption adapters, and sync orchestration
-- request-scoped logging and error normalization
+- Better Auth integration
+- tenant membership resolution
+- Garmin PKCE flow and token lifecycle
+- Garmin webhook ingestion
+- normalized metric persistence
+- readiness derivation and REST resources
 
 ### `@pulsi/client`
 
-- route-driven dashboard shell
+- React Router application shell
 - TanStack Query data access
+- Base UI primitives for the dashboard
 - contract-safe parsing of API responses
-- coach-facing readiness dashboard composition
 
 ## 5. Folder Structure By Package
 
 ### `@pulsi/api`
 
 - `src/app.ts`: composition root
-- `src/auth/`: Better Auth setup and role authorization helpers
+- `src/auth/`: Better Auth setup and role helpers
 - `src/context/`: request context types
-- `src/db/`: Drizzle schema and database client
-- `src/http/`: middleware, response helpers, and error types
-- `src/integrations/`: provider contracts, registry, and provider-specific adapters
+- `src/db/`: Drizzle schema and DB client
+- `src/http/`: middleware, errors, and response helpers
+- `src/integrations/garmin/`: Garmin contracts, PKCE, client, mapper, and token cipher
 - `src/repositories/`: tenant-safe persistence access
-- `src/routes/`: REST resource handlers
-- `src/services/`: application use cases
-- `src/telemetry/`: logger and metrics interface
+- `src/routes/`: resource and webhook route builders
+- `src/services/`: application services
+- `src/telemetry/`: structured logging
 
 ### `@pulsi/client`
 
-- `src/app/`: providers, router, styles
-- `src/components/`: shared shell components
-- `src/features/auth/`: session hooks
-- `src/features/tenants/`: active tenant helpers
-- `src/features/dashboard/`: readiness dashboard components
-- `src/lib/`: API client and QueryClient
+- `src/app/`: router, app providers, and styles
+- `src/components/`: shared UI pieces
+- `src/features/dashboard/`: readiness dashboard
+- `src/lib/`: API client and query configuration
 
 ### `@pulsi/shared`
 
-- `src/contracts/api.ts`: success and error envelopes
-- `src/contracts/auth.ts`: actor session and role schemas
-- `src/contracts/tenant.ts`: tenant schemas
+- `src/contracts/api.ts`: envelopes
+- `src/contracts/auth.ts`: session contracts
+- `src/contracts/tenant.ts`: tenant contracts
 - `src/contracts/readiness.ts`: athlete and readiness contracts
-- `src/contracts/integrations.ts`: provider connection and sync contracts
+- `src/contracts/integrations.ts`: Garmin connection contracts
 
 ## 6. Domain Model
 
 Core entities:
 
-- `Tenant`: a club or organization boundary
+- `Tenant`: club or organization boundary
 - `TenantMembership`: user access to a tenant with role and status
 - `Athlete`: player identity scoped to a tenant
-- `AthleteDeviceConnection`: provider-specific wearable connection for an athlete
-- `WearableDailyMetric`: normalized daily wearable measurements
-- `ReadinessSnapshot`: Pulsi’s coach-facing recommendation for a day
-- `IntegrationSyncJob`: durable record of pull attempts and retries
-- `AuditEvent`: immutable record of sensitive operational actions
+- `GarminOauthSession`: short-lived PKCE bootstrap record
+- `AthleteDeviceConnection`: active provider connection for an athlete
+- `ProviderCredential`: encrypted access and refresh tokens for a connection
+- `ProviderWebhookEvent`: durable record of inbound provider notifications
+- `WearableDailyMetric`: normalized daily wearable data
+- `ReadinessSnapshot`: coach-facing recommendation for a day
+- `IntegrationSyncJob`: reserved for future asynchronous provider workflows
+- `AuditEvent`: immutable operational trail
 
 Pulsi recommendation model:
 
-- `readinessScore` is a 0-100 score derived from Garmin metrics
-- `readinessBand` is `ready`, `caution`, or `restricted`
-- `recommendation` is operational guidance such as `full_load` or `recovery_focus`
-- `rationale` is an explainability list for coaches
+- `readinessScore`: numeric score from normalized signals
+- `readinessBand`: `ready`, `caution`, or `restricted`
+- `recommendation`: operational training guidance
+- `rationale`: human-readable explanation for coaches
 
 Guardrail:
 
-- recommendations are framed as training guidance only, not diagnosis or treatment
+- readiness output is framed as coaching support, not diagnosis or treatment
 
 ## 7. Database Schema Design
 
-Implemented domain tables live in [schema.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/db/schema.ts).
+Implemented in [schema.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/db/schema.ts).
 
-Tables:
+Main tables:
 
 - `tenants`
 - `tenant_memberships`
 - `athletes`
+- `garmin_oauth_sessions`
 - `athlete_device_connections`
+- `provider_credentials`
+- `provider_webhook_events`
 - `wearable_daily_metrics`
 - `readiness_snapshots`
 - `integration_sync_jobs`
 - `audit_events`
 
+Important Garmin fields:
+
+- `athlete_device_connections.provider_user_id`: Garmin API user ID
+- `athlete_device_connections.granted_permissions`: last known Garmin permission set
+- `athlete_device_connections.last_permissions_sync_at`: last successful permissions fetch
+- `athlete_device_connections.last_permission_change_at`: timestamp from Garmin permission webhooks
+- `provider_credentials.*`: encrypted token material and expiry metadata
+- `provider_webhook_events`: raw webhook payload archive plus processing status
+
 Schema principles:
 
-- all tenant-owned records carry `tenant_id`
-- composite uniqueness is tenant-aware
-- time-series data is indexed by `tenant_id` plus date
-- sync state is durable and queryable for retries
-- Garmin credentials are referenced by `credential_key` instead of storing raw tokens in the domain database
-
-Better Auth:
-
-- Better Auth should manage its own auth tables and migrations alongside this schema
-- Pulsi domain tables only reference auth users by `user_id` string to keep auth concerns isolated
-
-Recommended migration sequence:
-
-1. generate Better Auth auth tables
-2. apply Pulsi domain migrations
-3. seed initial tenant and owner membership in non-production environments
+- tenant-owned records carry `tenant_id`
+- tenant-aware indexes exist on operationally hot paths
+- normalized metrics stay separate from raw webhook event storage
+- provider credentials are isolated from domain rows
+- webhook events are durable so failures are observable and reprocessable
 
 ## 8. Multi-Tenancy Strategy
 
 Tenant resolution:
 
-- all tenant business endpoints live under `/v1/tenants/:tenantSlug/...`
-- middleware resolves `tenantSlug` to an active membership
-- request context is updated with `tenant.id`, `tenant.slug`, and role
+- authenticated business endpoints are always tenant-scoped by URL
+- middleware resolves `tenantSlug` to an active membership before route logic runs
+- request context is enriched with `tenantId`, `tenantSlug`, and role
 
-Data isolation:
+Isolation controls:
 
-- repositories query by `tenantId` for every tenant-owned read and write
-- tenant membership lookup is the only path from auth identity to tenant context
-- cache keys should include `tenantId`
-- logs include `tenantId` and `tenantSlug`
-- sync jobs and webhook processing are stored with tenant ownership
+- repositories read and write with tenant filters
+- request context carries tenant state through the service layer
+- logs are rebound with tenant metadata after membership resolution
+- Garmin connection bootstrap now verifies that the requested athlete belongs to the active tenant before an OAuth session is created
+- webhook processing resolves active connections from Garmin `providerUserId` and writes metrics only through tenant-owned connections
 
 Future hardening:
 
-- add PostgreSQL row-level security if Pulsi later introduces SQL consumers outside the API
-- use separate Redis namespaces or prefixes per tenant if distributed caching is added
+- add composite tenant ownership foreign keys for tenant-owned child tables
+- add row-level security if non-API SQL consumers are introduced
+- keep cache keys and job queues tenant-prefixed
 
 ## 9. API Design
 
 Versioning:
 
-- all business endpoints are versioned under `/v1`
-- Better Auth endpoints remain under `/api/auth/*`
+- all domain endpoints are under `/v1`
+- Better Auth stays under `/api/auth/*`
 
-Response contract:
+Success envelope:
 
 ```json
 {
@@ -245,7 +243,7 @@ Response contract:
 }
 ```
 
-Error contract:
+Error envelope:
 
 ```json
 {
@@ -257,21 +255,27 @@ Error contract:
 }
 ```
 
-Example endpoints:
+Implemented endpoint examples:
 
 - `GET /v1/health`
 - `GET /v1/session`
 - `GET /v1/tenants`
 - `POST /v1/tenants`
 - `GET /v1/tenants/:tenantSlug/athletes`
-- `GET /v1/tenants/:tenantSlug/readiness?onDate=2026-03-10&limit=25`
-- `POST /v1/tenants/:tenantSlug/integrations/:provider/sync`
+- `GET /v1/tenants/:tenantSlug/readiness`
+- `POST /v1/tenants/:tenantSlug/integrations/garmin/connection-sessions`
+- `DELETE /v1/tenants/:tenantSlug/integrations/garmin/connections/:athleteId`
+- `GET /v1/integrations/garmin/callback`
+- `POST /v1/webhooks/garmin/:webhookToken/ping`
+- `POST /v1/webhooks/garmin/:webhookToken/deregistrations`
+- `POST /v1/webhooks/garmin/:webhookToken/user-permissions`
+- `POST /v1/webhooks/garmin/:webhookToken/health`
 
-Resource naming rules:
+Design rules:
 
-- plural nouns for collections
-- no verbs in core resource paths
-- sync is modeled as an integration action because it initiates a job
+- collections use plural nouns
+- provider bootstrap and disconnect actions live under the integration resource
+- public provider callbacks stay outside tenant-scoped routing because the provider, not the user browser session, is the caller
 
 ## 10. Authentication And Authorization
 
@@ -282,175 +286,193 @@ Implemented in:
 
 Approach:
 
-- Better Auth handles authentication, sessions, cookies, and account lifecycle
-- Pulsi owns tenant memberships and role authorization in domain tables
-- request middleware resolves the actor session and memberships once per request
+- Better Auth manages identity, session cookies, and auth persistence
+- Pulsi manages tenant memberships and application roles
+- request context resolves the actor once, then tenant scope is applied on top
 
 Roles:
 
-- `club_owner`: tenant administration and provisioning
-- `coach`: training decisions and squad access
-- `performance_staff`: readiness operations and provider sync execution
-- `analyst`: read-only performance visibility
+- `club_owner`
+- `coach`
+- `performance_staff`
+- `analyst`
 
-Permission model:
+Garmin permissions:
 
-- authentication gates any non-public route
-- tenant membership gates any tenant-scoped route
-- minimum role checks happen inside routes or services before execution
+- only `performance_staff` and above can start or disconnect a Garmin connection
+- webhook routes are public from an auth perspective but protected by a shared webhook token
 
-## 11. Integration Architecture
+## 11. External Provider Architecture
+
+Pulsi’s future provider model is intentionally split into two layers:
+
+Provider-specific layer:
+
+- vendor HTTP client
+- vendor contracts and payload validation
+- auth or token lifecycle
+- vendor-specific webhook handling
+- mapping vendor payloads into normalized records
+
+Provider-neutral core:
+
+- `NormalizedWearableMetricRecord`
+- `MetricIngestionService`
+- `IntegrationRepository`
+- `ReadinessEngine`
+- shared response and request contracts
+
+That boundary is the pattern to follow for another provider. A new provider should add its own module under `src/integrations/<provider>/` and should feed normalized records into `MetricIngestionService` instead of bypassing the core.
+
+## 12. Garmin Integration Architecture
 
 Implemented in:
 
-- [provider.types.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/provider.types.ts)
-- [provider-registry.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/provider-registry.ts)
 - [garmin-client.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/garmin/garmin-client.ts)
+- [garmin.contracts.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/garmin/garmin.contracts.ts)
+- [pkce.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/garmin/pkce.ts)
+- [token-cipher.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/garmin/token-cipher.ts)
 - [garmin-mapper.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/garmin/garmin-mapper.ts)
-- [garmin-adapter.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/garmin/garmin-adapter.ts)
-- [integration-sync-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/integration-sync-service.ts)
-- [readiness-engine.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/readiness-engine.ts)
+- [garmin-oauth-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/garmin-oauth-service.ts)
+- [garmin-token-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/garmin-token-service.ts)
+- [garmin-connection-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/garmin-connection-service.ts)
+- [metric-ingestion-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/metric-ingestion-service.ts)
+- [garmin.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/routes/garmin.ts)
 
-Flow:
+Runtime flow:
 
-1. Pulsi stores an athlete’s provider connection and a secret reference key.
-2. `HealthProviderRegistry` resolves the correct adapter for the requested provider.
-3. The provider client performs authenticated HTTP requests with retry and backoff.
-4. The provider mapper converts vendor payloads into Pulsi’s normalized wearable metric shape.
-5. `ReadinessEngine` derives coach-facing guidance from normalized metrics.
-6. `IntegrationSyncService` persists normalized metrics, snapshots, and sync job state.
+1. A tenant user creates a Garmin connection session for an athlete.
+2. Pulsi generates PKCE material and stores a short-lived `garmin_oauth_sessions` record.
+3. The browser is redirected to Garmin consent.
+4. Garmin calls back with `code` and `state`.
+5. Pulsi exchanges the code for tokens, fetches Garmin user ID, and fetches granted permissions.
+6. Pulsi upserts the athlete connection and encrypted provider credentials.
+7. Garmin later sends webhook notifications for health data, deregistration, or permission changes.
+8. Garmin can also send Ping notifications containing callback URLs for typed summary retrieval.
+9. Garmin webhook payloads are validated and archived in `provider_webhook_events`.
+10. Push payloads and Ping callback payloads are normalized by `GarminMapper` and ingested through `MetricIngestionService`.
+11. `ReadinessEngine` produces coach-facing readiness guidance from normalized metrics.
 
-Resilience:
+Key decisions:
 
-- retryable rate limit handling
-- durable sync job records
-- explicit connection cursor tracking
-- clear split between raw provider payloads and internal readiness logic
+- Garmin stays behind an anti-corruption layer
+- the core readiness model never depends on Garmin field names
+- token refresh happens automatically inside `GarminTokenService`
+- disconnect explicitly calls Garmin delete-registration before revoking the local connection
 
-Adding a new provider:
+## 13. Request Lifecycle
 
-1. create `src/integrations/<provider>/` with a client, mapper, and adapter implementing `HealthDataProvider`
-2. normalize the provider payload into `NormalizedWearableMetricRecord`
-3. register the adapter in [app.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/app.ts)
-4. add the provider to `integrationProviderSchema` and the PostgreSQL enum
-5. reuse the existing generic sync route and `IntegrationSyncService`
+Example: `POST /v1/tenants/acme-fc/integrations/garmin/connection-sessions`
 
-Important note:
+1. CORS middleware validates the origin.
+2. request context middleware creates `requestId`, logger bindings, and actor state.
+3. Better Auth resolves the session cookie.
+4. tenant middleware resolves the active membership for `acme-fc`.
+5. the route validates the request body with a shared Zod schema.
+6. role authorization checks `performance_staff` or above.
+7. `GarminOAuthService` verifies the athlete belongs to the current tenant.
+8. an OAuth bootstrap session is persisted and the authorization URL is returned.
+9. the response is serialized as a typed success envelope.
 
-- the Garmin adapter path and payload fields in this repository are intentionally illustrative because Garmin feed shapes vary by approved application scope
-- the anti-corruption layer is the place to align the final request paths and payload contracts with the exact Garmin Health API specification assigned to Pulsi
+Example: `POST /v1/webhooks/garmin/:webhookToken/health`
 
-## 12. Request Lifecycle
+1. the webhook token is validated
+2. the JSON body is parsed
+3. `GarminMapper` extracts normalized metrics where possible
+4. Pulsi creates a durable webhook event record
+5. normalized metrics are persisted and scored
+6. webhook status is marked `processed`, `ignored`, or `failed`
 
-Example: `GET /v1/tenants/acme-fc/readiness`
-
-1. CORS middleware accepts the configured client origin.
-2. request context middleware creates `requestId`, logger, and actor state.
-3. Better Auth session is resolved from cookies.
-4. tenant middleware resolves `acme-fc` membership.
-5. query parameters are parsed with `listReadinessQuerySchema`.
-6. `ReadinessService` loads athletes and latest snapshots.
-7. response is returned as a typed success envelope.
-8. any failure is normalized with the request ID for support and tracing.
-
-## 13. Observability Strategy
+## 14. Observability Strategy
 
 Current foundation:
 
-- structured JSON logging via Pino
-- request IDs on every response
-- tenant-aware logger bindings after tenant resolution
-- redaction for auth and credential fields
+- structured JSON logs via Pino
+- per-request `requestId`
+- tenant-aware log bindings after membership resolution
+- error normalization that includes the request ID
+- durable webhook event status tracking in the database
 
 Recommended production additions:
 
-- OpenTelemetry traces around provider API calls and database transactions
-- metrics for sync job counts, latency, and failure rates
-- error reporting integration for uncaught exceptions and repeated external failures
-- dashboarding split by environment and tenant cohort
+- OpenTelemetry traces around Garmin token exchange and webhook ingestion
+- metrics for webhook throughput, failure count, token refresh count, and readiness ingestion latency
+- alerting on repeated webhook failures, token refresh failures, or permission revocations
+- dashboard slices by provider and tenant cohort
 
-Log field conventions:
+Useful log fields:
 
 - `requestId`
 - `userId`
 - `tenantId`
 - `tenantSlug`
 - `provider`
-- `jobId`
+- `providerUserId`
+- `webhookEventId`
 
-## 14. Testing Strategy
+## 15. Testing Strategy
 
 Unit tests:
 
-- readiness scoring and recommendation derivation
+- PKCE generation
+- token encryption and decryption
+- Garmin response validation
+- Garmin mapper normalization
+- readiness scoring rules
 - role authorization thresholds
-- request validation and error mapping
-- provider mapper normalization
 
 Integration tests:
 
-- tenant-scoped route access with seeded memberships
-- Drizzle repository behavior against a test PostgreSQL database
-- Better Auth session resolution and protected route enforcement
-- generic integration sync service with mocked provider API responses
+- tenant-scoped route authorization
+- Garmin connection session creation for valid and invalid athlete ownership
+- OAuth callback completion with mocked Garmin endpoints
+- disconnect flow calling Garmin delete-registration
+- webhook processing for health, deregistration, and permission changes
 
 Isolation tests:
 
-- ensure one tenant cannot query another tenant’s athletes or readiness snapshots
-- ensure sync jobs cannot be triggered for athletes outside the active tenant
-- ensure log records and cache keys always carry tenant identity
+- a user from tenant A cannot create a Garmin connection for an athlete in tenant B
+- webhook processing only updates connections matching the Garmin `providerUserId`
+- readiness queries only return athletes from the active tenant
 
 Contract tests:
 
-- API responses parsed with shared schemas on the client
-- provider adapter fixtures pinned to Pulsi’s approved vendor payload examples
+- API responses parsed with shared Zod schemas on the client
+- fixed Garmin payload fixtures parsed by `garmin.contracts.ts`
 
-## 15. Production-Quality Code Included
+## 16. Production-Quality Code Included
 
 Key implementation files:
 
-- API server setup: [app.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/app.ts), [index.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/index.ts)
+- API composition: [app.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/app.ts)
+- server bootstrap: [index.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/index.ts)
 - tenant-aware request context: [middleware.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/http/middleware.ts)
-- Better Auth integration: [auth.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/auth/auth.ts)
+- Better Auth setup: [auth.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/auth/auth.ts)
 - Drizzle schema: [schema.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/db/schema.ts)
-- service layer: [readiness-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/readiness-service.ts), [integration-sync-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/integration-sync-service.ts), [readiness-engine.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/readiness-engine.ts)
-- provider adapter example: [garmin-adapter.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/integrations/garmin/garmin-adapter.ts)
-- client architecture: [router.tsx](/Users/ea/Desktop/projects/pulsi-app/packages/client/src/app/router.tsx), [api.ts](/Users/ea/Desktop/projects/pulsi-app/packages/client/src/lib/api.ts)
-
-## 16. Example Client Architecture
-
-Client structure is intentionally thin:
-
-- React Router defines tenant-scoped routes
-- TanStack Query owns server-state fetching and caching
-- shared Zod contracts parse API responses before UI consumption
-- tenant slug lives in the route, not global mutable state
-- dashboard components are read-only and composition-friendly
-
-Why this shape:
-
-- routing is the natural source of truth for active tenant selection
-- query keys become tenant-safe automatically
-- shared contracts reduce drift between API and UI
+- Garmin routes: [garmin.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/routes/garmin.ts)
+- Garmin OAuth flow: [garmin-oauth-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/garmin-oauth-service.ts)
+- token lifecycle: [garmin-token-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/garmin-token-service.ts)
+- provider-neutral ingestion: [metric-ingestion-service.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src/services/metric-ingestion-service.ts)
+- client router: [router.tsx](/Users/ea/Desktop/projects/pulsi-app/packages/client/src/app/router.tsx)
+- client API access: [api.ts](/Users/ea/Desktop/projects/pulsi-app/packages/client/src/lib/api.ts)
 
 ## 17. Future Scalability Considerations
 
 Near-term:
 
-- move provider sync execution to a background worker consuming `integration_sync_jobs`
-- add invitation flows and membership management APIs
-- expose readiness trend endpoints for weekly planning views
-- introduce audit event writes for tenant creation, membership changes, and sync triggers
+- move webhook processing to a worker queue for higher throughput and safer retries
+- add audit event writes for Garmin connect, disconnect, permission changes, and deregistrations
+- add idempotency keys if Garmin payloads expose stable event identifiers
 
 Mid-term:
 
-- add Redis for idempotency keys, request throttling, and short-lived caches
-- partition time-series tables such as `wearable_daily_metrics` by month if volume grows
-- support additional wearable providers behind the same integration port
-- add webhook ingestion for provider push events and map them into the same sync job flow
+- add another provider by copying the Garmin module shape, not by modifying core readiness logic
+- split provider credentials into a dedicated secrets store or KMS-backed envelope encryption
+- add background reconciliation jobs for providers that support polling or replay windows
 
 Long-term:
 
-- add model versioning for readiness scoring
-- split analytics workloads from transactional storage
-- consider per-tenant encryption keys for especially sensitive data domains
+- version readiness models
+- partition large time-series tables
+- move analytics workloads off the transactional database
+- add stronger database-level tenant ownership constraints across all tenant-owned child tables

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { IntegrationProvider } from "@pulsi/shared";
 
 import type { Database } from "../db/client";
@@ -126,14 +126,15 @@ export class IntegrationRepository {
           wearableDailyMetrics.provider
         ],
         set: {
-          restingHeartRate: input.restingHeartRate,
-          hrvNightlyMs: input.hrvNightlyMs,
-          sleepDurationMinutes: input.sleepDurationMinutes,
-          sleepScore: input.sleepScore,
-          bodyBatteryHigh: input.bodyBatteryHigh,
-          bodyBatteryLow: input.bodyBatteryLow,
-          stressAverage: input.stressAverage,
-          trainingReadiness: input.trainingReadiness,
+          sourceConnectionId: input.connectionId,
+          restingHeartRate: sql`coalesce(excluded.resting_heart_rate, ${wearableDailyMetrics.restingHeartRate})`,
+          hrvNightlyMs: sql`coalesce(excluded.hrv_nightly_ms, ${wearableDailyMetrics.hrvNightlyMs})`,
+          sleepDurationMinutes: sql`coalesce(excluded.sleep_duration_minutes, ${wearableDailyMetrics.sleepDurationMinutes})`,
+          sleepScore: sql`coalesce(excluded.sleep_score, ${wearableDailyMetrics.sleepScore})`,
+          bodyBatteryHigh: sql`coalesce(excluded.body_battery_high, ${wearableDailyMetrics.bodyBatteryHigh})`,
+          bodyBatteryLow: sql`coalesce(excluded.body_battery_low, ${wearableDailyMetrics.bodyBatteryLow})`,
+          stressAverage: sql`coalesce(excluded.stress_average, ${wearableDailyMetrics.stressAverage})`,
+          trainingReadiness: sql`coalesce(excluded.training_readiness, ${wearableDailyMetrics.trainingReadiness})`,
           rawPayload: input.rawPayload,
           ingestedAt: new Date()
         }

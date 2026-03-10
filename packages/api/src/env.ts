@@ -8,6 +8,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(32),
   GARMIN_API_BASE_URL: z.string().url(),
+  GARMIN_CLIENT_ID: z.string().min(1),
+  GARMIN_CLIENT_SECRET: z.string().min(1),
+  GARMIN_OAUTH_REDIRECT_URI: z.string().url(),
+  GARMIN_TOKEN_ENCRYPTION_KEY: z.string().min(32),
   GARMIN_WEBHOOK_SECRET: z.string().min(16),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info")
 });
