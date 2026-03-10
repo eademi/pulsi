@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-import { athleteSchema, athleteStatusSchema } from "./readiness";
+import {
+  athleteSchema,
+  athleteStatusSchema,
+  readinessBandSchema,
+  recoveryTrendSchema,
+  trainingRecommendationSchema,
+  wearableMetricsSchema
+} from "./readiness";
 
 export { athleteStatusSchema };
 
@@ -54,11 +61,38 @@ export const athleteClaimDetailsSchema = z.object({
 export const athletePortalSchema = z.object({
   athlete: athleteSchema,
   latestSnapshot: z.object({
-    readinessBand: z.enum(["ready", "caution", "restricted"]).nullable(),
+    readinessBand: readinessBandSchema.nullable(),
     readinessScore: z.number().int().min(0).max(100).nullable(),
-    recommendation: z.enum(["full_load", "reduced_load", "monitor", "recovery_focus"]).nullable(),
+    recommendation: trainingRecommendationSchema.nullable(),
+    recoveryTrend: recoveryTrendSchema.nullable(),
     snapshotDate: z.string().date().nullable(),
-    rationale: z.array(z.string())
+    rationale: z.array(z.string()),
+    metrics: wearableMetricsSchema.nullable()
+  }),
+  trendSummary: z.object({
+    windowDays: z.number().int().positive(),
+    daysWithData: z.number().int().nonnegative(),
+    averageReadinessScore: z.number().min(0).max(100).nullable(),
+    readinessDelta: z.number().nullable(),
+    averageSleepDurationMinutes: z.number().nonnegative().nullable(),
+    averageHrvNightlyMs: z.number().nonnegative().nullable(),
+    bandCounts: z.object({
+      ready: z.number().int().nonnegative(),
+      caution: z.number().int().nonnegative(),
+      restricted: z.number().int().nonnegative()
+    })
+  }),
+  recentSnapshots: z.array(
+    z.object({
+      snapshotDate: z.string().date(),
+      readinessScore: z.number().int().min(0).max(100),
+      readinessBand: readinessBandSchema
+    })
+  ),
+  syncStatus: z.object({
+    garminConnected: z.boolean(),
+    lastSuccessfulSyncAt: z.string().datetime().nullable(),
+    lastPermissionsSyncAt: z.string().datetime().nullable()
   }),
   garminConnected: z.boolean()
 });

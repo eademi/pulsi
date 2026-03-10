@@ -1180,6 +1180,12 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
 
+.athlete-dashboard-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .athlete-action-row {
   width: min(100%, 15rem);
   margin-left: auto;
@@ -1188,6 +1194,57 @@ button {
 .athlete-insight-panel {
   display: grid;
   gap: 0.75rem;
+}
+
+.athlete-trend-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.athlete-metric-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(29, 38, 35, 0.08);
+}
+
+.athlete-metric-card span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.athlete-metric-card strong {
+  font-size: 1.1rem;
+}
+
+.athlete-band-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.athlete-history-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.athlete-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(29, 38, 35, 0.08);
+}
+
+.athlete-history-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
 .athlete-rationale-list {
@@ -1211,7 +1268,8 @@ button {
   .welcome-grid,
   .settings-grid,
   .garmin-mode-grid,
-  .athlete-summary-grid {
+  .athlete-summary-grid,
+  .athlete-dashboard-grid {
     grid-template-columns: 1fr;
   }
 

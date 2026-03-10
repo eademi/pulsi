@@ -11,6 +11,7 @@ import type { GarminRepository } from "../repositories/garmin-repository";
 import type { ReadinessRepository } from "../repositories/readiness-repository";
 
 const CLAIM_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const ATHLETE_TREND_WINDOW_DAYS = 7;
 
 export class AthleteAccountService {
   public constructor(
@@ -195,14 +196,17 @@ export class AthleteAccountService {
       throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete profile not found");
     }
 
-    const [snapshotRecord] = await this.readinessRepository.listSnapshotsForAthletes({
+    const snapshotRecords = await this.readinessRepository.listSnapshotsForAthletes({
       tenantId: athleteProfile.tenantId,
       athleteIds: [athleteProfile.athleteId]
     });
+    const [snapshotRecord] = snapshotRecords;
     const garminConnection = await this.garminRepository.findConnectionByAthlete(
       athleteProfile.tenantId,
       athleteProfile.athleteId
     );
+    const recentSnapshotRecords = snapshotRecords.slice(0, ATHLETE_TREND_WINDOW_DAYS);
+    const trendSummary = buildTrendSummary(recentSnapshotRecords);
 
     return {
       athlete: {
@@ -214,16 +218,43 @@ export class AthleteAccountService {
             readinessBand: snapshotRecord.snapshot.readinessBand,
             readinessScore: snapshotRecord.snapshot.readinessScore,
             recommendation: snapshotRecord.snapshot.recommendation,
+            recoveryTrend: snapshotRecord.snapshot.recoveryTrend,
             snapshotDate: snapshotRecord.snapshot.snapshotDate,
-            rationale: snapshotRecord.snapshot.rationale
+            rationale: snapshotRecord.snapshot.rationale,
+            metrics: snapshotRecord.metric
+              ? {
+                  metricDate: snapshotRecord.metric.metricDate,
+                  restingHeartRate: snapshotRecord.metric.restingHeartRate,
+                  hrvNightlyMs: snapshotRecord.metric.hrvNightlyMs,
+                  sleepDurationMinutes: snapshotRecord.metric.sleepDurationMinutes,
+                  sleepScore: snapshotRecord.metric.sleepScore,
+                  bodyBatteryHigh: snapshotRecord.metric.bodyBatteryHigh,
+                  bodyBatteryLow: snapshotRecord.metric.bodyBatteryLow,
+                  stressAverage: snapshotRecord.metric.stressAverage,
+                  trainingReadiness: snapshotRecord.metric.trainingReadiness
+                }
+              : null
           }
         : {
             readinessBand: null,
             readinessScore: null,
             recommendation: null,
+            recoveryTrend: null,
             snapshotDate: null,
-            rationale: []
+            rationale: [],
+            metrics: null
           },
+      trendSummary,
+      recentSnapshots: recentSnapshotRecords.map((record) => ({
+        snapshotDate: record.snapshot.snapshotDate,
+        readinessScore: record.snapshot.readinessScore,
+        readinessBand: record.snapshot.readinessBand
+      })),
+      syncStatus: {
+        garminConnected: Boolean(garminConnection),
+        lastSuccessfulSyncAt: garminConnection?.lastSuccessfulSyncAt?.toISOString() ?? null,
+        lastPermissionsSyncAt: garminConnection?.lastPermissionsSyncAt?.toISOString() ?? null
+      },
       garminConnected: Boolean(garminConnection)
     };
   }
@@ -233,3 +264,48 @@ const hashClaimToken = (token: string) => createHash("sha256").update(token).dig
 
 const buildClaimUrl = (clientUrl: string, token: string) =>
   new URL(`/athlete/claim/${token}`, clientUrl).toString();
+
+const buildTrendSummary = (
+  records: Awaited<ReturnType<ReadinessRepository["listSnapshotsForAthletes"]>>
+) => {
+  const readinessScores = records.map((record) => record.snapshot.readinessScore);
+  const sleepDurations = records
+    .map((record) => record.metric?.sleepDurationMinutes ?? null)
+    .filter((value): value is number => value !== null);
+  const hrvValues = records
+    .map((record) => record.metric?.hrvNightlyMs ?? null)
+    .filter((value): value is number => value !== null);
+
+  const latestScore = readinessScores[0] ?? null;
+  const previousScore = readinessScores[1] ?? null;
+  const bandCounts = {
+    ready: 0,
+    caution: 0,
+    restricted: 0
+  };
+
+  // Count readiness bands over the recent window so the athlete UI can show
+  // trend balance without exposing other squad members or staff-only framing.
+  for (const record of records) {
+    bandCounts[record.snapshot.readinessBand] += 1;
+  }
+
+  return {
+    windowDays: ATHLETE_TREND_WINDOW_DAYS,
+    daysWithData: records.length,
+    averageReadinessScore: average(readinessScores),
+    readinessDelta:
+      latestScore !== null && previousScore !== null ? latestScore - previousScore : null,
+    averageSleepDurationMinutes: average(sleepDurations),
+    averageHrvNightlyMs: average(hrvValues),
+    bandCounts
+  };
+};
+
+const average = (values: number[]) => {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10;
+};

@@ -47,6 +47,32 @@ const createHarness = () => {
     tenantName: string;
     tenantSlug: string;
   } = null;
+  let snapshotRecords: Array<{
+    metric: {
+      bodyBatteryHigh: number | null;
+      bodyBatteryLow: number | null;
+      hrvNightlyMs: number | null;
+      metricDate: string;
+      restingHeartRate: number | null;
+      sleepDurationMinutes: number | null;
+      sleepScore: number | null;
+      stressAverage: number | null;
+      trainingReadiness: number | null;
+    } | null;
+    snapshot: {
+      createdAt: Date;
+      readinessBand: "ready" | "caution" | "restricted";
+      readinessScore: number;
+      recommendation: "full_load" | "reduced_load" | "monitor" | "recovery_focus";
+      recoveryTrend: "stable" | "improving" | "declining";
+      rationale: string[];
+      snapshotDate: string;
+    };
+  }> = [];
+  let garminConnection: null | {
+    lastPermissionsSyncAt: Date | null;
+    lastSuccessfulSyncAt: Date | null;
+  } = null;
 
   const db = {
     transaction: async <T>(callback: (_tx: unknown) => Promise<T>) => callback({})
@@ -88,11 +114,11 @@ const createHarness = () => {
   };
 
   const readinessRepository = {
-    listSnapshotsForAthletes: async () => []
+    listSnapshotsForAthletes: async () => snapshotRecords
   };
 
   const garminRepository = {
-    findConnectionByAthlete: async () => null
+    findConnectionByAthlete: async () => garminConnection
   };
 
   return {
@@ -117,6 +143,12 @@ const createHarness = () => {
     },
     setClaimLookup(value: typeof claimLookup) {
       claimLookup = value;
+    },
+    setGarminConnection(value: typeof garminConnection) {
+      garminConnection = value;
+    },
+    setSnapshotRecords(value: typeof snapshotRecords) {
+      snapshotRecords = value;
     }
   };
 };
@@ -233,4 +265,76 @@ test("acceptClaim creates the athlete account and marks the claim as claimed", a
   assert.equal(harness.calls.createAccount.length, 1);
   assert.equal(harness.calls.markClaimed.length, 1);
   assert.equal(harness.calls.markClaimed[0]?.claimLinkId, "claim-1");
+});
+
+test("getAthletePortal returns trend and sync details for the athlete dashboard", async () => {
+  const harness = createHarness();
+  harness.setSnapshotRecords([
+    {
+      snapshot: {
+        createdAt: new Date("2026-03-11T08:00:00.000Z"),
+        readinessBand: "ready",
+        readinessScore: 84,
+        recommendation: "full_load",
+        recoveryTrend: "improving",
+        rationale: ["Sleep and HRV are above baseline"],
+        snapshotDate: "2026-03-11"
+      },
+      metric: {
+        bodyBatteryHigh: 91,
+        bodyBatteryLow: 24,
+        hrvNightlyMs: 72,
+        metricDate: "2026-03-11",
+        restingHeartRate: 51,
+        sleepDurationMinutes: 470,
+        sleepScore: 88,
+        stressAverage: 23,
+        trainingReadiness: 86
+      }
+    },
+    {
+      snapshot: {
+        createdAt: new Date("2026-03-10T08:00:00.000Z"),
+        readinessBand: "caution",
+        readinessScore: 68,
+        recommendation: "monitor",
+        recoveryTrend: "stable",
+        rationale: ["Recovery signals are slightly below baseline"],
+        snapshotDate: "2026-03-10"
+      },
+      metric: {
+        bodyBatteryHigh: 79,
+        bodyBatteryLow: 29,
+        hrvNightlyMs: 63,
+        metricDate: "2026-03-10",
+        restingHeartRate: 54,
+        sleepDurationMinutes: 430,
+        sleepScore: 79,
+        stressAverage: 34,
+        trainingReadiness: 70
+      }
+    }
+  ]);
+  harness.setGarminConnection({
+    lastSuccessfulSyncAt: new Date("2026-03-11T06:30:00.000Z"),
+    lastPermissionsSyncAt: new Date("2026-03-10T06:30:00.000Z")
+  });
+
+  const portal = await harness.service.getAthletePortal({
+    athleteId: "athlete-1",
+    tenantId: "tenant-1"
+  });
+
+  assert.equal(portal.latestSnapshot.readinessScore, 84);
+  assert.equal(portal.latestSnapshot.recoveryTrend, "improving");
+  assert.equal(portal.latestSnapshot.metrics?.sleepDurationMinutes, 470);
+  assert.equal(portal.trendSummary.averageReadinessScore, 76);
+  assert.equal(portal.trendSummary.readinessDelta, 16);
+  assert.equal(portal.trendSummary.averageSleepDurationMinutes, 450);
+  assert.equal(portal.trendSummary.averageHrvNightlyMs, 67.5);
+  assert.equal(portal.trendSummary.bandCounts.ready, 1);
+  assert.equal(portal.trendSummary.bandCounts.caution, 1);
+  assert.equal(portal.recentSnapshots.length, 2);
+  assert.equal(portal.syncStatus.garminConnected, true);
+  assert.equal(portal.syncStatus.lastSuccessfulSyncAt, "2026-03-11T06:30:00.000Z");
 });
