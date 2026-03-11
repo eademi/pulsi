@@ -17,8 +17,13 @@ export interface AthleteVisibilityFilter {
 export class AthleteRepository {
   public constructor(private readonly db: Database) {}
 
-  public async findByIdForTenant(tenantId: string, athleteId: string, filters: AthleteVisibilityFilter = {}) {
-    const [athlete] = await this.db
+  public async findByIdForTenant(
+    tenantId: string,
+    athleteId: string,
+    filters: AthleteVisibilityFilter = {},
+    executor: DbExecutor = this.db
+  ) {
+    const [athlete] = await executor
       .select({
         athlete: athletes,
         squadId: squads.id,

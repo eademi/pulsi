@@ -42,7 +42,9 @@ export class AthleteManagementService {
         tx
       );
 
-      return this.athleteRepository.findByIdForTenant(tenantId, athlete.id);
+      // Read the athlete back through the same transaction so the confirmation
+      // query can see the newly inserted row and active squad assignment.
+      return this.athleteRepository.findByIdForTenant(tenantId, athlete.id, {}, tx);
     });
   }
 
