@@ -83,7 +83,7 @@ export default function WelcomeRoute() {
         />
 
         <div className="grid gap-4 xl:grid-cols-[1fr_0.95fr]">
-          <section className="surface-panel rounded-[var(--radius-panel)] p-6">
+          <section className="surface-panel rounded-panel p-6">
             <p className="eyebrow">Create a club workspace</p>
             <h2 className="mt-3 text-2xl font-semibold text-obsidian-100">Start a new organization</h2>
             <p className="mt-3 text-sm text-obsidian-400">Use this when you are the first owner for a club or performance department.</p>
@@ -108,9 +108,7 @@ export default function WelcomeRoute() {
               </div>
 
               {actionData?.error ? (
-                <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">
-                  {actionData.error}
-                </p>
+                <p className="rounded-soft border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">{actionData.error}</p>
               ) : null}
 
               <button className="btn-primary w-full justify-center" disabled={isSubmitting} type="submit">
@@ -119,7 +117,7 @@ export default function WelcomeRoute() {
             </Form>
           </section>
 
-          <section className="surface-panel rounded-[var(--radius-panel)] p-6">
+          <section className="surface-panel rounded-panel p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="eyebrow">Pending invitations</p>
@@ -131,7 +129,7 @@ export default function WelcomeRoute() {
             {invitations.length > 0 ? (
               <div className="mt-6 grid gap-3">
                 {invitations.map((invitation) => (
-                  <Form className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4" key={invitation.id} method="post">
+                  <Form className="rounded-soft border border-white/8 bg-white/3 p-4" key={invitation.id} method="post">
                     <input name="intent" type="hidden" value="accept-invitation" />
                     <input name="invitationId" type="hidden" value={invitation.id} />
 

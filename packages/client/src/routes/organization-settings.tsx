@@ -103,7 +103,7 @@ export default function OrganizationSettingsRoute() {
       />
 
       <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+        <section className="surface-panel rounded-panel p-5">
           <p className="eyebrow">Invite staff</p>
           <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Add team member</h2>
 
@@ -151,7 +151,7 @@ export default function OrganizationSettingsRoute() {
             ))}
           </DataTable>
 
-          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+          <section className="surface-panel rounded-panel p-5">
             <p className="eyebrow">Adjust squad scope</p>
             <div className="mt-4 grid gap-4">
               {members.map((member) => (
@@ -160,7 +160,7 @@ export default function OrganizationSettingsRoute() {
             </div>
           </section>
 
-          <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+          <section className="surface-grid rounded-panel p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="eyebrow">Pending invitations</p>
@@ -199,7 +199,7 @@ function MemberScopeForm({
   isSubmitting: boolean;
 }) {
   return (
-    <Form className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4" method="post">
+    <Form className="rounded-soft border border-white/8 bg-white/3 p-4" method="post">
       <input name="intent" type="hidden" value="scope" />
       <input name="userId" type="hidden" value={member.userId} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -218,7 +218,7 @@ function MemberScopeForm({
 
             <div className="grid gap-2 sm:grid-cols-2">
               {squads.map((squad) => (
-                <label className="flex items-center gap-3 rounded-[var(--radius-soft)] border border-white/8 bg-black/15 px-3 py-2" key={squad.id}>
+                <label className="flex items-center gap-3 rounded-soft border border-white/8 bg-black/15 px-3 py-2" key={squad.id}>
                   <input
                     defaultChecked={member.assignedSquads.some((assigned) => assigned.id === squad.id)}
                     name="squadIds"
@@ -242,7 +242,7 @@ function MemberScopeForm({
 
 function InvitationCard({ invitation }: { invitation: TenantInvitation }) {
   return (
-    <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
+    <div className="rounded-soft border border-white/8 bg-white/3 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-obsidian-100">{invitation.email}</p>
@@ -261,8 +261,8 @@ function Message({ tone, children }: { tone: "error" | "success"; children: stri
     <p
       className={
         tone === "success"
-          ? "rounded-[var(--radius-soft)] border border-ready-500/25 bg-ready-500/10 px-4 py-3 text-sm text-ready-500"
-          : "rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500"
+          ? "rounded-soft border border-ready-500/25 bg-ready-500/10 px-4 py-3 text-sm text-ready-500"
+          : "rounded-soft border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500"
       }
     >
       {children}

@@ -19,7 +19,7 @@ export function FilterSelect({
   return (
     <Select.Root onValueChange={(nextValue) => onValueChange(nextValue ?? "")} value={value}>
       <Select.Trigger
-        className={cn("input-shell h-11 min-w-44 justify-between rounded-[var(--radius-soft)] border border-white/10 bg-obsidian-900/80 px-3.5", className)}
+        className={cn("input-shell h-11 min-w-44 justify-between rounded-soft border border-white/10 bg-obsidian-900/80 px-3.5", className)}
       >
         <Select.Value placeholder={placeholder ?? "Select"} />
         <Select.Icon>
@@ -28,11 +28,11 @@ export function FilterSelect({
       </Select.Trigger>
       <Select.Portal>
         <Select.Positioner className="z-50 outline-none" sideOffset={8}>
-          <Select.Popup className="surface-panel min-w-[var(--anchor-width)] rounded-[var(--radius-soft)] p-1 outline-none">
+          <Select.Popup className="surface-panel min-w-(--anchor-width) rounded-soft p-1 outline-none">
             <Select.List className="max-h-72 overflow-auto">
               {items.map((item) => (
                 <Select.Item
-                  className="flex cursor-default items-center justify-between rounded-[var(--radius-tight)] px-3 py-2 text-sm text-obsidian-200 outline-none data-[highlighted]:bg-accent-500/10 data-[selected]:bg-accent-500/16"
+                  className="flex cursor-default items-center justify-between rounded-tight px-3 py-2 text-sm text-obsidian-200 outline-none data-highlighted:bg-accent-500/10 data-selected:bg-accent-500/16"
                   key={item.value}
                   value={item.value}
                 >

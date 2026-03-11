@@ -29,7 +29,6 @@ const createHarness = () => {
     firstName: string;
     lastName: string;
     position: string | null;
-    squad: string | null;
     status: "active" | "inactive" | "rehab";
     tenantId: string;
     updatedAt: Date;
@@ -41,7 +40,6 @@ const createHarness = () => {
     firstName: "Egon",
     lastName: "Ademi",
     position: "Midfielder",
-    squad: "Seniors",
     status: "active",
     tenantId: "tenant-1",
     updatedAt: new Date("2026-03-10T08:00:00.000Z")
@@ -86,8 +84,7 @@ const createHarness = () => {
         ? {
             ...athlete,
             status,
-            currentSquad: status === "inactive" ? null : athlete.currentSquad,
-            squad: status === "inactive" ? null : athlete.squad
+            currentSquad: status === "inactive" ? null : athlete.currentSquad
           }
         : athlete;
       return athlete;
@@ -211,7 +208,6 @@ test("restoreAthlete reactivates the athlete, squad assignment, and athlete acco
     id: "athlete-1",
     lastName: "Ademi",
     position: "Midfielder",
-    squad: null,
     status: "inactive",
     tenantId: "tenant-1",
     updatedAt: new Date("2026-03-10T08:00:00.000Z")

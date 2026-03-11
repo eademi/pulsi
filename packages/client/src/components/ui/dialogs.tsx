@@ -53,7 +53,7 @@ export function ConfirmDialog({
       <Dialog.Trigger render={<button />}>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Popup className="surface-panel fixed left-1/2 top-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-panel)] p-6 outline-none">
+        <Dialog.Popup className="surface-panel fixed left-1/2 top-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-panel p-6 outline-none">
           <Dialog.Title className="text-lg font-semibold text-obsidian-100">{title}</Dialog.Title>
           <Dialog.Description className="mt-2 text-sm text-obsidian-400">{description}</Dialog.Description>
           <div className="mt-6 flex justify-end gap-3">
@@ -89,7 +89,7 @@ export function CenteredDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/65 backdrop-blur-sm" />
         <Dialog.Popup
-          className={`surface-panel fixed left-1/2 top-1/2 z-50 grid max-h-[min(88vh,44rem)] w-[min(92vw,42rem)] -translate-x-1/2 -translate-y-1/2 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[var(--radius-panel)] outline-none ${widthClassName}`}
+          className={`surface-panel fixed left-1/2 top-1/2 z-50 grid max-h-[min(88vh,44rem)] w-[min(92vw,42rem)] -translate-x-1/2 -translate-y-1/2 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-panel outline-none ${widthClassName}`}
         >
           <div className="flex items-start justify-between gap-4 border-b border-white/8 px-6 py-5">
             <div className="min-w-0">

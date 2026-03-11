@@ -12,7 +12,7 @@ export function PageHeader({
   actions?: ReactNode;
 }>) {
   return (
-    <header className="surface-panel rounded-[var(--radius-panel)] p-5 lg:p-6">
+    <header className="surface-panel rounded-panel p-5 lg:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
           <p className="eyebrow">{eyebrow}</p>

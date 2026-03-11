@@ -181,7 +181,7 @@ function GarminAthleteCard({
     <article className="surface-panel rounded-[var(--radius-panel)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="eyebrow">{athlete.currentSquad?.name ?? athlete.squad ?? "Unassigned squad"}</p>
+          <p className="eyebrow">{athlete.currentSquad?.name ?? "Unassigned squad"}</p>
           <h3 className="mt-2 text-xl font-semibold text-obsidian-100">
             {athlete.firstName} {athlete.lastName}
           </h3>

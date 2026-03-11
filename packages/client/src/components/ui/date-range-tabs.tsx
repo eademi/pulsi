@@ -16,10 +16,10 @@ export function DateRangeTabs({
 }) {
   return (
     <Tabs.Root onValueChange={(next) => onValueChange(next as never)} value={value}>
-      <Tabs.List className="inline-flex rounded-[var(--radius-soft)] border border-white/10 bg-white/5 p-1">
+      <Tabs.List className="inline-flex rounded-soft border border-white/10 bg-white/5 p-1">
         {RANGES.map((range) => (
           <Tabs.Tab
-            className="rounded-[calc(var(--radius-soft)-2px)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-obsidian-400 data-[selected]:bg-accent-500 data-[selected]:text-obsidian-950"
+            className="rounded-[calc(var(--radius-soft)-2px)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-obsidian-400 data-selected:bg-accent-500 data-selected:text-obsidian-950"
             key={range.value}
             value={range.value}
           >

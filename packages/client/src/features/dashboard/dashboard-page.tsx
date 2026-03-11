@@ -34,7 +34,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
     const uniqueSquads = new Map<string, string>();
 
     for (const item of readiness) {
-      const squadName = item.athlete.currentSquad?.name ?? item.athlete.squad ?? "Unassigned";
+      const squadName = item.athlete.currentSquad?.name ?? "Unassigned";
       uniqueSquads.set(squadName.toLowerCase(), squadName);
     }
 
@@ -83,7 +83,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
         </div>
       ) : null}
 
-      <section className="surface-panel rounded-[var(--radius-panel)] p-4 lg:p-5">
+      <section className="surface-panel rounded-panel p-4 lg:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="eyebrow">Today at a glance</p>
@@ -94,7 +94,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
           </p>
         </div>
 
-        <div className="mt-5 overflow-hidden rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03]">
+        <div className="mt-5 overflow-hidden rounded-soft border border-white/8 bg-white/3">
           <div className="grid divide-y divide-white/8 md:grid-cols-2 md:divide-x md:divide-y-0 2xl:grid-cols-4">
             <MetricStat
               delta={`${summary.readyPercentage}% of roster`}
@@ -131,7 +131,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
         </div>
       </section>
 
-      <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+      <section className="surface-panel rounded-panel p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="eyebrow">Top movers</p>
@@ -142,7 +142,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
         <div className="mt-5 grid gap-4">
           {topMovers.map((mover) => (
             <button
-              className="flex items-center justify-between gap-4 rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-3 text-left transition hover:border-accent-500/20 hover:bg-accent-500/8"
+              className="flex items-center justify-between gap-4 rounded-soft border border-white/8 bg-white/3 p-3 text-left transition hover:border-accent-500/20 hover:bg-accent-500/8"
               key={mover.athlete.id}
               onClick={() => setSelectedAthlete(mover)}
               type="button"
@@ -151,9 +151,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
                 <div className="text-sm font-medium text-obsidian-100">
                   {mover.athlete.firstName} {mover.athlete.lastName}
                 </div>
-                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-obsidian-500">
-                  {mover.athlete.currentSquad?.name ?? mover.athlete.squad ?? "Unassigned"}
-                </div>
+                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-obsidian-500">{mover.athlete.currentSquad?.name ?? "Unassigned"}</div>
               </div>
               <div className="text-right">
                 <div className={cn("text-lg font-semibold", mover.delta >= 0 ? "text-ready-500" : "text-risk-500")}>
@@ -166,7 +164,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
         </div>
       </section>
 
-      <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+      <section className="surface-panel rounded-panel p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="eyebrow">Fast filters</p>
@@ -190,14 +188,14 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
 
         <Tabs.Root className="mt-5" onValueChange={setTab} value={tab}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <Tabs.List className="inline-flex rounded-[var(--radius-soft)] border border-white/10 bg-white/5 p-1">
+            <Tabs.List className="inline-flex rounded-soft border border-white/10 bg-white/5 p-1">
               {[
                 { label: "Squad overview", value: "board" },
                 { label: "Attention queue", value: "attention" },
                 { label: "Session summary", value: "summary" },
               ].map((item) => (
                 <Tabs.Tab
-                  className="rounded-[calc(var(--radius-soft)-2px)] px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-obsidian-400 data-[selected]:bg-accent-500 data-[selected]:text-obsidian-950"
+                  className="rounded-[calc(var(--radius-soft)-2px)] px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-obsidian-400 data-selected:bg-accent-500 data-selected:text-obsidian-950"
                   key={item.value}
                   value={item.value}
                 >
@@ -213,7 +211,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
                     "rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em]",
                     bandFilter === band
                       ? "border-accent-500/30 bg-accent-500/12 text-accent-300"
-                      : "border-white/8 bg-white/[0.03] text-obsidian-400 hover:text-obsidian-100",
+                      : "border-white/8 bg-white/3 text-obsidian-400 hover:text-obsidian-100",
                   )}
                   key={band}
                   onClick={() => startTransition(() => setBandFilter(band))}
@@ -256,13 +254,13 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
                         {item.athlete.firstName} {item.athlete.lastName}
                       </div>
                       <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
-                        {item.athlete.currentSquad?.name ?? item.athlete.squad ?? "Unassigned"}
+                        {item.athlete.currentSquad?.name ?? "Unassigned"}
                       </div>
                     </DataCell>
                     <DataCell>
                       <StatusBadge status={item.latestSnapshot?.readinessBand ?? "no_data"} />
                     </DataCell>
-                    <DataCell className="max-w-[22rem] text-obsidian-400">{item.latestSnapshot?.rationale.join(" · ") ?? "No rationale"}</DataCell>
+                    <DataCell className="max-w-88 text-obsidian-400">{item.latestSnapshot?.rationale.join(" · ") ?? "No rationale"}</DataCell>
                     <DataCell>{formatMinutes(item.latestSnapshot?.metrics.sleepDurationMinutes ?? null)}</DataCell>
                     <DataCell>{formatNumber(item.latestSnapshot?.metrics.hrvNightlyMs ?? null, "ms")}</DataCell>
                     <DataCell>
@@ -283,7 +281,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
 
           <Tabs.Panel className="mt-5" value="summary">
             <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-              <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+              <section className="surface-grid rounded-panel p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="eyebrow">Session planner snapshot</p>
@@ -298,7 +296,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
                 </div>
               </section>
 
-              <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+              <section className="surface-panel rounded-panel p-5">
                 <p className="eyebrow">Metric focus</p>
                 <h3 className="mt-2 text-lg font-semibold text-obsidian-100">Current lens: {metricFocus}</h3>
                 <p className="mt-3 text-sm text-obsidian-400">
@@ -318,11 +316,7 @@ export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteRea
 function AthleteDetailSheet({ athlete, onOpenChange }: { athlete: AthleteReadiness | null; onOpenChange: (open: boolean) => void }) {
   return (
     <SideSheet
-      description={
-        athlete
-          ? `${athlete.athlete.currentSquad?.name ?? athlete.athlete.squad ?? "Unassigned"} · ${athlete.athlete.position ?? "Player"}`
-          : undefined
-      }
+      description={athlete ? `${athlete.athlete.currentSquad?.name ?? "Unassigned"} · ${athlete.athlete.position ?? "Player"}` : undefined}
       onOpenChange={onOpenChange}
       open={Boolean(athlete)}
       title={athlete ? `${athlete.athlete.firstName} ${athlete.athlete.lastName}` : "Athlete detail"}
@@ -348,12 +342,12 @@ function AthleteDetailSheet({ athlete, onOpenChange }: { athlete: AthleteReadine
             <MetricStat label="Resting HR" value={formatNumber(athlete.latestSnapshot?.metrics.restingHeartRate ?? null, "bpm")} />
           </div>
 
-          <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+          <section className="surface-grid rounded-panel p-5">
             <p className="eyebrow">Coach context</p>
             <h3 className="mt-2 text-lg font-semibold text-obsidian-100">Latest explanation</h3>
             <div className="mt-4 grid gap-3">
               {athlete.latestSnapshot?.rationale.map((item) => (
-                <div className="rounded-[var(--radius-tight)] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-obsidian-300" key={item}>
+                <div className="rounded-tight border border-white/8 bg-white/3 px-4 py-3 text-sm text-obsidian-300" key={item}>
                   {item}
                 </div>
               )) ?? <p className="text-sm text-obsidian-500">No rationale is available yet.</p>}
@@ -367,7 +361,7 @@ function AthleteDetailSheet({ athlete, onOpenChange }: { athlete: AthleteReadine
 
 function MetricToggleGroup({ value, onValueChange }: { value: MetricFocus; onValueChange: (value: MetricFocus) => void }) {
   return (
-    <div className="inline-flex rounded-[var(--radius-soft)] border border-white/10 bg-white/5 p-1">
+    <div className="inline-flex rounded-soft border border-white/10 bg-white/5 p-1">
       {(["readiness", "sleep", "hrv", "load"] as const).map((item) => (
         <button
           className={cn(
@@ -387,7 +381,7 @@ function MetricToggleGroup({ value, onValueChange }: { value: MetricFocus; onVal
 
 function PlannerCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
+    <div className="rounded-soft border border-white/8 bg-white/3 p-4">
       <div className="text-[0.68rem] uppercase tracking-[0.16em] text-obsidian-500">{label}</div>
       <div className="mt-3 text-3xl font-semibold text-obsidian-100">{value}</div>
     </div>
@@ -407,7 +401,7 @@ function filterReadiness(readiness: AthleteReadiness[], input: { bandFilter: Rea
 
   return readiness.filter((item) => {
     const matchesBand = input.bandFilter === "all" || item.latestSnapshot?.readinessBand === input.bandFilter;
-    const squadName = item.athlete.currentSquad?.name ?? item.athlete.squad ?? "Unassigned";
+    const squadName = item.athlete.currentSquad?.name ?? "Unassigned";
     const matchesSquad = input.squadFilter === "all" || squadName.toLowerCase() === input.squadFilter.toLowerCase();
     const haystack = [item.athlete.firstName, item.athlete.lastName, item.athlete.position ?? "", squadName].join(" ").toLowerCase();
     const matchesSearch = !query || haystack.includes(query);

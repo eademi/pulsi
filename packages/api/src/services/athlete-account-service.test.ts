@@ -24,7 +24,6 @@ const createHarness = () => {
     id: "athlete-1",
     lastName: "Athlete",
     position: "Forward",
-    squad: "First Team",
     status: "active" as const,
     tenantId: "tenant-1"
   };

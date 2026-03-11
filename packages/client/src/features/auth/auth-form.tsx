@@ -33,7 +33,7 @@ export const AuthForm = ({
       </div>
 
       {error && !isSubmitting ? (
-        <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">{error}</p>
+        <p className="rounded-soft border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">{error}</p>
       ) : null}
 
       <label className="flex items-center gap-3 text-sm text-obsidian-400">

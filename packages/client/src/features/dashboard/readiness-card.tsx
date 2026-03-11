@@ -22,7 +22,7 @@ export function ReadinessCard({ athleteReadiness, onSelect }: { athleteReadiness
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="eyebrow">{athleteReadiness.athlete.currentSquad?.name ?? athleteReadiness.athlete.squad ?? "Unassigned squad"}</p>
+          <p className="eyebrow">{athleteReadiness.athlete.currentSquad?.name ?? "Unassigned squad"}</p>
           <h3 className="mt-2 truncate text-lg font-semibold text-obsidian-100">
             {athleteReadiness.athlete.firstName} {athleteReadiness.athlete.lastName}
           </h3>

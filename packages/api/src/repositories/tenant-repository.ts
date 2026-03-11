@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import type { Database } from "../db/client";
-import { tenantMemberships, tenants, tenantUserAccessScopes } from "../db/schema";
+import { tenantMemberships, tenants } from "../db/schema";
 import { AppError } from "../http/errors";
 
 export class TenantRepository {
@@ -27,13 +27,8 @@ export class TenantRepository {
         userId: input.ownerUserId,
         role: "club_owner",
         status: "active",
+        accessScope: "all_squads",
         isDefaultTenant: true
-      });
-
-      await tx.insert(tenantUserAccessScopes).values({
-        tenantId: tenant.id,
-        userId: input.ownerUserId,
-        accessScope: "all_squads"
       });
 
       return tenant;

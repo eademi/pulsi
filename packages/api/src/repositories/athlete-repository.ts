@@ -300,7 +300,6 @@ const mapAthleteRecord = (row: {
   pendingClaimExpiresAt: Date | null;
 }) => ({
   ...row.athlete,
-  squad: row.squadName,
   accountState: deriveAthleteAccountState(row satisfies AthleteRosterStateRow),
   accountDetails: buildAthleteAccountDetails(row satisfies AthleteRosterStateRow),
   currentSquad:

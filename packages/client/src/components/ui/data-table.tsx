@@ -4,8 +4,8 @@ import { cn } from "../../lib/cn";
 
 export function DataTable({ headers, children, className }: { headers: Array<string>; children: ReactNode; className?: string }) {
   return (
-    <div className={cn("surface-panel overflow-hidden rounded-[var(--radius-panel)]", className)}>
-      <div className="max-h-[36rem] overflow-auto">
+    <div className={cn("surface-panel overflow-hidden rounded-panel", className)}>
+      <div className="max-h-144 overflow-auto">
         <table className="min-w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-obsidian-900/95 backdrop-blur">
             <tr className="border-b border-white/8">
@@ -40,9 +40,9 @@ export function DataRow({
     <tr
       className={cn(
         "border-b border-white/6 transition hover:bg-white/4",
-        tone === "ready" && "bg-ready-500/[0.04]",
-        tone === "caution" && "bg-caution-500/[0.04]",
-        tone === "risk" && "bg-risk-500/[0.05]",
+        tone === "ready" && "bg-ready-500/4",
+        tone === "caution" && "bg-caution-500/4",
+        tone === "risk" && "bg-risk-500/5",
         onClick && "cursor-pointer",
       )}
       onClick={onClick}

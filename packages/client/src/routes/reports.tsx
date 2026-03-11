@@ -52,13 +52,13 @@ export default function ReportsRoute() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+        <section className="surface-panel rounded-panel p-5">
           <p className="eyebrow">Trend line</p>
           <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Aggregate readiness movement</h2>
           <Sparkline className="mt-8 h-36" points={buildAggregateTrend(readiness)} status="accent" />
         </section>
 
-        <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+        <section className="surface-grid rounded-panel p-5">
           <p className="eyebrow">Export notes</p>
           <div className="mt-4 space-y-3 text-sm text-obsidian-300">
             <p>Use this surface for date-ranged report exports and objective coaching review.</p>
@@ -74,9 +74,7 @@ export default function ReportsRoute() {
               <div className="font-medium text-obsidian-100">
                 {item.athlete.firstName} {item.athlete.lastName}
               </div>
-              <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
-                {item.athlete.currentSquad?.name ?? item.athlete.squad ?? "Unassigned"}
-              </div>
+              <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">{item.athlete.currentSquad?.name ?? "Unassigned"}</div>
             </DataCell>
             <DataCell>{item.latestSnapshot?.readinessScore ?? "—"}</DataCell>
             <DataCell>{item.latestSnapshot?.metrics.sleepDurationMinutes ?? "—"}</DataCell>

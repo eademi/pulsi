@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 
 import { closeDatabase, db } from "./client";
@@ -15,7 +15,6 @@ import {
   squads,
   tenantMemberships,
   tenants,
-  tenantUserAccessScopes,
   tenantUserSquadAccess,
   user,
   wearableDailyMetrics
@@ -95,6 +94,7 @@ const PENDING_CLAIM_EMAILS = new Map<string, string>([
 const POSITION_ROTATION = ["Goalkeeper", "Center Back", "Full Back", "Midfielder", "Winger", "Forward"];
 
 const main = async () => {
+  await ensureDemoSchema();
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const tenant = await upsertTenant();
   const staffUsers = await upsertStaffUsers(passwordHash);
@@ -132,6 +132,25 @@ const main = async () => {
     athleteUsers,
     claimLinks
   });
+};
+
+const ensureDemoSchema = async () => {
+  const result = await db.execute(sql`
+    select exists (
+      select 1
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'tenant_memberships'
+        and column_name = 'access_scope'
+    ) as has_access_scope
+  `);
+
+  const row = result[0] as { has_access_scope?: boolean } | undefined;
+  if (!row?.has_access_scope) {
+    throw new Error(
+      "Database schema is out of date for demo seeding. Run `pnpm db:migrate:api` before `pnpm db:seed:demo`."
+    );
+  }
 };
 
 const upsertTenant = async () => {
@@ -265,6 +284,7 @@ const upsertMemberships = async (input: {
         userId: userRecord.id,
         role: fixture.role,
         status: "active",
+        accessScope: fixture.accessScope,
         isDefaultTenant: true,
         invitedByUserId: null,
         createdAt: TODAY,
@@ -275,24 +295,8 @@ const upsertMemberships = async (input: {
         set: {
           role: fixture.role,
           status: "active",
-          isDefaultTenant: true,
-          updatedAt: TODAY
-        }
-      });
-
-    await db
-      .insert(tenantUserAccessScopes)
-      .values({
-        tenantId: input.tenantId,
-        userId: userRecord.id,
-        accessScope: fixture.accessScope,
-        createdAt: TODAY,
-        updatedAt: TODAY
-      })
-      .onConflictDoUpdate({
-        target: [tenantUserAccessScopes.tenantId, tenantUserAccessScopes.userId],
-        set: {
           accessScope: fixture.accessScope,
+          isDefaultTenant: true,
           updatedAt: TODAY
         }
       });
@@ -410,7 +414,6 @@ const upsertAthletes = async (
           .set({
             firstName,
             lastName,
-            squad: squad.name,
             position,
             status: "active",
             updatedAt: TODAY
@@ -426,7 +429,6 @@ const upsertAthletes = async (
             externalRef,
             firstName,
             lastName,
-            squad: squad.name,
             position,
             status: "active",
             createdAt: TODAY,

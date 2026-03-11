@@ -25,7 +25,6 @@ export const athleteSchema = z.object({
   tenantId: z.string().uuid(),
   firstName: z.string(),
   lastName: z.string(),
-  squad: z.string().nullable(),
   currentSquad: squadSummarySchema.nullable(),
   position: z.string().nullable(),
   status: athleteStatusSchema,

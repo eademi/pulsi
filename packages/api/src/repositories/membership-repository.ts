@@ -5,7 +5,6 @@ import {
   squads,
   tenantMemberships,
   tenants,
-  tenantUserAccessScopes,
   tenantUserSquadAccess,
   user
 } from "../db/schema";
@@ -24,26 +23,14 @@ export class MembershipRepository {
         createdAt: tenants.createdAt,
         role: tenantMemberships.role,
         status: tenantMemberships.status,
-        accessScope: tenantUserAccessScopes.accessScope
+        accessScope: tenantMemberships.accessScope
       })
       .from(tenantMemberships)
       .innerJoin(tenants, eq(tenantMemberships.tenantId, tenants.id))
-      .leftJoin(
-        tenantUserAccessScopes,
-        and(
-          eq(tenantUserAccessScopes.tenantId, tenantMemberships.tenantId),
-          eq(tenantUserAccessScopes.userId, tenantMemberships.userId)
-        )
-      )
       .where(eq(tenantMemberships.userId, userId))
       .orderBy(desc(tenantMemberships.isDefaultTenant), tenants.name);
 
-    return this.attachAssignedSquads(
-      memberships.map((membership) => ({
-        ...membership,
-        accessScope: membership.accessScope ?? "all_squads"
-      }))
-    );
+    return this.attachAssignedSquads(memberships);
   }
 
   public async findActiveMembership(userId: string, tenantSlug: string) {
@@ -57,17 +44,10 @@ export class MembershipRepository {
         createdAt: tenants.createdAt,
         role: tenantMemberships.role,
         status: tenantMemberships.status,
-        accessScope: tenantUserAccessScopes.accessScope
+        accessScope: tenantMemberships.accessScope
       })
       .from(tenantMemberships)
       .innerJoin(tenants, eq(tenantMemberships.tenantId, tenants.id))
-      .leftJoin(
-        tenantUserAccessScopes,
-        and(
-          eq(tenantUserAccessScopes.tenantId, tenantMemberships.tenantId),
-          eq(tenantUserAccessScopes.userId, tenantMemberships.userId)
-        )
-      )
       .where(
         and(
           eq(tenantMemberships.userId, userId),
@@ -81,12 +61,7 @@ export class MembershipRepository {
       return null;
     }
 
-    const [hydrated] = await this.attachAssignedSquads([
-      {
-        ...membership,
-        accessScope: membership.accessScope ?? "all_squads"
-      }
-    ]);
+    const [hydrated] = await this.attachAssignedSquads([membership]);
 
     return hydrated ?? null;
   }
@@ -118,28 +93,15 @@ export class MembershipRepository {
         name: user.name,
         role: tenantMemberships.role,
         status: tenantMemberships.status,
-        accessScope: tenantUserAccessScopes.accessScope,
+        accessScope: tenantMemberships.accessScope,
         isDefaultTenant: tenantMemberships.isDefaultTenant,
         joinedAt: tenantMemberships.createdAt
       })
       .from(tenantMemberships)
       .innerJoin(user, eq(tenantMemberships.userId, user.id))
-      .leftJoin(
-        tenantUserAccessScopes,
-        and(
-          eq(tenantUserAccessScopes.tenantId, tenantMemberships.tenantId),
-          eq(tenantUserAccessScopes.userId, tenantMemberships.userId)
-        )
-      )
       .where(eq(tenantMemberships.tenantId, tenantId));
 
-    return this.attachAssignedSquads(
-      memberships.map((membership) => ({
-        ...membership,
-        tenantId,
-        accessScope: membership.accessScope ?? "all_squads"
-      }))
-    );
+    return this.attachAssignedSquads(memberships.map((membership) => ({ ...membership, tenantId })));
   }
 
   public async findForTenantByEmail(tenantId: string, email: string) {
@@ -174,19 +136,12 @@ export class MembershipRepository {
         name: user.name,
         role: tenantMemberships.role,
         status: tenantMemberships.status,
-        accessScope: tenantUserAccessScopes.accessScope,
+        accessScope: tenantMemberships.accessScope,
         isDefaultTenant: tenantMemberships.isDefaultTenant,
         joinedAt: tenantMemberships.createdAt
       })
       .from(tenantMemberships)
       .innerJoin(user, eq(tenantMemberships.userId, user.id))
-      .leftJoin(
-        tenantUserAccessScopes,
-        and(
-          eq(tenantUserAccessScopes.tenantId, tenantMemberships.tenantId),
-          eq(tenantUserAccessScopes.userId, tenantMemberships.userId)
-        )
-      )
       .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, userId)))
       .limit(1);
 
@@ -194,13 +149,7 @@ export class MembershipRepository {
       return null;
     }
 
-    const [hydrated] = await this.attachAssignedSquads([
-      {
-        ...membership,
-        tenantId,
-        accessScope: membership.accessScope ?? "all_squads"
-      }
-    ]);
+    const [hydrated] = await this.attachAssignedSquads([{ ...membership, tenantId }]);
 
     return hydrated ?? null;
   }
@@ -247,6 +196,7 @@ export class MembershipRepository {
         userId: input.userId,
         role: input.role,
         status: "active",
+        accessScope: "all_squads",
         invitedByUserId: input.invitedByUserId ?? null,
         isDefaultTenant: input.isDefaultTenant ?? false
       })
@@ -255,20 +205,12 @@ export class MembershipRepository {
         set: {
           role: input.role,
           status: "active",
+          accessScope: "all_squads",
           invitedByUserId: input.invitedByUserId ?? null,
           updatedAt: new Date()
         }
       })
       .returning();
-
-    await executor
-      .insert(tenantUserAccessScopes)
-      .values({
-        tenantId: input.tenantId,
-        userId: input.userId,
-        accessScope: "all_squads"
-      })
-      .onConflictDoNothing();
 
     return membership ?? null;
   }
@@ -283,19 +225,12 @@ export class MembershipRepository {
     executor: DbExecutor = this.db
   ) {
     await executor
-      .insert(tenantUserAccessScopes)
-      .values({
-        tenantId: input.tenantId,
-        userId: input.userId,
-        accessScope: input.accessScope
+      .update(tenantMemberships)
+      .set({
+        accessScope: input.accessScope,
+        updatedAt: new Date()
       })
-      .onConflictDoUpdate({
-        target: [tenantUserAccessScopes.tenantId, tenantUserAccessScopes.userId],
-        set: {
-          accessScope: input.accessScope,
-          updatedAt: new Date()
-        }
-      });
+      .where(and(eq(tenantMemberships.tenantId, input.tenantId), eq(tenantMemberships.userId, input.userId)));
 
     await executor
       .delete(tenantUserSquadAccess)

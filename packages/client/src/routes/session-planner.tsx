@@ -41,7 +41,7 @@ export default function SessionPlannerRoute() {
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+        <section className="surface-panel rounded-panel p-5">
           <p className="eyebrow">Recommended split</p>
           <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Today&apos;s roster allocation</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
@@ -59,16 +59,16 @@ export default function SessionPlannerRoute() {
           </div>
         </section>
 
-        <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+        <section className="surface-grid rounded-panel p-5">
           <p className="eyebrow">Session notes</p>
           <ul className="mt-4 grid gap-3 text-sm text-obsidian-300">
-            <li className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
+            <li className="rounded-soft border border-white/8 bg-white/3 p-4">
               High-risk athletes should be reviewed before exposure to maximal accelerations.
             </li>
-            <li className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
+            <li className="rounded-soft border border-white/8 bg-white/3 p-4">
               Caution athletes fit best into reduced volume blocks and individualized warm-up control.
             </li>
-            <li className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
+            <li className="rounded-soft border border-white/8 bg-white/3 p-4">
               Exportable planning hooks can later be tied to session targets and GPS actuals.
             </li>
           </ul>
@@ -95,7 +95,7 @@ export default function SessionPlannerRoute() {
               </div>
               <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">{item.athlete.position ?? "Player"}</div>
             </DataCell>
-            <DataCell>{item.athlete.currentSquad?.name ?? item.athlete.squad ?? "Unassigned"}</DataCell>
+            <DataCell>{item.athlete.currentSquad?.name ?? "Unassigned"}</DataCell>
             <DataCell>
               <StatusBadge status={item.latestSnapshot?.readinessBand ?? "no_data"} />
             </DataCell>
@@ -111,7 +111,7 @@ export default function SessionPlannerRoute() {
 
 function PlannerCard({ count, label, tone }: { count: number; label: string; tone: "ready" | "caution" | "restricted" }) {
   return (
-    <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
+    <div className="rounded-soft border border-white/8 bg-white/3 p-4">
       <div className="eyebrow">{label}</div>
       <div
         className={`mt-3 text-4xl font-semibold ${tone === "ready" ? "text-ready-500" : tone === "caution" ? "text-caution-500" : "text-risk-500"}`}

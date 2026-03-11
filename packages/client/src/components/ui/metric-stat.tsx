@@ -27,9 +27,9 @@ export function MetricStat({
     return (
       <article className="h-full min-w-0 p-4 lg:p-5">
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <p className="eyebrow max-w-[8.5rem]">{label}</p>
+          <p className="eyebrow max-w-34">{label}</p>
           {delta ? (
-            <div className="max-w-[8rem] rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-right text-xs font-medium leading-5 text-obsidian-300">
+            <div className="max-w-32 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-right text-xs font-medium leading-5 text-obsidian-300">
               {delta}
             </div>
           ) : null}
@@ -46,7 +46,7 @@ export function MetricStat({
   }
 
   return (
-    <article className="surface-panel rounded-[var(--radius-soft)] p-4">
+    <article className="surface-panel rounded-soft p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="eyebrow">{label}</p>
