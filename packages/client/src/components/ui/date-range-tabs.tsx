@@ -1,4 +1,4 @@
-import { Tabs } from "@base-ui/react/tabs";
+import { Tabs } from "@base-ui/react";
 
 const RANGES = [
   { label: "Today", value: "today" },

@@ -1,5 +1,5 @@
 import { startTransition, useMemo, useState } from "react";
-import { Tabs } from "@base-ui/react/tabs";
+import { Tabs } from "@base-ui/react";
 
 import type { AthleteReadiness, ReadinessBand } from "@pulsi/shared";
 

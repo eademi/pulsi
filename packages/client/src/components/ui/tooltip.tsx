@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react";
-import { Tooltip } from "@base-ui/react/tooltip";
+import { Tooltip } from "@base-ui/react";
 
 export function MetricTooltip({
   content,

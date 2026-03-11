@@ -1,10 +1,14 @@
-import { Form, redirect, useActionData, useLoaderData, useNavigation } from "react-router";
-import { hasTenantCapability } from "@pulsi/shared";
+import { useEffect, useRef, useState } from "react";
+import { Form, redirect, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import { hasTenantCapability, type Athlete } from "@pulsi/shared";
 
 import { DataCell, DataRow, DataTable } from "../components/ui/data-table";
+import { CenteredDialog, ConfirmDialog } from "../components/ui/dialogs";
 import { EmptyState } from "../components/ui/empty-state";
 import { PageHeader } from "../components/ui/page-header";
 import { StatusBadge } from "../components/ui/status-badge";
+import { MetricTooltip } from "../components/ui/tooltip";
+import { useToast } from "../app/toast-provider";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
@@ -30,12 +34,13 @@ export const clientLoader = async ({
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
   }
 
-  const [athletes, squads] = await Promise.all([
+  const [athletes, squads, garminConnections] = await Promise.all([
     apiClient.getTenantAthletes(tenantSlug, { status: "all" }),
-    apiClient.getTenantSquads(tenantSlug, { status: "active" })
+    apiClient.getTenantSquads(tenantSlug, { status: "active" }),
+    apiClient.getGarminConnections(tenantSlug)
   ]);
 
-  return { activeMembership, athletes, squads, tenantSlug };
+  return { activeMembership, athletes, garminConnections, squads, tenantSlug };
 };
 
 export const clientAction = async ({
@@ -45,9 +50,10 @@ export const clientAction = async ({
   params: Record<string, string | undefined>;
   request: Request;
 }) => {
+  const feedbackId = crypto.randomUUID();
   const tenantSlug = params.tenantSlug;
   if (!tenantSlug) {
-    return { error: "Tenant slug is required." };
+    return { error: "Tenant slug is required.", feedbackId, intent: "unknown" };
   }
 
   const formData = await request.formData();
@@ -60,7 +66,7 @@ export const clientAction = async ({
       const squadId = String(formData.get("squadId") ?? "").trim();
 
       if (!firstName || !lastName || !squadId) {
-        return { error: "First name, last name, and squad are required." };
+        return { error: "First name, last name, and squad are required.", feedbackId, intent };
       }
 
       await apiClient.createAthlete(tenantSlug, {
@@ -72,78 +78,84 @@ export const clientAction = async ({
         status: "active"
       });
 
-      return { success: "Player created." };
+      return { feedbackId, intent, success: "Player created." };
     }
 
     if (intent === "move-athlete") {
       const athleteId = String(formData.get("athleteId") ?? "").trim();
       const squadId = String(formData.get("squadId") ?? "").trim();
       if (!athleteId || !squadId) {
-        return { error: "Athlete and squad are required." };
+        return { error: "Athlete and squad are required.", feedbackId, intent };
       }
 
       await apiClient.updateAthleteSquad(tenantSlug, athleteId, { squadId });
-      return { success: "Player moved to the selected squad." };
+      return { feedbackId, intent, success: "Player moved to the selected squad." };
     }
 
     if (intent === "archive-athlete") {
       const athleteId = String(formData.get("athleteId") ?? "").trim();
       if (!athleteId) {
-        return { error: "Athlete is required." };
+        return { error: "Athlete is required.", feedbackId, intent };
       }
 
       await apiClient.archiveAthlete(tenantSlug, athleteId);
-      return { success: "Athlete archived. Garmin access and pending claim links were revoked." };
+      return { feedbackId, intent, success: "Athlete archived. Garmin access and pending claim links were revoked." };
     }
 
     if (intent === "restore-athlete") {
       const athleteId = String(formData.get("athleteId") ?? "").trim();
       const squadId = String(formData.get("squadId") ?? "").trim();
       if (!athleteId || !squadId) {
-        return { error: "Athlete and squad are required to restore an archived profile." };
+        return { error: "Athlete and squad are required to restore an archived profile.", feedbackId, intent };
       }
 
       await apiClient.restoreAthlete(tenantSlug, athleteId, { squadId });
-      return { success: "Athlete restored to the selected squad." };
+      return { feedbackId, intent, success: "Athlete restored to the selected squad." };
     }
 
     if (intent === "delete-athlete") {
       const athleteId = String(formData.get("athleteId") ?? "").trim();
       if (!athleteId) {
-        return { error: "Athlete is required." };
+        return { error: "Athlete is required.", feedbackId, intent };
       }
 
       await apiClient.deleteAthlete(tenantSlug, athleteId);
-      return { success: "Athlete permanently deleted." };
+      return { feedbackId, intent, success: "Athlete permanently deleted." };
     }
 
     if (intent === "generate-claim-link") {
       const athleteId = String(formData.get("athleteId") ?? "").trim();
       const email = String(formData.get("email") ?? "").trim();
       if (!athleteId || !email) {
-        return { error: "Athlete and email are required to generate a claim link." };
+        return { error: "Athlete and email are required to generate a claim link.", feedbackId, intent };
       }
 
       const claimLink = await apiClient.createAthleteClaimLink(tenantSlug, athleteId, { email });
       return {
         claimLink,
+        feedbackId,
+        intent,
         success: "Athlete claim link generated."
       };
     }
 
-    return { error: "Unknown player action." };
+    return { error: "Unknown player action.", feedbackId, intent: intent || "unknown" };
   } catch (error) {
     return {
+      feedbackId,
+      intent: intent || "unknown",
       error: error instanceof Error ? error.message : "Unable to update players."
     };
   }
 };
 
 export default function PlayersRoute() {
-  const { activeMembership, athletes, squads } = useLoaderData<typeof clientLoader>();
+  const { activeMembership, athletes, garminConnections, squads } = useLoaderData<typeof clientLoader>();
   const actionData = useActionData() as
     | {
         error?: string;
+        feedbackId?: string;
+        intent?: string;
         success?: string;
         claimLink?: {
           athleteName: string;
@@ -156,77 +168,95 @@ export default function PlayersRoute() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const canManage = hasTenantCapability(activeMembership.role, "athletes:manage");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [moveModalAthleteId, setMoveModalAthleteId] = useState<string | null>(null);
+  const [accountDialogAthleteId, setAccountDialogAthleteId] = useState<string | null>(null);
+  const { pushToast } = useToast();
+  const submit = useSubmit();
+  const lastHandledFeedbackId = useRef<string | null>(null);
   const activeAthletes = athletes.filter((athlete) => athlete.status !== "inactive");
   const archivedAthletes = athletes.filter((athlete) => athlete.status === "inactive");
+  const garminConnectedAthleteIds = new Set(
+    garminConnections.filter((connection) => connection.status === "active").map((connection) => connection.athleteId)
+  );
+  const moveModalAthlete = activeAthletes.find((athlete) => athlete.id === moveModalAthleteId) ?? null;
+  const accountDialogAthlete =
+    athletes.find((athlete) => athlete.id === accountDialogAthleteId && athlete.accountState === "claimed") ?? null;
+
+  const submitDeleteAthlete = (athleteId: string) => {
+    const formData = new FormData();
+    formData.set("intent", "delete-athlete");
+    formData.set("athleteId", athleteId);
+    submit(formData, { method: "post" });
+  };
+
+  useEffect(() => {
+    if (actionData?.success && actionData.intent === "create-athlete") {
+      setCreateModalOpen(false);
+    }
+  }, [actionData]);
+
+  useEffect(() => {
+    if (actionData?.success && actionData.intent === "move-athlete") {
+      setMoveModalAthleteId(null);
+    }
+  }, [actionData]);
+
+  useEffect(() => {
+    if (!actionData?.intent || actionData.intent === "create-athlete") {
+      return;
+    }
+
+    const message = actionData.error ?? actionData.success;
+    if (!message) {
+      return;
+    }
+
+    if (!actionData.feedbackId || lastHandledFeedbackId.current === actionData.feedbackId) {
+      return;
+    }
+
+    lastHandledFeedbackId.current = actionData.feedbackId;
+    pushToast({
+      body: message,
+      title: actionData.error ? `${describeIntent(actionData.intent)} failed` : `${describeIntent(actionData.intent)} complete`,
+      tone: actionData.error ? "risk" : "success"
+    });
+  }, [actionData, pushToast]);
 
   return (
     <section className="space-y-4">
       <PageHeader
+        actions={
+          canManage ? (
+            <button
+              className="btn-primary"
+              disabled={squads.length === 0}
+              onClick={() => setCreateModalOpen(true)}
+              type="button"
+            >
+              Add player
+            </button>
+          ) : undefined
+        }
         description="Create athlete records once, assign them to squads, and use those records as the source of truth for readiness and Garmin connectivity."
         eyebrow="Players"
         title="Athlete roster operations"
       />
 
-      <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+      {!canManage ? (
         <section className="surface-panel rounded-[var(--radius-panel)] p-5">
-          <p className="eyebrow">Create player</p>
-          <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Add athlete profile</h2>
-
-          {canManage ? (
-            squads.length > 0 ? (
-              <Form className="mt-6 space-y-4" method="post">
-                <input name="intent" type="hidden" value="create-athlete" />
-
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-obsidian-300">First name</span>
-                  <input className="input-field" name="firstName" placeholder="Egzon" />
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-obsidian-300">Last name</span>
-                  <input className="input-field" name="lastName" placeholder="Ademi" />
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-obsidian-300">Position</span>
-                  <input className="input-field" name="position" placeholder="Midfielder" />
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-obsidian-300">External reference</span>
-                  <input className="input-field" name="externalRef" placeholder="player-101" />
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-obsidian-300">Squad</span>
-                  <select className="input-field" defaultValue="" name="squadId">
-                    <option disabled value="">
-                      Select squad
-                    </option>
-                    {squads.map((squad) => (
-                      <option key={squad.id} value={squad.id}>
-                        {squad.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {actionData?.error ? <Message tone="error">{actionData.error}</Message> : null}
-                {actionData?.success ? <Message tone="success">{actionData.success}</Message> : null}
-
-                <button className="btn-primary w-full justify-center" disabled={isSubmitting} type="submit">
-                  Create player
-                </button>
-              </Form>
-            ) : (
-              <div className="mt-6">
-                <EmptyState body="Create a squad first so athletes can be assigned immediately." title="No active squads" />
-              </div>
-            )
-          ) : (
-            <div className="mt-6">
-              <EmptyState body="Your role can review the roster but not change it." title="View only" />
-            </div>
-          )}
+          <EmptyState body="Your role can review the roster but not change it." title="View only" />
         </section>
+      ) : null}
 
-        <section className="space-y-4">
+      {canManage && squads.length === 0 ? (
+        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+          <EmptyState body="Create a squad first so athletes can be assigned immediately." title="No active squads" />
+        </section>
+      ) : null}
+
+      <div className="space-y-4">
           <section className="surface-panel rounded-[var(--radius-panel)] p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -237,16 +267,28 @@ export default function PlayersRoute() {
             </div>
 
             <div className="mt-4">
-              <DataTable headers={["Athlete", "Squad", "Status", "Move squad", "Claim link", "Lifecycle"]}>
+              <DataTable headers={["Athlete", "Pulsi account", "Squad", "Status", "Move squad", "Claim link", "Lifecycle"]}>
                 {activeAthletes.map((athlete) => (
                   <DataRow key={athlete.id}>
                     <DataCell>
-                      <div className="font-medium text-obsidian-100">
-                        {athlete.firstName} {athlete.lastName}
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-obsidian-100">
+                          {athlete.firstName} {athlete.lastName}
+                        </div>
+                        {garminConnectedAthleteIds.has(athlete.id) ? (
+                          <MetricTooltip content="Garmin account connected">
+                            <span className="inline-flex size-7 items-center justify-center rounded-full border border-accent-500/25 bg-accent-500/10 text-accent-300">
+                              <GarminIcon />
+                            </span>
+                          </MetricTooltip>
+                        ) : null}
                       </div>
                       <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
                         {athlete.position ?? "Player"}
                       </div>
+                    </DataCell>
+                    <DataCell>
+                      <AccountStateBadge athlete={athlete} onOpenDetails={setAccountDialogAthleteId} />
                     </DataCell>
                     <DataCell>{athlete.currentSquad?.name ?? "No squad"}</DataCell>
                     <DataCell>
@@ -254,34 +296,37 @@ export default function PlayersRoute() {
                     </DataCell>
                     <DataCell>
                       {canManage && squads.length > 0 ? (
-                        <Form className="flex gap-2" method="post">
-                          <input name="intent" type="hidden" value="move-athlete" />
-                          <input name="athleteId" type="hidden" value={athlete.id} />
-                          <select className="input-field h-10 min-w-32" defaultValue={athlete.currentSquad?.id ?? ""} name="squadId">
-                            {squads.map((squad) => (
-                              <option key={squad.id} value={squad.id}>
-                                {squad.name}
-                              </option>
-                            ))}
-                          </select>
-                          <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
-                            Move
-                          </button>
-                        </Form>
+                        <button
+                          className="btn-secondary h-10"
+                          onClick={() => setMoveModalAthleteId(athlete.id)}
+                          type="button"
+                        >
+                          Move squad
+                        </button>
                       ) : (
                         "—"
                       )}
                     </DataCell>
                     <DataCell>
                       {canManage ? (
-                        <Form className="flex gap-2" method="post">
-                          <input name="intent" type="hidden" value="generate-claim-link" />
-                          <input name="athleteId" type="hidden" value={athlete.id} />
-                          <input className="input-field h-10 min-w-40" name="email" placeholder="athlete@pulsi.com" type="email" />
-                          <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
-                            Generate
-                          </button>
-                        </Form>
+                        athlete.accountState === "claimed" ? (
+                          <span className="pill pill-muted">Already claimed</span>
+                        ) : (
+                          <Form className="flex gap-2" method="post">
+                            <input name="intent" type="hidden" value="generate-claim-link" />
+                            <input name="athleteId" type="hidden" value={athlete.id} />
+                            <input
+                              className="input-field h-10 min-w-40"
+                              defaultValue={athlete.accountDetails?.pendingEmail ?? ""}
+                              name="email"
+                              placeholder="athlete@pulsi.com"
+                              type="email"
+                            />
+                            <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
+                              {athlete.accountState === "invited" ? "Regenerate" : "Generate"}
+                            </button>
+                          </Form>
+                        )
                       ) : (
                         "—"
                       )}
@@ -319,7 +364,7 @@ export default function PlayersRoute() {
 
             <div className="mt-4">
               {archivedAthletes.length > 0 ? (
-                <DataTable headers={["Athlete", "Status", "Restore to squad", "Delete permanently"]}>
+                <DataTable headers={["Athlete", "Pulsi account", "Status", "Restore to squad", "Delete permanently"]}>
                   {archivedAthletes.map((athlete) => (
                     <DataRow key={athlete.id}>
                       <DataCell>
@@ -329,6 +374,9 @@ export default function PlayersRoute() {
                         <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
                           {athlete.position ?? "Player"}
                         </div>
+                      </DataCell>
+                      <DataCell>
+                        <AccountStateBadge athlete={athlete} onOpenDetails={setAccountDialogAthleteId} />
                       </DataCell>
                       <DataCell>
                         <StatusBadge label="archived" status="no_data" />
@@ -358,13 +406,17 @@ export default function PlayersRoute() {
                       </DataCell>
                       <DataCell>
                         {canManage ? (
-                          <Form method="post">
-                            <input name="intent" type="hidden" value="delete-athlete" />
-                            <input name="athleteId" type="hidden" value={athlete.id} />
-                            <button className="btn-danger h-10" disabled={isSubmitting} type="submit">
-                              Delete
-                            </button>
-                          </Form>
+                          <ConfirmDialog
+                            confirmLabel="Delete athlete"
+                            description={`Permanently remove ${athlete.firstName} ${athlete.lastName}. This only succeeds for archived profiles with no Pulsi athlete account, Garmin connection, or historical readiness data.`}
+                            onConfirm={() => submitDeleteAthlete(athlete.id)}
+                            title="Delete archived athlete?"
+                            trigger={
+                              <span className={`btn-danger h-10 ${isSubmitting ? "pointer-events-none opacity-45" : ""}`}>
+                                Delete
+                              </span>
+                            }
+                          />
                         ) : (
                           "—"
                         )}
@@ -390,8 +442,180 @@ export default function PlayersRoute() {
               </code>
             </section>
           ) : null}
-        </section>
       </div>
+
+      <CenteredDialog
+        description="Create a new player record and assign it directly to an active squad."
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setCreateModalOpen(false)} type="button">
+              Cancel
+            </button>
+            <button className="btn-primary" disabled={isSubmitting} form="create-athlete-form" type="submit">
+              {isSubmitting && navigation.formData?.get("intent") === "create-athlete" ? "Creating..." : "Create player"}
+            </button>
+          </>
+        }
+        onOpenChange={setCreateModalOpen}
+        open={createModalOpen}
+        title="Add athlete profile"
+        widthClassName="max-w-xl"
+      >
+        <Form className="space-y-4" id="create-athlete-form" method="post">
+          <input name="intent" type="hidden" value="create-athlete" />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">First name</span>
+              <input className="input-field" name="firstName" placeholder="Egzon" />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">Last name</span>
+              <input className="input-field" name="lastName" placeholder="Ademi" />
+            </label>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">Position</span>
+              <input className="input-field" name="position" placeholder="Midfielder" />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">External reference</span>
+              <input className="input-field" name="externalRef" placeholder="player-101" />
+            </label>
+          </div>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-obsidian-300">Squad</span>
+            <select className="input-field" defaultValue="" name="squadId">
+              <option disabled value="">
+                Select squad
+              </option>
+              {squads.map((squad) => (
+                <option key={squad.id} value={squad.id}>
+                  {squad.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {actionData?.intent === "create-athlete" && actionData?.error ? (
+            <Message tone="error">{actionData.error}</Message>
+          ) : null}
+          {actionData?.intent === "create-athlete" && actionData?.success ? (
+            <Message tone="success">{actionData.success}</Message>
+          ) : null}
+        </Form>
+      </CenteredDialog>
+
+      <CenteredDialog
+        description={
+          moveModalAthlete
+            ? `Move ${moveModalAthlete.firstName} ${moveModalAthlete.lastName} to a different squad. This should be used only when the athlete actually changes roster context.`
+            : "Move this athlete to a different squad."
+        }
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setMoveModalAthleteId(null)} type="button">
+              Cancel
+            </button>
+            <button className="btn-primary" disabled={isSubmitting || !moveModalAthlete} form="move-athlete-form" type="submit">
+              {isSubmitting && navigation.formData?.get("intent") === "move-athlete" ? "Moving..." : "Move athlete"}
+            </button>
+          </>
+        }
+        onOpenChange={(open) => {
+          if (!open) {
+            setMoveModalAthleteId(null);
+          }
+        }}
+        open={Boolean(moveModalAthlete)}
+        title="Move athlete to squad"
+        widthClassName="max-w-lg"
+      >
+        {moveModalAthlete ? (
+          <Form className="space-y-4" id="move-athlete-form" method="post">
+            <input name="intent" type="hidden" value="move-athlete" />
+            <input name="athleteId" type="hidden" value={moveModalAthlete.id} />
+
+            <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-sm font-medium text-obsidian-100">
+                {moveModalAthlete.firstName} {moveModalAthlete.lastName}
+              </p>
+              <p className="mt-1 text-sm text-obsidian-400">
+                Current squad: {moveModalAthlete.currentSquad?.name ?? "Unassigned"}
+              </p>
+            </div>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">New squad</span>
+              <select className="input-field" defaultValue={moveModalAthlete.currentSquad?.id ?? ""} name="squadId">
+                {squads.map((squad) => (
+                  <option key={squad.id} value={squad.id}>
+                    {squad.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {actionData?.intent === "move-athlete" && actionData?.error ? (
+              <Message tone="error">{actionData.error}</Message>
+            ) : null}
+          </Form>
+        ) : null}
+      </CenteredDialog>
+
+      <CenteredDialog
+        description={
+          accountDialogAthlete
+            ? `Pulsi athlete-account details for ${accountDialogAthlete.firstName} ${accountDialogAthlete.lastName}.`
+            : "Pulsi athlete-account details."
+        }
+        footer={
+          <button className="btn-secondary" onClick={() => setAccountDialogAthleteId(null)} type="button">
+            Close
+          </button>
+        }
+        onOpenChange={(open) => {
+          if (!open) {
+            setAccountDialogAthleteId(null);
+          }
+        }}
+        open={Boolean(accountDialogAthlete)}
+        title="Athlete account"
+        widthClassName="max-w-lg"
+      >
+        {accountDialogAthlete ? (
+          <div className="space-y-4">
+            <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-sm font-medium text-obsidian-100">
+                {accountDialogAthlete.firstName} {accountDialogAthlete.lastName}
+              </p>
+              <p className="mt-1 text-sm text-obsidian-400">
+                Squad: {accountDialogAthlete.currentSquad?.name ?? "Unassigned"}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AccountDetail label="Pulsi account" value={accountDialogAthlete.accountDetails?.email ?? "Unknown"} />
+              <AccountDetail label="Linked user name" value={accountDialogAthlete.accountDetails?.name ?? "Unknown"} />
+              <AccountDetail
+                label="Claimed at"
+                value={
+                  accountDialogAthlete.accountDetails?.claimedAt
+                    ? new Date(accountDialogAthlete.accountDetails.claimedAt).toLocaleString()
+                    : "Unknown"
+                }
+              />
+              <AccountDetail
+                label="Garmin status"
+                value={garminConnectedAthleteIds.has(accountDialogAthlete.id) ? "Connected" : "Not connected"}
+              />
+            </div>
+          </div>
+        ) : null}
+      </CenteredDialog>
     </section>
   );
 }
@@ -420,3 +644,66 @@ const nullableText = (value: FormDataEntryValue | null) => {
   const text = String(value ?? "").trim();
   return text ? text : null;
 };
+
+function describeIntent(intent?: string) {
+  switch (intent) {
+    case "move-athlete":
+      return "Squad move";
+    case "archive-athlete":
+      return "Archive athlete";
+    case "restore-athlete":
+      return "Restore athlete";
+    case "delete-athlete":
+      return "Delete athlete";
+    case "generate-claim-link":
+      return "Claim link";
+    case "create-athlete":
+      return "Create athlete";
+    default:
+      return "Player update";
+  }
+}
+
+function GarminIcon() {
+  return (
+    <svg aria-hidden="true" className="size-3.5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M7 8.5A4.5 4.5 0 0 1 11.5 4h1A4.5 4.5 0 0 1 17 8.5v7A4.5 4.5 0 0 1 12.5 20h-1A4.5 4.5 0 0 1 7 15.5z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path d="M9.5 2.5v3M14.5 2.5v3M9.5 18.5v3M14.5 18.5v3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function AccountStateBadge({
+  athlete,
+  onOpenDetails
+}: {
+  athlete: Athlete;
+  onOpenDetails: (athleteId: string) => void;
+}) {
+  if (athlete.accountState === "claimed") {
+    return (
+      <button className="btn-secondary h-9" onClick={() => onOpenDetails(athlete.id)} type="button">
+        Claimed
+      </button>
+    );
+  }
+
+  if (athlete.accountState === "invited") {
+    return <span className="pill pill-caution">Invite sent</span>;
+  }
+
+  return <span className="pill pill-muted">No account</span>;
+}
+
+function AccountDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-obsidian-500">{label}</p>
+      <p className="mt-2 text-sm text-obsidian-100">{value}</p>
+    </div>
+  );
+}

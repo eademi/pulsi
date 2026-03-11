@@ -2,6 +2,15 @@ import { z } from "zod";
 import { squadSummarySchema } from "./squads";
 
 export const athleteStatusSchema = z.enum(["active", "inactive", "rehab"]);
+export const athleteAccountStateSchema = z.enum(["unclaimed", "invited", "claimed"]);
+export const athleteAccountDetailsSchema = z.object({
+  userId: z.string().nullable(),
+  name: z.string().nullable(),
+  email: z.string().email().nullable(),
+  claimedAt: z.string().datetime().nullable(),
+  pendingEmail: z.string().email().nullable(),
+  pendingExpiresAt: z.string().datetime().nullable()
+});
 export const readinessBandSchema = z.enum(["ready", "caution", "restricted"]);
 export const trainingRecommendationSchema = z.enum([
   "full_load",
@@ -20,6 +29,8 @@ export const athleteSchema = z.object({
   currentSquad: squadSummarySchema.nullable(),
   position: z.string().nullable(),
   status: athleteStatusSchema,
+  accountState: athleteAccountStateSchema,
+  accountDetails: athleteAccountDetailsSchema.nullable(),
   externalRef: z.string().nullable(),
   createdAt: z.string().datetime()
 });
@@ -64,6 +75,8 @@ export const listReadinessQuerySchema = z.object({
 });
 
 export type Athlete = z.infer<typeof athleteSchema>;
+export type AthleteAccountState = z.infer<typeof athleteAccountStateSchema>;
+export type AthleteAccountDetails = z.infer<typeof athleteAccountDetailsSchema>;
 export type ReadinessSnapshot = z.infer<typeof readinessSnapshotSchema>;
 export type AthleteReadiness = z.infer<typeof athleteReadinessSchema>;
 export type ListReadinessQuery = z.infer<typeof listReadinessQuerySchema>;

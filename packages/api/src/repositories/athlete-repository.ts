@@ -1,9 +1,9 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
-import type { TenantAccessScope } from "@pulsi/shared";
+import type { AthleteAccountState, TenantAccessScope } from "@pulsi/shared";
 
 import type { Database, DbExecutor } from "../db/client";
-import { athleteSquadAssignments, athletes, squads } from "../db/schema";
+import { athleteClaimLinks, athleteSquadAssignments, athleteUserAccounts, athletes, squads, user } from "../db/schema";
 import { canAccessSquad } from "../domain/squad-access";
 import { AppError } from "../http/errors";
 
@@ -29,7 +29,14 @@ export class AthleteRepository {
         athlete: athletes,
         squadId: squads.id,
         squadSlug: squads.slug,
-        squadName: squads.name
+        squadName: squads.name,
+        athleteAccountUserId: athleteUserAccounts.userId,
+        athleteAccountName: user.name,
+        athleteAccountEmail: user.email,
+        athleteAccountClaimedAt: athleteUserAccounts.claimedAt,
+        pendingClaimLinkId: athleteClaimLinks.id,
+        pendingClaimEmail: athleteClaimLinks.email,
+        pendingClaimExpiresAt: athleteClaimLinks.expiresAt
       })
       .from(athletes)
       .leftJoin(
@@ -37,6 +44,15 @@ export class AthleteRepository {
         and(eq(athleteSquadAssignments.athleteId, athletes.id), isNull(athleteSquadAssignments.endedAt))
       )
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
+      .leftJoin(
+        athleteUserAccounts,
+        and(eq(athleteUserAccounts.athleteId, athletes.id), eq(athleteUserAccounts.status, "active"))
+      )
+      .leftJoin(user, eq(athleteUserAccounts.userId, user.id))
+      .leftJoin(
+        athleteClaimLinks,
+        and(eq(athleteClaimLinks.athleteId, athletes.id), eq(athleteClaimLinks.status, "pending"))
+      )
       .where(and(eq(athletes.tenantId, tenantId), eq(athletes.id, athleteId)))
       .limit(1);
 
@@ -59,7 +75,14 @@ export class AthleteRepository {
         athlete: athletes,
         squadId: squads.id,
         squadSlug: squads.slug,
-        squadName: squads.name
+        squadName: squads.name,
+        athleteAccountUserId: athleteUserAccounts.userId,
+        athleteAccountName: user.name,
+        athleteAccountEmail: user.email,
+        athleteAccountClaimedAt: athleteUserAccounts.claimedAt,
+        pendingClaimLinkId: athleteClaimLinks.id,
+        pendingClaimEmail: athleteClaimLinks.email,
+        pendingClaimExpiresAt: athleteClaimLinks.expiresAt
       })
       .from(athletes)
       .leftJoin(
@@ -67,6 +90,15 @@ export class AthleteRepository {
         and(eq(athleteSquadAssignments.athleteId, athletes.id), isNull(athleteSquadAssignments.endedAt))
       )
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
+      .leftJoin(
+        athleteUserAccounts,
+        and(eq(athleteUserAccounts.athleteId, athletes.id), eq(athleteUserAccounts.status, "active"))
+      )
+      .leftJoin(user, eq(athleteUserAccounts.userId, user.id))
+      .leftJoin(
+        athleteClaimLinks,
+        and(eq(athleteClaimLinks.athleteId, athletes.id), eq(athleteClaimLinks.status, "pending"))
+      )
       .where(
         and(
           eq(athletes.tenantId, tenantId),
@@ -252,9 +284,28 @@ const mapAthleteRecord = (row: {
   squadId: string | null;
   squadSlug: string | null;
   squadName: string | null;
+  athleteAccountUserId: string | null;
+  athleteAccountName: string | null;
+  athleteAccountEmail: string | null;
+  athleteAccountClaimedAt: Date | null;
+  pendingClaimLinkId: string | null;
+  pendingClaimEmail: string | null;
+  pendingClaimExpiresAt: Date | null;
 }) => ({
   ...row.athlete,
   squad: row.squadName,
+  accountState: getAthleteAccountState(row),
+  accountDetails:
+    row.athleteAccountUserId || row.pendingClaimLinkId
+      ? {
+          userId: row.athleteAccountUserId,
+          name: row.athleteAccountName,
+          email: row.athleteAccountEmail,
+          claimedAt: row.athleteAccountClaimedAt?.toISOString() ?? null,
+          pendingEmail: row.pendingClaimEmail,
+          pendingExpiresAt: row.pendingClaimExpiresAt?.toISOString() ?? null
+        }
+      : null,
   currentSquad:
     row.squadId && row.squadSlug && row.squadName
       ? {
@@ -264,3 +315,18 @@ const mapAthleteRecord = (row: {
         }
       : null
 });
+
+const getAthleteAccountState = (row: {
+  athleteAccountUserId: string | null;
+  pendingClaimLinkId: string | null;
+}): AthleteAccountState => {
+  if (row.athleteAccountUserId) {
+    return "claimed";
+  }
+
+  if (row.pendingClaimLinkId) {
+    return "invited";
+  }
+
+  return "unclaimed";
+};

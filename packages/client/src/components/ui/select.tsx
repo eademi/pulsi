@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Select } from "@base-ui/react/select";
+import { Select } from "@base-ui/react";
 
 import { cn } from "../../lib/cn";
 
