@@ -1,6 +1,10 @@
 import { Form, redirect, useActionData, useLoaderData, useNavigation } from "react-router";
 import { hasTenantCapability } from "@pulsi/shared";
 
+import { DataCell, DataRow, DataTable } from "../components/ui/data-table";
+import { EmptyState } from "../components/ui/empty-state";
+import { PageHeader } from "../components/ui/page-header";
+import { StatusBadge } from "../components/ui/status-badge";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
@@ -44,7 +48,6 @@ export const clientAction = async ({
   request: Request;
 }) => {
   const tenantSlug = params.tenantSlug;
-
   if (!tenantSlug) {
     return { error: "Tenant slug is required." };
   }
@@ -67,9 +70,7 @@ export const clientAction = async ({
 
     return { success: "Squad created." };
   } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Unable to create squad."
-    };
+    return { error: error instanceof Error ? error.message : "Unable to create squad." };
   }
 };
 
@@ -81,86 +82,81 @@ export default function SquadsRoute() {
   const canManage = hasTenantCapability(activeMembership.role, "squads:manage");
 
   return (
-    <section className="settings-stack">
-      <header className="settings-hero surface">
-        <div>
-          <p className="eyebrow">Squads</p>
-          <h1>Team structure</h1>
-          <p className="muted settings-copy">
-            Model the squads inside this organization so athlete data, staff access, and Garmin
-            visibility all follow the same structure.
-          </p>
-        </div>
-      </header>
+    <section className="space-y-4">
+      <PageHeader
+        description="Use squads as the operational unit for readiness review, roster segmentation, and staff access scope."
+        eyebrow="Squad Readiness"
+        title="Squad structure and availability"
+      />
 
-      <div className="settings-grid">
-        <section className="surface settings-panel">
-          <div className="settings-panel-header">
-            <div>
-              <p className="eyebrow">Current squads</p>
-              <h2>{squads.length} configured</h2>
-            </div>
-          </div>
-
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <section>
           {squads.length > 0 ? (
-            <div className="settings-list">
+            <DataTable headers={["Squad", "Category", "Athletes", "Status"]}>
               {squads.map((squad) => (
-                <article className="settings-card" key={squad.id}>
-                  <div className="settings-card-copy">
-                    <strong>{squad.name}</strong>
-                    <p className="muted">
-                      {squad.category ?? "General squad"} · {squad.athleteCount} athletes
-                    </p>
-                  </div>
-                  <div className="settings-card-actions">
-                    <span className="pill pill-subtle">{squad.slug}</span>
-                    <span className="pill pill-subtle">{squad.status}</span>
-                  </div>
-                </article>
+                <DataRow key={squad.id}>
+                  <DataCell>
+                    <div className="font-medium text-obsidian-100">{squad.name}</div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">{squad.slug}</div>
+                  </DataCell>
+                  <DataCell>{squad.category ?? "General squad"}</DataCell>
+                  <DataCell>{squad.athleteCount}</DataCell>
+                  <DataCell>
+                    <StatusBadge label={squad.status} status={squad.status === "active" ? "active" : "no_data"} />
+                  </DataCell>
+                </DataRow>
               ))}
-            </div>
+            </DataTable>
           ) : (
-            <div className="surface empty-state">
-              No squads exist yet. Create the first squad before adding players.
-            </div>
+            <EmptyState
+              body="Create the first squad so players, visibility, and readiness boards can be organized correctly."
+              title="No squads configured yet"
+            />
           )}
         </section>
 
-        <section className="surface settings-panel">
-          <div className="settings-panel-header">
-            <div>
-              <p className="eyebrow">Create squad</p>
-              <h2>Add a new squad</h2>
-            </div>
-          </div>
+        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+          <p className="eyebrow">Create squad</p>
+          <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Add a new squad</h2>
+          <p className="mt-3 text-sm text-obsidian-400">
+            Keep squad naming consistent with the real football structure: Senior, U18, U16, etc.
+          </p>
 
           {canManage ? (
-            <Form className="invite-form" method="post">
-              <label className="auth-field">
-                <span>Name</span>
-                <input className="auth-input" name="name" placeholder="Under 18" />
+            <Form className="mt-6 space-y-4" method="post">
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-obsidian-300">Name</span>
+                <input className="input-field" name="name" placeholder="Under 18" />
               </label>
 
-              <label className="auth-field">
-                <span>Slug</span>
-                <input className="auth-input" name="slug" placeholder="u18" />
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-obsidian-300">Slug</span>
+                <input className="input-field" name="slug" placeholder="u18" />
               </label>
 
-              <label className="auth-field">
-                <span>Category</span>
-                <input className="auth-input" name="category" placeholder="Academy" />
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-obsidian-300">Category</span>
+                <input className="input-field" name="category" placeholder="Academy" />
               </label>
 
-              {actionData?.error ? <p className="form-error">{actionData.error}</p> : null}
-              {actionData?.success ? <p className="form-success">{actionData.success}</p> : null}
+              {actionData?.error ? (
+                <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">
+                  {actionData.error}
+                </p>
+              ) : null}
+              {actionData?.success ? (
+                <p className="rounded-[var(--radius-soft)] border border-ready-500/25 bg-ready-500/10 px-4 py-3 text-sm text-ready-500">
+                  {actionData.success}
+                </p>
+              ) : null}
 
-              <button className="primary-button" disabled={isSubmitting} type="submit">
+              <button className="btn-primary w-full justify-center" disabled={isSubmitting} type="submit">
                 Create squad
               </button>
             </Form>
           ) : (
-            <div className="surface empty-state">
-              Only club owners can create or rename squads.
+            <div className="mt-6">
+              <EmptyState body="Your role can review squad structure but not change it." title="View only" />
             </div>
           )}
         </section>

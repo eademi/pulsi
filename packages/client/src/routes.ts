@@ -14,6 +14,8 @@ export default [
     route(":tenantSlug/dashboard", "routes/dashboard.tsx"),
     route(":tenantSlug/players", "routes/players.tsx"),
     route(":tenantSlug/squads", "routes/squads.tsx"),
+    route(":tenantSlug/session-planner", "routes/session-planner.tsx"),
+    route(":tenantSlug/reports", "routes/reports.tsx"),
     route(":tenantSlug/settings", "routes/organization-settings.tsx"),
     route(":tenantSlug/integrations/garmin", "routes/garmin-integration.tsx")
   ])

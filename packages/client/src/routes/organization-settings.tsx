@@ -2,6 +2,10 @@ import { Form, redirect, useActionData, useLoaderData, useNavigation } from "rea
 import { hasTenantCapability } from "@pulsi/shared";
 import type { TenantInvitation, TenantMember, TenantRole } from "@pulsi/shared";
 
+import { DataCell, DataRow, DataTable } from "../components/ui/data-table";
+import { EmptyState } from "../components/ui/empty-state";
+import { PageHeader } from "../components/ui/page-header";
+import { StatusBadge } from "../components/ui/status-badge";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
@@ -38,12 +42,7 @@ export const clientLoader = async ({
     apiClient.getTenantSquads(tenantSlug, { status: "active" })
   ]);
 
-  return {
-    invitations,
-    members,
-    squads,
-    tenantSlug
-  };
+  return { invitations, members, squads };
 };
 
 export const clientAction = async ({
@@ -54,7 +53,6 @@ export const clientAction = async ({
   request: Request;
 }) => {
   const tenantSlug = params.tenantSlug;
-
   if (!tenantSlug) {
     return { error: "Tenant slug is required." };
   }
@@ -98,9 +96,7 @@ export const clientAction = async ({
 
     return { error: "Unknown organization settings action." };
   } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Unable to update organization settings."
-    };
+    return { error: error instanceof Error ? error.message : "Unable to update organization settings." };
   }
 };
 
@@ -111,38 +107,29 @@ export default function OrganizationSettingsRoute() {
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <section className="settings-stack">
-      <header className="settings-hero surface">
-        <div>
-          <p className="eyebrow">Organization settings</p>
-          <h1>Team access</h1>
-          <p className="muted settings-copy">
-            Manage which staff can access Pulsi for this organization. Squad-scoped permissions can
-            sit on top of this later, but tenant membership starts here.
-          </p>
-        </div>
-      </header>
+    <section className="space-y-4">
+      <PageHeader
+        description="Manage staff roles and squad visibility without breaking organization-level isolation."
+        eyebrow="Organization settings"
+        title="Staff access control"
+      />
 
-      <div className="settings-grid">
-        <section className="surface settings-panel">
-          <div className="settings-panel-header">
-            <div>
-              <p className="eyebrow">Invite staff</p>
-              <h2>Add a new team member</h2>
-            </div>
-          </div>
+      <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+          <p className="eyebrow">Invite staff</p>
+          <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Add team member</h2>
 
-          <Form className="invite-form" method="post">
+          <Form className="mt-6 space-y-4" method="post">
             <input name="intent" type="hidden" value="invite" />
 
-            <label className="auth-field">
-              <span>Email</span>
-              <input className="auth-input" name="email" placeholder="coach@club.com" type="email" />
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">Email</span>
+              <input className="input-field" name="email" placeholder="coach@club.com" type="email" />
             </label>
 
-            <label className="auth-field">
-              <span>Role</span>
-              <select className="auth-input invite-select" defaultValue="coach" name="role">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">Role</span>
+              <select className="input-field" defaultValue="coach" name="role">
                 <option value="coach">Coach</option>
                 <option value="org_admin">Organization admin</option>
                 <option value="performance_staff">Performance staff</option>
@@ -150,124 +137,147 @@ export default function OrganizationSettingsRoute() {
               </select>
             </label>
 
-            {actionData?.error ? <p className="form-error">{actionData.error}</p> : null}
-            {actionData?.success ? <p className="form-success">{actionData.success}</p> : null}
+            {actionData?.error ? <Message tone="error">{actionData.error}</Message> : null}
+            {actionData?.success ? <Message tone="success">{actionData.success}</Message> : null}
 
-            <button className="primary-button" disabled={isSubmitting} type="submit">
+            <button className="btn-primary w-full justify-center" disabled={isSubmitting} type="submit">
               Send invitation
             </button>
           </Form>
         </section>
 
-        <section className="surface settings-panel">
-          <div className="settings-panel-header">
-            <div>
-              <p className="eyebrow">Current members</p>
-              <h2>{members.length} people with access</h2>
-            </div>
-          </div>
-
-          <div className="settings-list">
+        <section className="space-y-4">
+          <DataTable headers={["Member", "Role", "Scope", "Assigned squads"]}>
             {members.map((member) => (
-              <MemberCard key={member.userId} member={member} squads={squads} />
+              <DataRow key={member.userId}>
+                <DataCell>
+                  <div className="font-medium text-obsidian-100">{member.name}</div>
+                  <div className="mt-1 text-sm text-obsidian-500">{member.email}</div>
+                </DataCell>
+                <DataCell>
+                  <StatusBadge label={member.role.replaceAll("_", " ")} status="active" />
+                </DataCell>
+                <DataCell>{member.accessScope.replaceAll("_", " ")}</DataCell>
+                <DataCell>{member.assignedSquads.map((squad) => squad.name).join(", ") || "All squads"}</DataCell>
+              </DataRow>
             ))}
-          </div>
+          </DataTable>
+
+          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+            <p className="eyebrow">Adjust squad scope</p>
+            <div className="mt-4 grid gap-4">
+              {members.map((member) => (
+                <MemberScopeForm isSubmitting={isSubmitting} key={member.userId} member={member} squads={squads} />
+              ))}
+            </div>
+          </section>
+
+          <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="eyebrow">Pending invitations</p>
+                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Awaiting acceptance</h2>
+              </div>
+              <StatusBadge label={String(invitations.filter((item) => item.status === "pending").length)} status="active" />
+            </div>
+
+            {invitations.some((invitation) => invitation.status === "pending") ? (
+              <div className="mt-4 grid gap-3">
+                {invitations
+                  .filter((invitation) => invitation.status === "pending")
+                  .map((invitation) => (
+                    <InvitationCard invitation={invitation} key={invitation.id} />
+                  ))}
+              </div>
+            ) : (
+              <div className="mt-4">
+                <EmptyState body="No pending invitations right now." title="Invitation queue is clear" />
+              </div>
+            )}
+          </section>
         </section>
       </div>
-
-      <section className="surface settings-panel">
-        <div className="settings-panel-header">
-          <div>
-            <p className="eyebrow">Pending invitations</p>
-            <h2>{invitations.filter((invitation) => invitation.status === "pending").length} waiting</h2>
-          </div>
-        </div>
-
-        {invitations.some((invitation) => invitation.status === "pending") ? (
-          <div className="settings-list">
-            {invitations
-              .filter((invitation) => invitation.status === "pending")
-              .map((invitation) => (
-                <InvitationCard invitation={invitation} key={invitation.id} />
-              ))}
-          </div>
-        ) : (
-          <div className="surface empty-state">No pending invitations right now.</div>
-        )}
-      </section>
     </section>
   );
 }
 
-const MemberCard = ({
+function MemberScopeForm({
   member,
-  squads
+  squads,
+  isSubmitting
 }: {
   member: TenantMember;
   squads: Awaited<ReturnType<typeof apiClient.getTenantSquads>>;
-}) => (
-  <article className="settings-card member-access-card">
-    <div className="settings-card-copy">
-      <strong>{member.name}</strong>
-      <p className="muted">{member.email}</p>
-      <p className="muted">
-        {member.role.replaceAll("_", " ")} ·{" "}
-        {member.accessScope === "all_squads"
-          ? "Access to all squads"
-          : `${member.assignedSquads.length} assigned squads`}
-      </p>
-    </div>
-
-    {member.role === "club_owner" ? (
-      <span className="pill pill-subtle">All squads</span>
-    ) : (
-      <Form className="member-access-form" method="post">
-        <input name="intent" type="hidden" value="scope" />
-        <input name="userId" type="hidden" value={member.userId} />
-
-        <label className="auth-field compact-field">
-          <span>Access scope</span>
-          <select
-            className="auth-input invite-select"
-            defaultValue={member.accessScope}
-            name="accessScope"
-          >
-            <option value="all_squads">All squads</option>
-            <option value="assigned_squads">Assigned squads only</option>
-          </select>
-        </label>
-
-        <div className="checkbox-grid">
-          {squads.map((squad) => (
-            <label className="checkbox-pill" key={squad.id}>
-              <input
-                defaultChecked={member.assignedSquads.some((assigned) => assigned.id === squad.id)}
-                name="squadIds"
-                type="checkbox"
-                value={squad.id}
-              />
-              <span>{squad.name}</span>
-            </label>
-          ))}
+  isSubmitting: boolean;
+}) {
+  return (
+    <Form className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4" method="post">
+      <input name="intent" type="hidden" value="scope" />
+      <input name="userId" type="hidden" value={member.userId} />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-medium text-obsidian-100">{member.name}</p>
+          <p className="mt-1 text-sm text-obsidian-500">{member.email}</p>
         </div>
+        {member.role === "club_owner" ? (
+          <StatusBadge label="all squads" status="active" />
+        ) : (
+          <div className="grid min-w-0 flex-1 gap-4 lg:max-w-xl">
+            <select className="input-field" defaultValue={member.accessScope} name="accessScope">
+              <option value="all_squads">All squads</option>
+              <option value="assigned_squads">Assigned squads only</option>
+            </select>
 
-        <button className="ghost-button inline-button" type="submit">
-          Save access
-        </button>
-      </Form>
-    )}
-  </article>
-);
+            <div className="grid gap-2 sm:grid-cols-2">
+              {squads.map((squad) => (
+                <label className="flex items-center gap-3 rounded-[var(--radius-soft)] border border-white/8 bg-black/15 px-3 py-2" key={squad.id}>
+                  <input
+                    defaultChecked={member.assignedSquads.some((assigned) => assigned.id === squad.id)}
+                    name="squadIds"
+                    type="checkbox"
+                    value={squad.id}
+                  />
+                  <span className="text-sm text-obsidian-300">{squad.name}</span>
+                </label>
+              ))}
+            </div>
 
-const InvitationCard = ({ invitation }: { invitation: TenantInvitation }) => (
-  <article className="settings-card">
-    <div className="settings-card-copy">
-      <strong>{invitation.email}</strong>
-      <p className="muted">
-        {invitation.role.replaceAll("_", " ")} until{" "}
-        {new Date(invitation.expiresAt).toLocaleDateString()}
-      </p>
+            <button className="btn-secondary justify-center" disabled={isSubmitting} type="submit">
+              Save access
+            </button>
+          </div>
+        )}
+      </div>
+    </Form>
+  );
+}
+
+function InvitationCard({ invitation }: { invitation: TenantInvitation }) {
+  return (
+    <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-obsidian-100">{invitation.email}</p>
+          <p className="mt-1 text-sm text-obsidian-500">
+            {invitation.role.replaceAll("_", " ")} until {new Date(invitation.expiresAt).toLocaleDateString()}
+          </p>
+        </div>
+        <StatusBadge label="pending" status="active" />
+      </div>
     </div>
-    <span className="pill pill-subtle">Pending</span>
-  </article>
-);
+  );
+}
+
+function Message({ tone, children }: { tone: "error" | "success"; children: string }) {
+  return (
+    <p
+      className={
+        tone === "success"
+          ? "rounded-[var(--radius-soft)] border border-ready-500/25 bg-ready-500/10 px-4 py-3 text-sm text-ready-500"
+          : "rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500"
+      }
+    >
+      {children}
+    </p>
+  );
+}

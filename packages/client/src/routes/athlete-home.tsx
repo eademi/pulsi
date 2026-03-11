@@ -1,6 +1,11 @@
 import { startTransition, useState } from "react";
 import { Form, redirect, useLoaderData, useRevalidator, useSearchParams } from "react-router";
 
+import { EmptyState } from "../components/ui/empty-state";
+import { MetricStat } from "../components/ui/metric-stat";
+import { PageHeader } from "../components/ui/page-header";
+import { Sparkline } from "../components/ui/sparkline";
+import { StatusBadge } from "../components/ui/status-badge";
 import { apiClient } from "../lib/api";
 import { getDefaultAppPath } from "../lib/session";
 
@@ -83,201 +88,220 @@ export default function AthleteHomeRoute() {
   };
 
   return (
-    <main className="athlete-shell">
-      <section className="athlete-panel surface">
-        <div className="athlete-panel-header">
-          <div>
-            <p className="eyebrow">Athlete view</p>
-            <h1>{portal.athlete.firstName}</h1>
-            <p className="muted">
-              {portal.athlete.currentSquad?.name ?? "No squad"} · {portal.athlete.position ?? "No position"}
-            </p>
-          </div>
-
-          <Form action="/auth/sign-out" method="post">
-            <button className="ghost-button" type="submit">
-              Sign out
-            </button>
-          </Form>
-        </div>
+    <main className="min-h-screen bg-transparent px-4 py-6 lg:px-6">
+      <div className="mx-auto max-w-6xl space-y-4">
+        <PageHeader
+          actions={
+            <Form action="/auth/sign-out" method="post">
+              <button className="btn-secondary" type="submit">
+                Sign out
+              </button>
+            </Form>
+          }
+          description={`${portal.athlete.currentSquad?.name ?? "No squad"} · ${portal.athlete.position ?? "No position"} · Signed in as ${session.user.email}`}
+          eyebrow="Athlete Profile"
+          title={`${portal.athlete.firstName} ${portal.athlete.lastName}`}
+        />
 
         {message ? (
-          <p className={message.kind === "success" ? "form-success" : "form-error"}>{message.text}</p>
+          <p
+            className={
+              message.kind === "success"
+                ? "rounded-[var(--radius-soft)] border border-ready-500/25 bg-ready-500/10 px-4 py-3 text-sm text-ready-500"
+                : "rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500"
+            }
+          >
+            {message.text}
+          </p>
         ) : null}
 
-        <div className="athlete-summary-grid">
-          <article className="settings-card">
-            <div className="settings-card-copy">
-              <strong>Latest readiness</strong>
-              <p className="muted">
-                {portal.latestSnapshot.readinessScore !== null
-                  ? `${portal.latestSnapshot.readinessScore}/100`
-                  : "No snapshot yet"}
-              </p>
-            </div>
-            <span className="pill pill-subtle">
-              {portal.latestSnapshot.readinessBand ?? "awaiting data"}
-            </span>
-          </article>
+        <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricStat
+              label="Latest readiness"
+              tone={
+                portal.latestSnapshot.readinessBand === "ready"
+                  ? "ready"
+                  : portal.latestSnapshot.readinessBand === "caution"
+                    ? "caution"
+                    : portal.latestSnapshot.readinessBand === "restricted"
+                      ? "risk"
+                      : "default"
+              }
+              value={
+                portal.latestSnapshot.readinessScore !== null
+                  ? `${portal.latestSnapshot.readinessScore}`
+                  : "—"
+              }
+            />
+            <MetricStat
+              label="7-day average"
+              value={
+                portal.trendSummary.averageReadinessScore !== null
+                  ? `${portal.trendSummary.averageReadinessScore}`
+                  : "—"
+              }
+            />
+            <MetricStat
+              label="Average sleep"
+              value={formatMinutes(portal.trendSummary.averageSleepDurationMinutes)}
+            />
+            <MetricStat
+              label="Average nightly HRV"
+              value={formatNumber(portal.trendSummary.averageHrvNightlyMs, "ms")}
+            />
+          </section>
 
-          <article className="settings-card">
-            <div className="settings-card-copy">
-              <strong>7-day average</strong>
-              <p className="muted">
-                {portal.trendSummary.averageReadinessScore !== null
-                  ? `${portal.trendSummary.averageReadinessScore}/100`
-                  : "Need more data"}
-              </p>
+          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow">Garmin connection</p>
+                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">
+                  {garmin.connection ? "Active sync" : "Connection required"}
+                </h2>
+              </div>
+              <StatusBadge status={garmin.connection ? "active" : "no_data"} />
             </div>
-            <span className="pill pill-subtle">
-              {portal.trendSummary.readinessDelta === null
-                ? "stable"
-                : portal.trendSummary.readinessDelta >= 0
-                  ? `+${portal.trendSummary.readinessDelta}`
-                  : `${portal.trendSummary.readinessDelta}`}
-            </span>
-          </article>
-
-          <article className="settings-card">
-            <div className="settings-card-copy">
-              <strong>Garmin connection</strong>
-              <p className="muted">
-                {garmin.connection ? "Connected" : "Not connected yet"}
-                {!garmin.configured && garmin.reason ? ` · ${garmin.reason}` : ""}
-              </p>
-            </div>
-            <span className="pill pill-subtle">{garmin.connection ? "active" : "pending"}</span>
-            <div className="athlete-action-row">
+            <p className="mt-3 text-sm text-obsidian-400">
+              {garmin.connection
+                ? "Your Garmin account is connected. Pulsi will keep ingesting readiness and recovery summaries for this profile."
+                : garmin.reason ?? "Connect Garmin to populate your athlete dashboard."}
+            </p>
+            <div className="mt-5 grid gap-3">
+              <button
+                className={garmin.connection ? "btn-secondary" : "btn-primary"}
+                disabled={!garmin.configured || pendingAction === "connect"}
+                onClick={() => void connectGarmin()}
+                type="button"
+              >
+                {pendingAction === "connect" ? "Connecting..." : "Connect Garmin"}
+              </button>
               {garmin.connection ? (
                 <button
-                  className="ghost-button"
+                  className="btn-danger"
                   disabled={pendingAction === "disconnect"}
                   onClick={() => void disconnectGarmin()}
                   type="button"
                 >
                   {pendingAction === "disconnect" ? "Disconnecting..." : "Disconnect Garmin"}
                 </button>
-              ) : (
-                <button
-                  className="primary-button"
-                  disabled={!garmin.configured || pendingAction === "connect"}
-                  onClick={() => void connectGarmin()}
-                  type="button"
-                >
-                  {pendingAction === "connect" ? "Connecting..." : "Connect Garmin"}
-                </button>
-              )}
+              ) : null}
             </div>
-          </article>
+          </section>
         </div>
 
-        <section className="athlete-dashboard-grid">
-          <article className="surface athlete-insight-panel">
-            <p className="eyebrow">Recent trend</p>
-            <h2>Your last 7 days</h2>
-            <div className="athlete-trend-grid">
-              <div className="athlete-metric-card">
-                <span>Days with data</span>
-                <strong>{portal.trendSummary.daysWithData}</strong>
+        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow">Athlete profile</p>
+                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Readiness history</h2>
               </div>
-              <div className="athlete-metric-card">
-                <span>Average sleep</span>
-                <strong>{formatMinutes(portal.trendSummary.averageSleepDurationMinutes)}</strong>
-              </div>
-              <div className="athlete-metric-card">
-                <span>Average nightly HRV</span>
-                <strong>{formatNumber(portal.trendSummary.averageHrvNightlyMs, "ms")}</strong>
-              </div>
-            </div>
-
-            <div className="athlete-band-row">
-              <span className="pill pill-subtle">Ready {portal.trendSummary.bandCounts.ready}</span>
-              <span className="pill pill-subtle">Caution {portal.trendSummary.bandCounts.caution}</span>
-              <span className="pill pill-subtle">
-                Restricted {portal.trendSummary.bandCounts.restricted}
-              </span>
+              <StatusBadge
+                label={`${portal.trendSummary.daysWithData}/${portal.trendSummary.windowDays} days`}
+                status="active"
+              />
             </div>
 
             {portal.recentSnapshots.length > 0 ? (
-              <div className="athlete-history-list">
-                {portal.recentSnapshots.map((snapshot) => (
-                  <div className="athlete-history-row" key={snapshot.snapshotDate}>
-                    <span>{new Date(snapshot.snapshotDate).toLocaleDateString()}</span>
-                    <strong>{snapshot.readinessScore}/100</strong>
-                    <span className="pill pill-subtle">{snapshot.readinessBand}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="muted">Connect Garmin to start building your recent trend.</p>
-            )}
-          </article>
-
-          <article className="surface athlete-insight-panel">
-            <p className="eyebrow">Sync status</p>
-            <h2>Data freshness</h2>
-            <div className="athlete-trend-grid">
-              <div className="athlete-metric-card">
-                <span>Last sync</span>
-                <strong>{formatDateTime(portal.syncStatus.lastSuccessfulSyncAt)}</strong>
-              </div>
-              <div className="athlete-metric-card">
-                <span>Permissions checked</span>
-                <strong>{formatDateTime(portal.syncStatus.lastPermissionsSyncAt)}</strong>
-              </div>
-              <div className="athlete-metric-card">
-                <span>Connection state</span>
-                <strong>{portal.syncStatus.garminConnected ? "Active" : "Pending"}</strong>
-              </div>
-            </div>
-          </article>
-        </section>
-
-        <section className="surface athlete-insight-panel">
-          <p className="eyebrow">Today</p>
-          <h2>How Pulsi sees your recent trend</h2>
-          {portal.latestSnapshot.snapshotDate ? (
-            <>
-              <p className="muted">
-                Snapshot date: {new Date(portal.latestSnapshot.snapshotDate).toLocaleDateString()}
-              </p>
-              {portal.latestSnapshot.metrics ? (
-                <div className="athlete-trend-grid">
-                  <div className="athlete-metric-card">
-                    <span>Sleep</span>
-                    <strong>{formatMinutes(portal.latestSnapshot.metrics.sleepDurationMinutes)}</strong>
-                  </div>
-                  <div className="athlete-metric-card">
-                    <span>Nightly HRV</span>
-                    <strong>{formatNumber(portal.latestSnapshot.metrics.hrvNightlyMs, "ms")}</strong>
-                  </div>
-                  <div className="athlete-metric-card">
-                    <span>Resting HR</span>
-                    <strong>{formatNumber(portal.latestSnapshot.metrics.restingHeartRate, "bpm")}</strong>
-                  </div>
+              <>
+                <Sparkline
+                  className="mt-8 h-36"
+                  points={portal.recentSnapshots.map((snapshot) => snapshot.readinessScore)}
+                  status={
+                    portal.latestSnapshot.readinessBand === "ready"
+                      ? "ready"
+                      : portal.latestSnapshot.readinessBand === "caution"
+                        ? "caution"
+                        : portal.latestSnapshot.readinessBand === "restricted"
+                          ? "risk"
+                          : "accent"
+                  }
+                />
+                <div className="mt-6 grid gap-3">
+                  {portal.recentSnapshots.map((snapshot) => (
+                    <div
+                      className="flex items-center justify-between rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3"
+                      key={snapshot.snapshotDate}
+                    >
+                      <div className="text-sm text-obsidian-300">
+                        {new Date(snapshot.snapshotDate).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-obsidian-100">
+                          {snapshot.readinessScore}/100
+                        </span>
+                        <StatusBadge status={snapshot.readinessBand} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ) : null}
+              </>
+            ) : (
+              <div className="mt-6">
+                <EmptyState
+                  body="Once Garmin data syncs, this view will show your recent readiness movement."
+                  title="No readiness history yet"
+                />
+              </div>
+            )}
+          </section>
+
+          <section className="grid gap-4">
+            <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+              <p className="eyebrow">Today&apos;s signals</p>
+              <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Latest inputs</h2>
+              <div className="mt-5 grid gap-3">
+                <SignalRow label="Sleep" value={formatMinutes(portal.latestSnapshot.metrics?.sleepDurationMinutes ?? null)} />
+                <SignalRow label="Nightly HRV" value={formatNumber(portal.latestSnapshot.metrics?.hrvNightlyMs ?? null, "ms")} />
+                <SignalRow label="Resting HR" value={formatNumber(portal.latestSnapshot.metrics?.restingHeartRate ?? null, "bpm")} />
+                <SignalRow label="Stress" value={formatNumber(portal.latestSnapshot.metrics?.stressAverage ?? null, "")} />
+              </div>
+            </section>
+
+            <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+              <p className="eyebrow">How Pulsi sees it</p>
+              <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Personal context</h2>
               {portal.latestSnapshot.rationale.length > 0 ? (
-                <ul className="athlete-rationale-list">
+                <ul className="mt-5 grid gap-3">
                   {portal.latestSnapshot.rationale.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li
+                      className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-obsidian-300"
+                      key={item}
+                    >
+                      {item}
+                    </li>
                   ))}
                 </ul>
-              ) : null}
-            </>
-          ) : (
-            <p className="muted">
-              Pulsi will start showing personal recovery and readiness context here once Garmin
-              data is available for your profile.
-            </p>
-          )}
-        </section>
+              ) : (
+                <p className="mt-4 text-sm text-obsidian-500">
+                  Pulsi will explain your current trend here once data is available.
+                </p>
+              )}
+            </section>
 
-        <footer className="athlete-footer muted">
-          Signed in as {session.user.email}. Athlete pages only show your own profile.
-        </footer>
-      </section>
+            <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+              <p className="eyebrow">Sync status</p>
+              <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Data freshness</h2>
+              <div className="mt-5 grid gap-3">
+                <SignalRow label="Last sync" value={formatDateTime(portal.syncStatus.lastSuccessfulSyncAt)} />
+                <SignalRow label="Permissions checked" value={formatDateTime(portal.syncStatus.lastPermissionsSyncAt)} />
+                <SignalRow label="Connection state" value={portal.syncStatus.garminConnected ? "Active" : "Pending"} />
+              </div>
+            </section>
+          </section>
+        </div>
+      </div>
     </main>
+  );
+}
+
+function SignalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3">
+      <span className="text-sm text-obsidian-400">{label}</span>
+      <span className="text-sm font-medium text-obsidian-100">{value}</span>
+    </div>
   );
 }
 
@@ -294,5 +318,4 @@ const formatMinutes = (value: number | null) => {
 const formatNumber = (value: number | null, suffix: string) =>
   value === null ? "No data" : `${value}${suffix ? ` ${suffix}` : ""}`;
 
-const formatDateTime = (value: string | null) =>
-  value ? new Date(value).toLocaleString() : "No sync yet";
+const formatDateTime = (value: string | null) => (value ? new Date(value).toLocaleString() : "No sync yet");

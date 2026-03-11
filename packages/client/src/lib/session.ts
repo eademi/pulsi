@@ -13,6 +13,8 @@ export const getPlayersPath = (tenantSlug: string) => `/${tenantSlug}/players`;
 export const getSquadsPath = (tenantSlug: string) => `/${tenantSlug}/squads`;
 export const getOrganizationSettingsPath = (tenantSlug: string) => `/${tenantSlug}/settings`;
 export const getGarminIntegrationPath = (tenantSlug: string) => `/${tenantSlug}/integrations/garmin`;
+export const getSessionPlannerPath = (tenantSlug: string) => `/${tenantSlug}/session-planner`;
+export const getReportsPath = (tenantSlug: string) => `/${tenantSlug}/reports`;
 export const getAthleteHomePath = () => "/athlete";
 export const getAthleteClaimPath = (token: string) => `/athlete/claim/${token}`;
 export const getNoAccessPath = () => "/welcome";

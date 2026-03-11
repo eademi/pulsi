@@ -67,46 +67,55 @@ export default function AthleteClaimRoute() {
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <main className="athlete-shell">
-      <section className="athlete-panel surface">
-        <div className="athlete-panel-header">
+    <main className="min-h-screen bg-transparent px-4 py-6 lg:px-6">
+      <section className="surface-panel mx-auto flex max-w-3xl flex-col gap-6 rounded-[var(--radius-panel)] p-6 lg:p-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="eyebrow">Athlete claim</p>
-            <h1>Claim your Pulsi profile</h1>
-            <p className="muted">
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-obsidian-100">
+              Claim your Pulsi profile
+            </h1>
+            <p className="mt-3 text-sm text-obsidian-400">
               This link was issued for {claim.email}. You are signed in as {session.user.email}.
             </p>
           </div>
 
           <Form action="/auth/sign-out" method="post">
-            <button className="ghost-button" type="submit">
+            <button className="btn-secondary" type="submit">
               Sign out
             </button>
           </Form>
         </div>
 
-        <section className="surface athlete-insight-panel">
+        <section className="surface-grid rounded-[var(--radius-panel)] p-5">
           <p className="eyebrow">Profile</p>
-          <h2>{claim.athleteName}</h2>
-          <p className="muted">
+          <h2 className="mt-3 text-2xl font-semibold text-obsidian-100">{claim.athleteName}</h2>
+          <p className="mt-2 text-sm text-obsidian-400">
             {claim.tenantName} · {claim.currentSquad?.name ?? "No squad assigned"}
           </p>
-          <p className="muted">
-            Expires {new Date(claim.expiresAt).toLocaleString()}
-          </p>
+          <p className="mt-2 text-sm text-obsidian-500">Expires {new Date(claim.expiresAt).toLocaleString()}</p>
         </section>
 
-        {actionData?.error ? <p className="form-error">{actionData.error}</p> : null}
+        <section className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4 text-sm text-obsidian-400">
+          Use the same email address your club entered when they generated the claim link. Once
+          claimed, this account becomes athlete-only and will no longer access staff routes.
+        </section>
 
-        <Form className="invite-form" method="post">
-          <button className="primary-button" disabled={isSubmitting} type="submit">
+        {actionData?.error ? (
+          <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">
+            {actionData.error}
+          </p>
+        ) : null}
+
+        <Form className="grid gap-3" method="post">
+          <button className="btn-primary w-full justify-center" disabled={isSubmitting} type="submit">
             Claim this athlete profile
           </button>
         </Form>
 
-        <div className="athlete-footer muted">
-          Use the same email address your club entered when they generated the claim link.
-          <Link className="welcome-link" to="/auth/sign-in">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-obsidian-500">
+          <span>Need another account?</span>
+          <Link className="text-accent-300 hover:text-accent-200" to="/auth/sign-in">
             Switch account
           </Link>
         </div>
