@@ -1,9 +1,10 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
-import type { AthleteAccountState, TenantAccessScope } from "@pulsi/shared";
+import type { TenantAccessScope } from "@pulsi/shared";
 
 import type { Database, DbExecutor } from "../db/client";
 import { athleteClaimLinks, athleteSquadAssignments, athleteUserAccounts, athletes, squads, user } from "../db/schema";
+import { buildAthleteAccountDetails, deriveAthleteAccountState, type AthleteRosterStateRow } from "../domain/athlete-roster-state";
 import { canAccessSquad } from "../domain/squad-access";
 import { AppError } from "../http/errors";
 
@@ -46,7 +47,10 @@ export class AthleteRepository {
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
       .leftJoin(
         athleteUserAccounts,
-        and(eq(athleteUserAccounts.athleteId, athletes.id), eq(athleteUserAccounts.status, "active"))
+        // Roster views should preserve historical athlete-account linkage even
+        // after archive revokes login access, so staff can still see that the
+        // athlete had already claimed a Pulsi account.
+        eq(athleteUserAccounts.athleteId, athletes.id)
       )
       .leftJoin(user, eq(athleteUserAccounts.userId, user.id))
       .leftJoin(
@@ -92,7 +96,10 @@ export class AthleteRepository {
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
       .leftJoin(
         athleteUserAccounts,
-        and(eq(athleteUserAccounts.athleteId, athletes.id), eq(athleteUserAccounts.status, "active"))
+        // Roster views should preserve historical athlete-account linkage even
+        // after archive revokes login access, so staff can still see that the
+        // athlete had already claimed a Pulsi account.
+        eq(athleteUserAccounts.athleteId, athletes.id)
       )
       .leftJoin(user, eq(athleteUserAccounts.userId, user.id))
       .leftJoin(
@@ -294,18 +301,8 @@ const mapAthleteRecord = (row: {
 }) => ({
   ...row.athlete,
   squad: row.squadName,
-  accountState: getAthleteAccountState(row),
-  accountDetails:
-    row.athleteAccountUserId || row.pendingClaimLinkId
-      ? {
-          userId: row.athleteAccountUserId,
-          name: row.athleteAccountName,
-          email: row.athleteAccountEmail,
-          claimedAt: row.athleteAccountClaimedAt?.toISOString() ?? null,
-          pendingEmail: row.pendingClaimEmail,
-          pendingExpiresAt: row.pendingClaimExpiresAt?.toISOString() ?? null
-        }
-      : null,
+  accountState: deriveAthleteAccountState(row satisfies AthleteRosterStateRow),
+  accountDetails: buildAthleteAccountDetails(row satisfies AthleteRosterStateRow),
   currentSquad:
     row.squadId && row.squadSlug && row.squadName
       ? {
@@ -315,18 +312,3 @@ const mapAthleteRecord = (row: {
         }
       : null
 });
-
-const getAthleteAccountState = (row: {
-  athleteAccountUserId: string | null;
-  pendingClaimLinkId: string | null;
-}): AthleteAccountState => {
-  if (row.athleteAccountUserId) {
-    return "claimed";
-  }
-
-  if (row.pendingClaimLinkId) {
-    return "invited";
-  }
-
-  return "unclaimed";
-};

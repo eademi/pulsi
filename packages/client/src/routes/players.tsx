@@ -327,11 +327,14 @@ export default function PlayersRoute() {
 
           <div className="mt-4">
             {archivedAthletes.length > 0 ? (
-              <DataTable headers={["Athlete", "Pulsi account", "Status", "Restore to squad", "Delete permanently"]}>
+              <DataTable headers={["Athlete", "Garmin", "Pulsi account", "Status", "Restore to squad", "Delete permanently"]}>
                 {archivedAthletes.map((athlete) => (
                   <DataRow key={athlete.id}>
                     <DataCell>
                       <AthleteIdentityCell athlete={athlete} garminConnected={garminConnectedAthleteIds.has(athlete.id)} />
+                    </DataCell>
+                    <DataCell>
+                      <GarminConnectionBadge connected={garminConnectedAthleteIds.has(athlete.id)} />
                     </DataCell>
                     <DataCell>
                       <AccountStateBadge athlete={athlete} onOpenDetails={setAccountDialogAthleteId} />
@@ -630,6 +633,19 @@ function AthleteIdentityCell({ athlete, garminConnected }: { athlete: Athlete; g
       <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">{athlete.position ?? "Player"}</div>
     </>
   );
+}
+
+function GarminConnectionBadge({ connected }: { connected: boolean }) {
+  if (connected) {
+    return (
+      <span className="pill border-accent-500/35 bg-accent-500/12 text-accent-300">
+        <GarminIcon />
+        Garmin connected
+      </span>
+    );
+  }
+
+  return <span className="pill pill-muted">No Garmin</span>;
 }
 
 function AccountStateBadge({ athlete, onOpenDetails }: { athlete: Athlete; onOpenDetails: (athleteId: string) => void }) {

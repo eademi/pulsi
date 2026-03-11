@@ -14,6 +14,7 @@ It focuses on:
 For the staff-vs-athlete identity model and the future athlete-account design, also read:
 
 - `AUTH_AND_ACTOR_MODEL.md`
+- `docs/LIFECYCLE_STATE_MATRIX.md`
 
 ## 1. High-Level Mental Model
 

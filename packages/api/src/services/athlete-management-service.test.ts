@@ -201,6 +201,35 @@ test("archiveAthlete marks the athlete inactive and revokes lifecycle state", as
   assert.equal(harness.calls.endedAssignments.length, 1);
 });
 
+test("restoreAthlete reactivates the athlete, squad assignment, and athlete account access", async () => {
+  const harness = createHarness();
+  harness.setAthlete({
+    createdAt: new Date("2026-03-10T08:00:00.000Z"),
+    currentSquad: null,
+    externalRef: null,
+    firstName: "Egon",
+    id: "athlete-1",
+    lastName: "Ademi",
+    position: "Midfielder",
+    squad: null,
+    status: "inactive",
+    tenantId: "tenant-1",
+    updatedAt: new Date("2026-03-10T08:00:00.000Z")
+  });
+
+  const athlete = await harness.service.restoreAthlete({
+    accessScope: "all_squads",
+    accessibleSquadIds: [],
+    athleteId: "athlete-1",
+    squadId: "squad-1",
+    tenantId: "tenant-1"
+  });
+
+  assert.equal(athlete.status, "active");
+  assert.equal(harness.calls.restoredAccounts.length, 1);
+  assert.equal(harness.calls.assignments.length, 1);
+});
+
 test("deleteAthlete rejects active athletes before permanent deletion", async () => {
   const harness = createHarness();
 

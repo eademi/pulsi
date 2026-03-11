@@ -183,6 +183,7 @@ export const tenantMemberships = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     role: tenantRoleEnum("role").notNull(),
     status: membershipStatusEnum("status").default("invited").notNull(),
+    accessScope: tenantAccessScopeEnum("access_scope").default("all_squads").notNull(),
     isDefaultTenant: boolean("is_default_tenant").default(false).notNull(),
     invitedByUserId: text("invited_by_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -236,7 +237,6 @@ export const athletes = pgTable(
     externalRef: text("external_ref"),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
-    squad: text("squad"),
     position: text("position"),
     status: athleteStatusEnum("status").default("active").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -349,26 +349,6 @@ export const athleteSquadAssignments = pgTable(
     activeAthleteKey: uniqueIndex("athlete_squad_assignments_active_athlete_key")
       .on(table.athleteId)
       .where(sql`${table.endedAt} is null`)
-  })
-);
-
-export const tenantUserAccessScopes = pgTable(
-  "tenant_user_access_scopes",
-  {
-    tenantId: uuid("tenant_id")
-      .notNull()
-      .references(() => tenants.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    accessScope: tenantAccessScopeEnum("access_scope").default("all_squads").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.tenantId, table.userId] }),
-    userLookup: index("tenant_user_access_scopes_user_idx").on(table.userId),
-    tenantLookup: index("tenant_user_access_scopes_tenant_idx").on(table.tenantId)
   })
 );
 
