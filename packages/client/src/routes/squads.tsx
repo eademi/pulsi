@@ -8,11 +8,7 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
-export const clientLoader = async ({
-  params
-}: {
-  params: Record<string, string | undefined>;
-}) => {
+export const clientLoader = async ({ params }: { params: Record<string, string | undefined> }) => {
   const tenantSlug = params.tenantSlug;
 
   if (!tenantSlug) {
@@ -23,9 +19,7 @@ export const clientLoader = async ({
   if (session.actorType === "athlete") {
     throw redirect(getDefaultAppPath(session));
   }
-  const activeMembership = session.memberships.find(
-    (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
-  );
+  const activeMembership = session.memberships.find((membership) => membership.status === "active" && membership.tenantSlug === tenantSlug);
 
   if (!activeMembership) {
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
@@ -36,17 +30,11 @@ export const clientLoader = async ({
   return {
     activeMembership,
     squads,
-    tenantSlug
+    tenantSlug,
   };
 };
 
-export const clientAction = async ({
-  params,
-  request
-}: {
-  params: Record<string, string | undefined>;
-  request: Request;
-}) => {
+export const clientAction = async ({ params, request }: { params: Record<string, string | undefined>; request: Request }) => {
   const tenantSlug = params.tenantSlug;
   if (!tenantSlug) {
     return { error: "Tenant slug is required." };
@@ -65,7 +53,7 @@ export const clientAction = async ({
     await apiClient.createSquad(tenantSlug, {
       category: category || null,
       name,
-      slug: slug || undefined
+      slug: slug || undefined,
     });
 
     return { success: "Squad created." };
@@ -118,9 +106,7 @@ export default function SquadsRoute() {
         <section className="surface-panel rounded-[var(--radius-panel)] p-5">
           <p className="eyebrow">Create squad</p>
           <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Add a new squad</h2>
-          <p className="mt-3 text-sm text-obsidian-400">
-            Keep squad naming consistent with the real football structure: Senior, U18, U16, etc.
-          </p>
+          <p className="mt-3 text-sm text-obsidian-400">Keep squad naming consistent with the real football structure: Senior, U18, U16, etc.</p>
 
           {canManage ? (
             <Form className="mt-6 space-y-4" method="post">

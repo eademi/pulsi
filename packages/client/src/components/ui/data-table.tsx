@@ -2,15 +2,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
 
-export function DataTable({
-  headers,
-  children,
-  className
-}: {
-  headers: Array<string>;
-  children: ReactNode;
-  className?: string;
-}) {
+export function DataTable({ headers, children, className }: { headers: Array<string>; children: ReactNode; className?: string }) {
   return (
     <div className={cn("surface-panel overflow-hidden rounded-[var(--radius-panel)]", className)}>
       <div className="max-h-[36rem] overflow-auto">
@@ -38,7 +30,7 @@ export function DataTable({
 export function DataRow({
   children,
   tone = "default",
-  onClick
+  onClick,
 }: {
   children: ReactNode;
   tone?: "default" | "ready" | "caution" | "risk";
@@ -51,7 +43,7 @@ export function DataRow({
         tone === "ready" && "bg-ready-500/[0.04]",
         tone === "caution" && "bg-caution-500/[0.04]",
         tone === "risk" && "bg-risk-500/[0.05]",
-        onClick && "cursor-pointer"
+        onClick && "cursor-pointer",
       )}
       onClick={onClick}
     >
@@ -60,12 +52,6 @@ export function DataRow({
   );
 }
 
-export function DataCell({
-  children,
-  className
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function DataCell({ children, className }: { children: ReactNode; className?: string }) {
   return <td className={cn("px-4 py-3 align-top text-obsidian-200", className)}>{children}</td>;
 }

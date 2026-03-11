@@ -7,11 +7,7 @@ import { Sparkline } from "../components/ui/sparkline";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
-export const clientLoader = async ({
-  params
-}: {
-  params: Record<string, string | undefined>;
-}) => {
+export const clientLoader = async ({ params }: { params: Record<string, string | undefined> }) => {
   const tenantSlug = params.tenantSlug;
 
   if (!tenantSlug) {
@@ -23,9 +19,7 @@ export const clientLoader = async ({
     throw redirect(getDefaultAppPath(session));
   }
 
-  const activeMembership = session.memberships.find(
-    (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
-  );
+  const activeMembership = session.memberships.find((membership) => membership.status === "active" && membership.tenantSlug === tenantSlug);
 
   if (!activeMembership) {
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
@@ -89,11 +83,7 @@ export default function ReportsRoute() {
             <DataCell>{item.latestSnapshot?.metrics.hrvNightlyMs ?? "—"}</DataCell>
             <DataCell>{item.latestSnapshot?.metrics.stressAverage ?? "—"}</DataCell>
             <DataCell>
-              <Sparkline
-                className="h-10 w-24"
-                points={[45 + index, 48 + index, 46 + index, 52 + index, 49 + index, 54 + index]}
-                status="accent"
-              />
+              <Sparkline className="h-10 w-24" points={[45 + index, 48 + index, 46 + index, 52 + index, 49 + index, 54 + index]} status="accent" />
             </DataCell>
           </DataRow>
         ))}

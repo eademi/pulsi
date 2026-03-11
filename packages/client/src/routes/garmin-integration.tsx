@@ -10,11 +10,7 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
-export const clientLoader = async ({
-  params
-}: {
-  params: Record<string, string | undefined>;
-}) => {
+export const clientLoader = async ({ params }: { params: Record<string, string | undefined> }) => {
   const tenantSlug = params.tenantSlug;
 
   if (!tenantSlug) {
@@ -25,9 +21,7 @@ export const clientLoader = async ({
   if (session.actorType === "athlete") {
     throw redirect(getDefaultAppPath(session));
   }
-  const activeMembership = session.memberships.find(
-    (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
-  );
+  const activeMembership = session.memberships.find((membership) => membership.status === "active" && membership.tenantSlug === tenantSlug);
 
   if (!activeMembership) {
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
@@ -36,15 +30,14 @@ export const clientLoader = async ({
   const [athletes, connections, integrationStatus] = await Promise.all([
     apiClient.getTenantAthletes(tenantSlug),
     apiClient.getGarminConnections(tenantSlug),
-    apiClient.getGarminIntegrationStatus(tenantSlug)
+    apiClient.getGarminIntegrationStatus(tenantSlug),
   ]);
 
   return { activeMembership, athletes, connections, integrationStatus, tenantSlug };
 };
 
 export default function GarminIntegrationRoute() {
-  const { activeMembership, athletes, connections, integrationStatus, tenantSlug } =
-    useLoaderData<typeof clientLoader>();
+  const { activeMembership, athletes, connections, integrationStatus, tenantSlug } = useLoaderData<typeof clientLoader>();
   const revalidator = useRevalidator();
   const [pendingAthleteId, setPendingAthleteId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
@@ -75,8 +68,8 @@ export default function GarminIntegrationRoute() {
         ...current,
         [athleteId]: {
           authorizationUrl: session.authorizationUrl,
-          expiresAt: session.expiresAt
-        }
+          expiresAt: session.expiresAt,
+        },
       }));
       setMessage({ kind: "success", text: "Athlete Garmin consent link generated." });
     } catch (error) {
@@ -135,14 +128,8 @@ export default function GarminIntegrationRoute() {
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <ModeCard
-          body="Open Garmin OAuth immediately when the athlete is present with staff."
-          title="Connect on this device"
-        />
-        <ModeCard
-          body="Generate a Garmin consent URL and share it remotely with the athlete."
-          title="Generate athlete consent link"
-        />
+        <ModeCard body="Open Garmin OAuth immediately when the athlete is present with staff." title="Connect on this device" />
+        <ModeCard body="Generate a Garmin consent URL and share it remotely with the athlete." title="Generate athlete consent link" />
       </div>
 
       {athletes.length > 0 ? (
@@ -163,10 +150,7 @@ export default function GarminIntegrationRoute() {
           ))}
         </div>
       ) : (
-        <EmptyState
-          body="Create athletes first, then manage their Garmin connection state here."
-          title="No athlete profiles available"
-        />
+        <EmptyState body="Create athletes first, then manage their Garmin connection state here." title="No athlete profiles available" />
       )}
     </section>
   );
@@ -181,7 +165,7 @@ function GarminAthleteCard({
   isPending,
   onConnect,
   onGenerateLink,
-  onDisconnect
+  onDisconnect,
 }: {
   athlete: Athlete;
   connection: AthleteDeviceConnection | null;
@@ -246,9 +230,7 @@ function GarminAthleteCard({
       {generatedLink ? (
         <div className="mt-5 rounded-[var(--radius-soft)] border border-accent-500/20 bg-accent-500/10 p-4">
           <p className="text-sm font-medium text-obsidian-100">Latest consent link</p>
-          <p className="mt-1 text-xs text-obsidian-400">
-            Expires {new Date(generatedLink.expiresAt).toLocaleString()}
-          </p>
+          <p className="mt-1 text-xs text-obsidian-400">Expires {new Date(generatedLink.expiresAt).toLocaleString()}</p>
           <code className="mt-3 block break-all rounded-[var(--radius-soft)] border border-white/8 bg-black/20 px-3 py-3 text-xs text-accent-300">
             {generatedLink.authorizationUrl}
           </code>

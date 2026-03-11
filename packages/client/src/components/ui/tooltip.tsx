@@ -1,10 +1,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { Tooltip } from "@base-ui/react";
 
-export function MetricTooltip({
-  content,
-  children
-}: PropsWithChildren<{ content: ReactNode }>) {
+export function MetricTooltip({ content, children }: PropsWithChildren<{ content: ReactNode }>) {
   return (
     <Tooltip.Provider delay={120}>
       <Tooltip.Root>

@@ -8,7 +8,7 @@ export function FilterSelect({
   onValueChange,
   items,
   placeholder,
-  className
+  className,
 }: {
   value: string;
   onValueChange: (value: string) => void;
@@ -19,10 +19,7 @@ export function FilterSelect({
   return (
     <Select.Root onValueChange={(nextValue) => onValueChange(nextValue ?? "")} value={value}>
       <Select.Trigger
-        className={cn(
-          "input-shell h-11 min-w-44 justify-between rounded-[var(--radius-soft)] border border-white/10 bg-obsidian-900/80 px-3.5",
-          className
-        )}
+        className={cn("input-shell h-11 min-w-44 justify-between rounded-[var(--radius-soft)] border border-white/10 bg-obsidian-900/80 px-3.5", className)}
       >
         <Select.Value placeholder={placeholder ?? "Select"} />
         <Select.Icon>

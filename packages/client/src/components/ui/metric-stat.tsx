@@ -6,7 +6,7 @@ export function MetricStat({
   delta,
   tone = "default",
   helper,
-  variant = "panel"
+  variant = "panel",
 }: {
   label: string;
   value: string;
@@ -20,7 +20,7 @@ export function MetricStat({
     tone === "ready" && "text-ready-500",
     tone === "caution" && "text-caution-500",
     tone === "risk" && "text-risk-500",
-    tone === "accent" && "text-accent-400"
+    tone === "accent" && "text-accent-400",
   );
 
   if (variant === "scoreboard") {
@@ -52,11 +52,7 @@ export function MetricStat({
           <p className="eyebrow">{label}</p>
           <div className={cn("mt-3 text-4xl", valueTone)}>{value}</div>
         </div>
-        {delta ? (
-          <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-obsidian-300">
-            {delta}
-          </div>
-        ) : null}
+        {delta ? <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-obsidian-300">{delta}</div> : null}
       </div>
       {helper ? <p className="mt-3 text-sm text-obsidian-400">{helper}</p> : null}
     </article>

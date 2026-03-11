@@ -21,15 +21,12 @@ export const clientLoader = async ({ request }: { request: Request }) => {
     throw redirect(getDefaultAppPath(session));
   }
 
-  const [portal, garmin] = await Promise.all([
-    apiClient.getAthletePortal(),
-    apiClient.getAthleteGarminConnection()
-  ]);
+  const [portal, garmin] = await Promise.all([apiClient.getAthletePortal(), apiClient.getAthleteGarminConnection()]);
 
   return {
     garmin,
     portal,
-    session
+    session,
   };
 };
 
@@ -45,9 +42,9 @@ export default function AthleteHomeRoute() {
     searchParams.get("garmin") === "connected"
       ? {
           kind: "success",
-          text: "Garmin connected successfully."
+          text: "Garmin connected successfully.",
         }
-      : null
+      : null,
   );
 
   const connectGarmin = async () => {
@@ -60,7 +57,7 @@ export default function AthleteHomeRoute() {
     } catch (error) {
       setMessage({
         kind: "error",
-        text: error instanceof Error ? error.message : "Unable to start Garmin connection."
+        text: error instanceof Error ? error.message : "Unable to start Garmin connection.",
       });
       setPendingAction(null);
     }
@@ -74,13 +71,13 @@ export default function AthleteHomeRoute() {
       await apiClient.disconnectAthleteGarminConnection();
       setMessage({
         kind: "success",
-        text: "Garmin disconnected."
+        text: "Garmin disconnected.",
       });
       startTransition(() => revalidator.revalidate());
     } catch (error) {
       setMessage({
         kind: "error",
-        text: error instanceof Error ? error.message : "Unable to disconnect Garmin."
+        text: error instanceof Error ? error.message : "Unable to disconnect Garmin.",
       });
     } finally {
       setPendingAction(null);
@@ -128,44 +125,28 @@ export default function AthleteHomeRoute() {
                       ? "risk"
                       : "default"
               }
-              value={
-                portal.latestSnapshot.readinessScore !== null
-                  ? `${portal.latestSnapshot.readinessScore}`
-                  : "—"
-              }
+              value={portal.latestSnapshot.readinessScore !== null ? `${portal.latestSnapshot.readinessScore}` : "—"}
             />
             <MetricStat
               label="7-day average"
-              value={
-                portal.trendSummary.averageReadinessScore !== null
-                  ? `${portal.trendSummary.averageReadinessScore}`
-                  : "—"
-              }
+              value={portal.trendSummary.averageReadinessScore !== null ? `${portal.trendSummary.averageReadinessScore}` : "—"}
             />
-            <MetricStat
-              label="Average sleep"
-              value={formatMinutes(portal.trendSummary.averageSleepDurationMinutes)}
-            />
-            <MetricStat
-              label="Average nightly HRV"
-              value={formatNumber(portal.trendSummary.averageHrvNightlyMs, "ms")}
-            />
+            <MetricStat label="Average sleep" value={formatMinutes(portal.trendSummary.averageSleepDurationMinutes)} />
+            <MetricStat label="Average nightly HRV" value={formatNumber(portal.trendSummary.averageHrvNightlyMs, "ms")} />
           </section>
 
           <section className="surface-panel rounded-[var(--radius-panel)] p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">Garmin connection</p>
-                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">
-                  {garmin.connection ? "Active sync" : "Connection required"}
-                </h2>
+                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">{garmin.connection ? "Active sync" : "Connection required"}</h2>
               </div>
               <StatusBadge status={garmin.connection ? "active" : "no_data"} />
             </div>
             <p className="mt-3 text-sm text-obsidian-400">
               {garmin.connection
                 ? "Your Garmin account is connected. Pulsi will keep ingesting readiness and recovery summaries for this profile."
-                : garmin.reason ?? "Connect Garmin to populate your athlete dashboard."}
+                : (garmin.reason ?? "Connect Garmin to populate your athlete dashboard.")}
             </p>
             <div className="mt-5 grid gap-3">
               <button
@@ -177,12 +158,7 @@ export default function AthleteHomeRoute() {
                 {pendingAction === "connect" ? "Connecting..." : "Connect Garmin"}
               </button>
               {garmin.connection ? (
-                <button
-                  className="btn-danger"
-                  disabled={pendingAction === "disconnect"}
-                  onClick={() => void disconnectGarmin()}
-                  type="button"
-                >
+                <button className="btn-danger" disabled={pendingAction === "disconnect"} onClick={() => void disconnectGarmin()} type="button">
                   {pendingAction === "disconnect" ? "Disconnecting..." : "Disconnect Garmin"}
                 </button>
               ) : null}
@@ -197,10 +173,7 @@ export default function AthleteHomeRoute() {
                 <p className="eyebrow">Athlete profile</p>
                 <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Readiness history</h2>
               </div>
-              <StatusBadge
-                label={`${portal.trendSummary.daysWithData}/${portal.trendSummary.windowDays} days`}
-                status="active"
-              />
+              <StatusBadge label={`${portal.trendSummary.daysWithData}/${portal.trendSummary.windowDays} days`} status="active" />
             </div>
 
             {portal.recentSnapshots.length > 0 ? (
@@ -224,13 +197,9 @@ export default function AthleteHomeRoute() {
                       className="flex items-center justify-between rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3"
                       key={snapshot.snapshotDate}
                     >
-                      <div className="text-sm text-obsidian-300">
-                        {new Date(snapshot.snapshotDate).toLocaleDateString()}
-                      </div>
+                      <div className="text-sm text-obsidian-300">{new Date(snapshot.snapshotDate).toLocaleDateString()}</div>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-obsidian-100">
-                          {snapshot.readinessScore}/100
-                        </span>
+                        <span className="text-sm font-medium text-obsidian-100">{snapshot.readinessScore}/100</span>
                         <StatusBadge status={snapshot.readinessBand} />
                       </div>
                     </div>
@@ -239,10 +208,7 @@ export default function AthleteHomeRoute() {
               </>
             ) : (
               <div className="mt-6">
-                <EmptyState
-                  body="Once Garmin data syncs, this view will show your recent readiness movement."
-                  title="No readiness history yet"
-                />
+                <EmptyState body="Once Garmin data syncs, this view will show your recent readiness movement." title="No readiness history yet" />
               </div>
             )}
           </section>
@@ -265,18 +231,13 @@ export default function AthleteHomeRoute() {
               {portal.latestSnapshot.rationale.length > 0 ? (
                 <ul className="mt-5 grid gap-3">
                   {portal.latestSnapshot.rationale.map((item) => (
-                    <li
-                      className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-obsidian-300"
-                      key={item}
-                    >
+                    <li className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-obsidian-300" key={item}>
                       {item}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-4 text-sm text-obsidian-500">
-                  Pulsi will explain your current trend here once data is available.
-                </p>
+                <p className="mt-4 text-sm text-obsidian-500">Pulsi will explain your current trend here once data is available.</p>
               )}
             </section>
 
@@ -315,7 +276,6 @@ const formatMinutes = (value: number | null) => {
   return `${hours}h ${String(minutes).padStart(2, "0")}m`;
 };
 
-const formatNumber = (value: number | null, suffix: string) =>
-  value === null ? "No data" : `${value}${suffix ? ` ${suffix}` : ""}`;
+const formatNumber = (value: number | null, suffix: string) => (value === null ? "No data" : `${value}${suffix ? ` ${suffix}` : ""}`);
 
 const formatDateTime = (value: string | null) => (value ? new Date(value).toLocaleString() : "No sync yet");

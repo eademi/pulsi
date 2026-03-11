@@ -5,13 +5,7 @@ import { Sparkline } from "../../components/ui/sparkline";
 import { StatusBadge } from "../../components/ui/status-badge";
 import { cn } from "../../lib/cn";
 
-export function ReadinessCard({
-  athleteReadiness,
-  onSelect
-}: {
-  athleteReadiness: AthleteReadiness;
-  onSelect: (athlete: AthleteReadiness) => void;
-}) {
+export function ReadinessCard({ athleteReadiness, onSelect }: { athleteReadiness: AthleteReadiness; onSelect: (athlete: AthleteReadiness) => void }) {
   const snapshot = athleteReadiness.latestSnapshot;
   const readinessBand = snapshot?.readinessBand ?? "no_data";
 
@@ -21,7 +15,7 @@ export function ReadinessCard({
         "surface-panel group flex w-full flex-col gap-4 rounded-[var(--radius-soft)] p-4 text-left transition hover:-translate-y-0.5 hover:border-accent-500/25",
         snapshot?.readinessBand === "ready" && "bg-ready-500/[0.04]",
         snapshot?.readinessBand === "caution" && "bg-caution-500/[0.05]",
-        snapshot?.readinessBand === "restricted" && "bg-risk-500/[0.06]"
+        snapshot?.readinessBand === "restricted" && "bg-risk-500/[0.06]",
       )}
       onClick={() => onSelect(athleteReadiness)}
       type="button"
@@ -41,12 +35,8 @@ export function ReadinessCard({
         <>
           <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-4">
             <div>
-              <div className="text-[2.7rem] font-semibold leading-none tracking-tight text-obsidian-100">
-                {snapshot.readinessScore}
-              </div>
-              <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
-                Readiness
-              </div>
+              <div className="text-[2.7rem] font-semibold leading-none tracking-tight text-obsidian-100">{snapshot.readinessScore}</div>
+              <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">Readiness</div>
             </div>
 
             <div className="grid gap-3">
@@ -57,13 +47,7 @@ export function ReadinessCard({
               </div>
               <Sparkline
                 points={buildTrendPoints(snapshot.readinessScore)}
-                status={
-                  snapshot.readinessBand === "ready"
-                    ? "ready"
-                    : snapshot.readinessBand === "caution"
-                      ? "caution"
-                      : "risk"
-                }
+                status={snapshot.readinessBand === "ready" ? "ready" : snapshot.readinessBand === "caution" ? "caution" : "risk"}
               />
             </div>
           </div>

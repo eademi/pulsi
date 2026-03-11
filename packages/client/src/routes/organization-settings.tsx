@@ -9,11 +9,7 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
-export const clientLoader = async ({
-  params
-}: {
-  params: Record<string, string | undefined>;
-}) => {
+export const clientLoader = async ({ params }: { params: Record<string, string | undefined> }) => {
   const tenantSlug = params.tenantSlug;
 
   if (!tenantSlug) {
@@ -24,9 +20,7 @@ export const clientLoader = async ({
   if (session.actorType === "athlete") {
     throw redirect(getDefaultAppPath(session));
   }
-  const activeMembership = session.memberships.find(
-    (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
-  );
+  const activeMembership = session.memberships.find((membership) => membership.status === "active" && membership.tenantSlug === tenantSlug);
 
   if (!activeMembership) {
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
@@ -39,19 +33,13 @@ export const clientLoader = async ({
   const [members, invitations, squads] = await Promise.all([
     apiClient.getTenantMembers(tenantSlug),
     apiClient.getTenantInvitations(tenantSlug),
-    apiClient.getTenantSquads(tenantSlug, { status: "active" })
+    apiClient.getTenantSquads(tenantSlug, { status: "active" }),
   ]);
 
   return { invitations, members, squads };
 };
 
-export const clientAction = async ({
-  params,
-  request
-}: {
-  params: Record<string, string | undefined>;
-  request: Request;
-}) => {
+export const clientAction = async ({ params, request }: { params: Record<string, string | undefined>; request: Request }) => {
   const tenantSlug = params.tenantSlug;
   if (!tenantSlug) {
     return { error: "Tenant slug is required." };
@@ -71,7 +59,7 @@ export const clientAction = async ({
 
       await apiClient.inviteTenantMember(tenantSlug, {
         email,
-        role: role as TenantRole
+        role: role as TenantRole,
       });
 
       return { success: "Invitation sent." };
@@ -88,7 +76,7 @@ export const clientAction = async ({
 
       await apiClient.updateTenantMemberAccess(tenantSlug, userId, {
         accessScope: accessScope as "all_squads" | "assigned_squads",
-        squadIds
+        squadIds,
       });
 
       return { success: "Access scope updated." };
@@ -204,7 +192,7 @@ export default function OrganizationSettingsRoute() {
 function MemberScopeForm({
   member,
   squads,
-  isSubmitting
+  isSubmitting,
 }: {
   member: TenantMember;
   squads: Awaited<ReturnType<typeof apiClient.getTenantSquads>>;

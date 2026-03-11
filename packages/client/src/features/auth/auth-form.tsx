@@ -5,7 +5,7 @@ export const AuthForm = ({
   alternateHref,
   alternateLabel,
   error,
-  fields
+  fields,
 }: {
   actionLabel: string;
   alternateHref: string;
@@ -27,21 +27,13 @@ export const AuthForm = ({
         {fields.map((field) => (
           <label className="grid gap-2" key={field.name}>
             <span className="text-sm font-medium text-obsidian-300">{field.label}</span>
-            <input
-              autoComplete={field.autoComplete}
-              className="input-field"
-              name={field.name}
-              required
-              type={field.type ?? "text"}
-            />
+            <input autoComplete={field.autoComplete} className="input-field" name={field.name} required type={field.type ?? "text"} />
           </label>
         ))}
       </div>
 
       {error && !isSubmitting ? (
-        <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">
-          {error}
-        </p>
+        <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">{error}</p>
       ) : null}
 
       <label className="flex items-center gap-3 text-sm text-obsidian-400">

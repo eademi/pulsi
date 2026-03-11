@@ -11,7 +11,7 @@ import {
   getPlayersPath,
   getReportsPath,
   getSessionPlannerPath,
-  getSquadsPath
+  getSquadsPath,
 } from "../lib/session";
 import { cn } from "../lib/cn";
 
@@ -33,7 +33,7 @@ const THEME_STORAGE_KEY = "pulsi.theme";
 export function AppShell({
   session,
   activeMembership,
-  children
+  children,
 }: PropsWithChildren<{
   session: ActorSession;
   activeMembership: TenantMembership;
@@ -56,43 +56,43 @@ export function AppShell({
         label: "Dashboard",
         description: "Live readiness overview and alerts",
         icon: ActivityIcon,
-        section: "operations"
+        section: "operations",
       },
       {
         href: getSquadsPath(activeMembership.tenantSlug),
         label: "Squad Readiness",
         description: "Pre-session go/no-go board",
         icon: GridIcon,
-        section: "operations"
+        section: "operations",
       },
       {
         href: getPlayersPath(activeMembership.tenantSlug),
         label: "Players",
         description: "Roster, claim links, and athlete ownership",
         icon: UsersIcon,
-        section: "operations"
+        section: "operations",
       },
       {
         href: getSessionPlannerPath(activeMembership.tenantSlug),
         label: "Session Planner",
         description: "Availability flags versus target load",
         icon: CalendarIcon,
-        section: "operations"
+        section: "operations",
       },
       {
         href: getReportsPath(activeMembership.tenantSlug),
         label: "Reports",
         description: "Trend analysis and export-oriented views",
         icon: ReportIcon,
-        section: "operations"
+        section: "operations",
       },
       {
         href: getGarminIntegrationPath(activeMembership.tenantSlug),
         label: "Garmin",
         description: "Connection state and consent workflows",
         icon: LinkIcon,
-        section: "management"
-      }
+        section: "management",
+      },
     ];
 
     if (hasTenantCapability(activeMembership.role, "staff:manage")) {
@@ -101,7 +101,7 @@ export function AppShell({
         label: "Settings",
         description: "Staff access and organization controls",
         icon: CogIcon,
-        section: "management"
+        section: "management",
       });
     }
 
@@ -113,14 +113,14 @@ export function AppShell({
       [
         {
           label: "Performance",
-          items: navigationItems.filter((item) => item.section === "operations")
+          items: navigationItems.filter((item) => item.section === "operations"),
         },
         {
           label: "Administration",
-          items: navigationItems.filter((item) => item.section === "management")
-        }
+          items: navigationItems.filter((item) => item.section === "management"),
+        },
       ].filter((section) => section.items.length > 0),
-    [navigationItems]
+    [navigationItems],
   );
 
   const activeRoute = navigationItems.find((item) => location.pathname.startsWith(item.href));
@@ -145,24 +145,22 @@ export function AppShell({
 
   return (
     <div className="h-screen overflow-hidden bg-transparent px-4 py-4 lg:px-6">
-      <div className="mx-auto grid h-full max-w-[1800px] grid-cols-1 gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
+      <div className="mx-auto grid h-full max-w-450 grid-cols-1 gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
         <aside
           className={cn(
-            "surface-panel hidden self-start overflow-hidden rounded-[var(--radius-panel)] lg:sticky lg:top-4 lg:flex lg:h-[calc(100vh-2rem)] lg:flex-col",
-            collapsed ? "w-[92px]" : "w-[320px]"
+            "surface-panel hidden self-start overflow-hidden rounded-panel lg:sticky lg:top-4 lg:flex lg:h-[calc(100vh-2rem)] lg:flex-col",
+            collapsed ? "w-23" : "w-[320px]",
           )}
         >
           <div className="flex items-center justify-between border-b border-white/8 px-4 py-4">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex size-11 items-center justify-center rounded-[var(--radius-soft)] bg-accent-500/15 text-sm font-semibold text-accent-400 shadow-[var(--shadow-glow)]">
+              <div className="flex size-11 items-center justify-center rounded-soft bg-accent-500/15 text-sm font-semibold text-accent-400 shadow-(--shadow-glow)">
                 P
               </div>
               {!collapsed ? (
                 <div className="min-w-0">
                   <div className="text-base font-semibold text-obsidian-100">Pulsi</div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-obsidian-500">
-                    Performance OS
-                  </div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-obsidian-500">Performance OS</div>
                 </div>
               ) : null}
             </div>
@@ -177,11 +175,9 @@ export function AppShell({
 
           <div className="flex-1 overflow-x-hidden overflow-y-auto p-3">
             {!collapsed ? (
-              <div className="surface-grid rounded-[var(--radius-soft)] p-4">
+              <div className="surface-grid rounded-soft p-4">
                 <p className="eyebrow">Active organization</p>
-                <h2 className="mt-3 text-xl font-semibold text-obsidian-100">
-                  {activeMembership.tenantName}
-                </h2>
+                <h2 className="mt-3 text-xl font-semibold text-obsidian-100">{activeMembership.tenantName}</h2>
                 <p className="mt-2 text-sm text-obsidian-400">
                   {session.user.name} · {activeMembership.role.replaceAll("_", " ")}
                 </p>
@@ -204,10 +200,8 @@ export function AppShell({
                         <NavLink
                           className={({ isActive }) =>
                             cn(
-                              "group relative flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-[var(--radius-soft)] px-3 py-3 transition",
-                              isActive
-                                ? "bg-accent-500/12 text-obsidian-100"
-                                : "text-obsidian-400 hover:bg-white/4 hover:text-obsidian-100"
+                              "group relative flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-soft px-3 py-3 transition",
+                              isActive ? "bg-accent-500/12 text-obsidian-100" : "text-obsidian-400 hover:bg-white/4 hover:text-obsidian-100",
                             )
                           }
                           to={item.href}
@@ -218,15 +212,15 @@ export function AppShell({
                                 aria-hidden="true"
                                 className={cn(
                                   "absolute inset-y-2 left-0 w-1 rounded-full transition",
-                                  isActive ? "bg-accent-400 shadow-[var(--shadow-glow)]" : "bg-transparent"
+                                  isActive ? "bg-accent-400 shadow-(--shadow-glow)" : "bg-transparent",
                                 )}
                               />
                               <span
                                 className={cn(
-                                  "flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-tight)] border transition",
+                                  "flex size-10 shrink-0 items-center justify-center rounded-tight border transition",
                                   isActive
                                     ? "border-accent-500/30 bg-accent-500/12 text-accent-300"
-                                    : "border-white/8 bg-white/[0.03] text-obsidian-500 group-hover:border-white/12"
+                                    : "border-white/8 bg-white/3 text-obsidian-500 group-hover:border-white/12",
                                 )}
                               >
                                 <item.icon className="size-5" />
@@ -234,9 +228,7 @@ export function AppShell({
                               {!collapsed ? (
                                 <span className="min-w-0 flex-1 overflow-hidden">
                                   <span className="block truncate text-sm font-medium">{item.label}</span>
-                                  <span className="mt-0.5 block truncate text-xs text-obsidian-500">
-                                    {item.description}
-                                  </span>
+                                  <span className="mt-0.5 block truncate text-xs text-obsidian-500">{item.description}</span>
                                 </span>
                               ) : null}
                             </>
@@ -252,7 +244,7 @@ export function AppShell({
 
           <div className="border-t border-white/8 p-3">
             {!collapsed ? (
-              <div className="mb-3 rounded-[var(--radius-soft)] border border-white/8 bg-white/4 p-3">
+              <div className="mb-3 rounded-soft border border-white/8 bg-white/4 p-3">
                 <p className="text-sm font-medium text-obsidian-100">{session.user.name}</p>
                 <p className="mt-1 text-sm text-obsidian-500">{session.user.email}</p>
               </div>
@@ -268,7 +260,7 @@ export function AppShell({
         </aside>
 
         <div className="flex min-w-0 min-h-0 flex-col gap-4 overflow-hidden">
-          <header className="surface-panel shrink-0 rounded-[var(--radius-panel)] p-4 lg:p-5">
+          <header className="surface-panel shrink-0 rounded-panel p-4 lg:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-obsidian-500">
@@ -280,9 +272,7 @@ export function AppShell({
                   ))}
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl font-semibold tracking-tight text-obsidian-100 lg:text-3xl">
-                    {activeRoute?.label ?? "Workspace"}
-                  </h1>
+                  <h1 className="text-2xl font-semibold tracking-tight text-obsidian-100 lg:text-3xl">{activeRoute?.label ?? "Workspace"}</h1>
                   <span className="pill pill-muted">{activeMembership.role.replaceAll("_", " ")}</span>
                 </div>
               </div>
@@ -339,7 +329,10 @@ function GridIcon({ className }: { className?: string }) {
   return iconPath(className, "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z");
 }
 function UsersIcon({ className }: { className?: string }) {
-  return iconPath(className, "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 14v-2a4 4 0 0 0-3-3.87M15 3.13a4 4 0 0 1 0 7.75");
+  return iconPath(
+    className,
+    "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 14v-2a4 4 0 0 0-3-3.87M15 3.13a4 4 0 0 1 0 7.75",
+  );
 }
 function CalendarIcon({ className }: { className?: string }) {
   return iconPath(className, "M8 2v4M16 2v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12H3V7a2 2 0 0 1 2-2z");
@@ -351,7 +344,10 @@ function LinkIcon({ className }: { className?: string }) {
   return iconPath(className, "M10 13a5 5 0 0 1 0-7l1-1a5 5 0 1 1 7 7l-1 1M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 1 1-7-7l1-1");
 }
 function CogIcon({ className }: { className?: string }) {
-  return iconPath(className, "M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-5 1.2 2.47 2.73.4-.97 2.57 1.8 2.08-2.4 1.34.27 2.75L12 14.95l-2.63 1.66.27-2.75-2.4-1.34 1.8-2.08-.97-2.57 2.73-.4L12 3z");
+  return iconPath(
+    className,
+    "M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-5 1.2 2.47 2.73.4-.97 2.57 1.8 2.08-2.4 1.34.27 2.75L12 14.95l-2.63 1.66.27-2.75-2.4-1.34 1.8-2.08-.97-2.57 2.73-.4L12 3z",
+  );
 }
 function BellIcon({ className }: { className?: string }) {
   return iconPath(className, "M15 17H5l1.4-1.4A2 2 0 0 0 7 14.2V10a5 5 0 0 1 10 0v4.2a2 2 0 0 0 .6 1.4L19 17h-4m0 0a3 3 0 1 1-6 0");
@@ -365,7 +361,7 @@ function LogoutIcon({ className }: { className?: string }) {
 function SunIcon({ className }: { className?: string }) {
   return iconPath(
     className,
-    "M12 3v2.5M12 18.5V21M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M3 12h2.5M18.5 12H21M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10z"
+    "M12 3v2.5M12 18.5V21M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M3 12h2.5M18.5 12H21M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10z",
   );
 }
 function MoonIcon({ className }: { className?: string }) {

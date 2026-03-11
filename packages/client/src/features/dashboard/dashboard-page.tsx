@@ -21,13 +21,7 @@ type ReadinessFilter = "all" | ReadinessBand;
 type DateRange = "today" | "7d" | "28d" | "custom";
 type MetricFocus = "readiness" | "sleep" | "hrv" | "load";
 
-export function DashboardPage({
-  readiness,
-  tenantSlug
-}: {
-  readiness: AthleteReadiness[];
-  tenantSlug: string;
-}) {
+export function DashboardPage({ readiness, tenantSlug }: { readiness: AthleteReadiness[]; tenantSlug: string }) {
   const [selectedAthlete, setSelectedAthlete] = useState<AthleteReadiness | null>(null);
   const [bandFilter, setBandFilter] = useState<ReadinessFilter>("all");
   const [dateRange, setDateRange] = useState<DateRange>("today");
@@ -47,7 +41,7 @@ export function DashboardPage({
     return [{ label: "All squads", value: "all" }].concat(
       Array.from(uniqueSquads.entries())
         .sort((left, right) => left[1].localeCompare(right[1]))
-        .map(([value, label]) => ({ label, value }))
+        .map(([value, label]) => ({ label, value })),
     );
   }, [readiness]);
 
@@ -55,13 +49,13 @@ export function DashboardPage({
   const alerts = useMemo(() => buildAlerts(readiness), [readiness]);
   const filteredReadiness = useMemo(
     () => filterReadiness(readiness, { bandFilter, search, squadFilter }),
-    [bandFilter, readiness, search, squadFilter]
+    [bandFilter, readiness, search, squadFilter],
   );
   const attentionQueue = filteredReadiness.filter(
     (item) =>
       item.latestSnapshot?.readinessBand === "restricted" ||
       item.latestSnapshot?.recommendation === "reduced_load" ||
-      item.latestSnapshot?.recommendation === "recovery_focus"
+      item.latestSnapshot?.recommendation === "recovery_focus",
   );
   const topMovers = useMemo(() => buildTopMovers(readiness), [readiness]);
 
@@ -138,47 +132,38 @@ export function DashboardPage({
       </section>
 
       <section className="surface-panel rounded-[var(--radius-panel)] p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="eyebrow">Top movers</p>
-              <h2 className="mt-3 text-xl font-semibold text-obsidian-100">Change since yesterday</h2>
-            </div>
-            <StatusBadge label={metricFocus} status="active" />
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow">Top movers</p>
+            <h2 className="mt-3 text-xl font-semibold text-obsidian-100">Change since yesterday</h2>
           </div>
-          <div className="mt-5 grid gap-4">
-            {topMovers.map((mover) => (
-              <button
-                className="flex items-center justify-between gap-4 rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-3 text-left transition hover:border-accent-500/20 hover:bg-accent-500/8"
-                key={mover.athlete.id}
-                onClick={() => setSelectedAthlete(mover)}
-                type="button"
-              >
-                <div>
-                  <div className="text-sm font-medium text-obsidian-100">
-                    {mover.athlete.firstName} {mover.athlete.lastName}
-                  </div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.18em] text-obsidian-500">
-                    {mover.athlete.currentSquad?.name ?? mover.athlete.squad ?? "Unassigned"}
-                  </div>
+          <StatusBadge label={metricFocus} status="active" />
+        </div>
+        <div className="mt-5 grid gap-4">
+          {topMovers.map((mover) => (
+            <button
+              className="flex items-center justify-between gap-4 rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-3 text-left transition hover:border-accent-500/20 hover:bg-accent-500/8"
+              key={mover.athlete.id}
+              onClick={() => setSelectedAthlete(mover)}
+              type="button"
+            >
+              <div>
+                <div className="text-sm font-medium text-obsidian-100">
+                  {mover.athlete.firstName} {mover.athlete.lastName}
                 </div>
-                <div className="text-right">
-                  <div
-                    className={cn(
-                      "text-lg font-semibold",
-                      mover.delta >= 0 ? "text-ready-500" : "text-risk-500"
-                    )}
-                  >
-                    {mover.delta >= 0 ? `+${mover.delta}` : mover.delta}
-                  </div>
-                  <Sparkline
-                    className="mt-1 h-10 w-24"
-                    points={mover.trend}
-                    status={mover.delta >= 0 ? "ready" : "risk"}
-                  />
+                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-obsidian-500">
+                  {mover.athlete.currentSquad?.name ?? mover.athlete.squad ?? "Unassigned"}
                 </div>
-              </button>
-            ))}
-          </div>
+              </div>
+              <div className="text-right">
+                <div className={cn("text-lg font-semibold", mover.delta >= 0 ? "text-ready-500" : "text-risk-500")}>
+                  {mover.delta >= 0 ? `+${mover.delta}` : mover.delta}
+                </div>
+                <Sparkline className="mt-1 h-10 w-24" points={mover.trend} status={mover.delta >= 0 ? "ready" : "risk"} />
+              </div>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="surface-panel rounded-[var(--radius-panel)] p-5">
@@ -209,7 +194,7 @@ export function DashboardPage({
               {[
                 { label: "Squad overview", value: "board" },
                 { label: "Attention queue", value: "attention" },
-                { label: "Session summary", value: "summary" }
+                { label: "Session summary", value: "summary" },
               ].map((item) => (
                 <Tabs.Tab
                   className="rounded-[calc(var(--radius-soft)-2px)] px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-obsidian-400 data-[selected]:bg-accent-500 data-[selected]:text-obsidian-950"
@@ -228,7 +213,7 @@ export function DashboardPage({
                     "rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em]",
                     bandFilter === band
                       ? "border-accent-500/30 bg-accent-500/12 text-accent-300"
-                      : "border-white/8 bg-white/[0.03] text-obsidian-400 hover:text-obsidian-100"
+                      : "border-white/8 bg-white/[0.03] text-obsidian-400 hover:text-obsidian-100",
                   )}
                   key={band}
                   onClick={() => startTransition(() => setBandFilter(band))}
@@ -244,11 +229,7 @@ export function DashboardPage({
             {filteredReadiness.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 {filteredReadiness.map((athleteReadiness) => (
-                  <ReadinessCard
-                    athleteReadiness={athleteReadiness}
-                    key={athleteReadiness.athlete.id}
-                    onSelect={setSelectedAthlete}
-                  />
+                  <ReadinessCard athleteReadiness={athleteReadiness} key={athleteReadiness.athlete.id} onSelect={setSelectedAthlete} />
                 ))}
               </div>
             ) : (
@@ -267,11 +248,7 @@ export function DashboardPage({
                     key={item.athlete.id}
                     onClick={() => setSelectedAthlete(item)}
                     tone={
-                      item.latestSnapshot?.readinessBand === "ready"
-                        ? "ready"
-                        : item.latestSnapshot?.readinessBand === "caution"
-                          ? "caution"
-                          : "risk"
+                      item.latestSnapshot?.readinessBand === "ready" ? "ready" : item.latestSnapshot?.readinessBand === "caution" ? "caution" : "risk"
                     }
                   >
                     <DataCell>
@@ -285,16 +262,12 @@ export function DashboardPage({
                     <DataCell>
                       <StatusBadge status={item.latestSnapshot?.readinessBand ?? "no_data"} />
                     </DataCell>
-                    <DataCell className="max-w-[22rem] text-obsidian-400">
-                      {item.latestSnapshot?.rationale.join(" · ") ?? "No rationale"}
-                    </DataCell>
+                    <DataCell className="max-w-[22rem] text-obsidian-400">{item.latestSnapshot?.rationale.join(" · ") ?? "No rationale"}</DataCell>
                     <DataCell>{formatMinutes(item.latestSnapshot?.metrics.sleepDurationMinutes ?? null)}</DataCell>
                     <DataCell>{formatNumber(item.latestSnapshot?.metrics.hrvNightlyMs ?? null, "ms")}</DataCell>
                     <DataCell>
                       <MetricTooltip content="Training guidance derived from the latest readiness snapshot.">
-                        <span className="text-obsidian-200">
-                          {item.latestSnapshot?.recommendation.replaceAll("_", " ") ?? "awaiting data"}
-                        </span>
+                        <span className="text-obsidian-200">{item.latestSnapshot?.recommendation.replaceAll("_", " ") ?? "awaiting data"}</span>
                       </MetricTooltip>
                     </DataCell>
                   </DataRow>
@@ -329,8 +302,7 @@ export function DashboardPage({
                 <p className="eyebrow">Metric focus</p>
                 <h3 className="mt-2 text-lg font-semibold text-obsidian-100">Current lens: {metricFocus}</h3>
                 <p className="mt-3 text-sm text-obsidian-400">
-                  Toggle between readiness, sleep, HRV, and load to change how the board highlights
-                  the same roster before training or competition.
+                  Toggle between readiness, sleep, HRV, and load to change how the board highlights the same roster before training or competition.
                 </p>
               </section>
             </div>
@@ -343,13 +315,7 @@ export function DashboardPage({
   );
 }
 
-function AthleteDetailSheet({
-  athlete,
-  onOpenChange
-}: {
-  athlete: AthleteReadiness | null;
-  onOpenChange: (open: boolean) => void;
-}) {
+function AthleteDetailSheet({ athlete, onOpenChange }: { athlete: AthleteReadiness | null; onOpenChange: (open: boolean) => void }) {
   return (
     <SideSheet
       description={
@@ -359,9 +325,7 @@ function AthleteDetailSheet({
       }
       onOpenChange={onOpenChange}
       open={Boolean(athlete)}
-      title={
-        athlete ? `${athlete.athlete.firstName} ${athlete.athlete.lastName}` : "Athlete detail"
-      }
+      title={athlete ? `${athlete.athlete.firstName} ${athlete.athlete.lastName}` : "Athlete detail"}
     >
       {athlete ? (
         <div className="grid gap-6">
@@ -379,18 +343,9 @@ function AthleteDetailSheet({
               }
               value={String(athlete.latestSnapshot?.readinessScore ?? "—")}
             />
-            <MetricStat
-              label="Sleep"
-              value={formatMinutes(athlete.latestSnapshot?.metrics.sleepDurationMinutes ?? null)}
-            />
-            <MetricStat
-              label="HRV"
-              value={formatNumber(athlete.latestSnapshot?.metrics.hrvNightlyMs ?? null, "ms")}
-            />
-            <MetricStat
-              label="Resting HR"
-              value={formatNumber(athlete.latestSnapshot?.metrics.restingHeartRate ?? null, "bpm")}
-            />
+            <MetricStat label="Sleep" value={formatMinutes(athlete.latestSnapshot?.metrics.sleepDurationMinutes ?? null)} />
+            <MetricStat label="HRV" value={formatNumber(athlete.latestSnapshot?.metrics.hrvNightlyMs ?? null, "ms")} />
+            <MetricStat label="Resting HR" value={formatNumber(athlete.latestSnapshot?.metrics.restingHeartRate ?? null, "bpm")} />
           </div>
 
           <section className="surface-grid rounded-[var(--radius-panel)] p-5">
@@ -401,9 +356,7 @@ function AthleteDetailSheet({
                 <div className="rounded-[var(--radius-tight)] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-obsidian-300" key={item}>
                   {item}
                 </div>
-              )) ?? (
-                <p className="text-sm text-obsidian-500">No rationale is available yet.</p>
-              )}
+              )) ?? <p className="text-sm text-obsidian-500">No rationale is available yet.</p>}
             </div>
           </section>
         </div>
@@ -412,20 +365,14 @@ function AthleteDetailSheet({
   );
 }
 
-function MetricToggleGroup({
-  value,
-  onValueChange
-}: {
-  value: MetricFocus;
-  onValueChange: (value: MetricFocus) => void;
-}) {
+function MetricToggleGroup({ value, onValueChange }: { value: MetricFocus; onValueChange: (value: MetricFocus) => void }) {
   return (
     <div className="inline-flex rounded-[var(--radius-soft)] border border-white/10 bg-white/5 p-1">
       {(["readiness", "sleep", "hrv", "load"] as const).map((item) => (
         <button
           className={cn(
             "rounded-[calc(var(--radius-soft)-2px)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em]",
-            value === item ? "bg-white text-obsidian-950" : "text-obsidian-400"
+            value === item ? "bg-white text-obsidian-950" : "text-obsidian-400",
           )}
           key={item}
           onClick={() => onValueChange(item)}
@@ -455,26 +402,14 @@ function SearchIcon() {
   );
 }
 
-function filterReadiness(
-  readiness: AthleteReadiness[],
-  input: { bandFilter: ReadinessFilter; search: string; squadFilter: string }
-) {
+function filterReadiness(readiness: AthleteReadiness[], input: { bandFilter: ReadinessFilter; search: string; squadFilter: string }) {
   const query = input.search.trim().toLowerCase();
 
   return readiness.filter((item) => {
-    const matchesBand =
-      input.bandFilter === "all" || item.latestSnapshot?.readinessBand === input.bandFilter;
+    const matchesBand = input.bandFilter === "all" || item.latestSnapshot?.readinessBand === input.bandFilter;
     const squadName = item.athlete.currentSquad?.name ?? item.athlete.squad ?? "Unassigned";
-    const matchesSquad =
-      input.squadFilter === "all" || squadName.toLowerCase() === input.squadFilter.toLowerCase();
-    const haystack = [
-      item.athlete.firstName,
-      item.athlete.lastName,
-      item.athlete.position ?? "",
-      squadName
-    ]
-      .join(" ")
-      .toLowerCase();
+    const matchesSquad = input.squadFilter === "all" || squadName.toLowerCase() === input.squadFilter.toLowerCase();
+    const haystack = [item.athlete.firstName, item.athlete.lastName, item.athlete.position ?? "", squadName].join(" ").toLowerCase();
     const matchesSearch = !query || haystack.includes(query);
 
     return matchesBand && matchesSquad && matchesSearch;
@@ -488,8 +423,7 @@ function buildSummary(readiness: AthleteReadiness[]) {
   const withSleep = readiness
     .map((item) => item.latestSnapshot?.metrics.sleepDurationMinutes ?? null)
     .filter((value): value is number => value !== null);
-  const avgSleepMinutes =
-    withSleep.length > 0 ? Math.round(withSleep.reduce((sum, value) => sum + value, 0) / withSleep.length) : null;
+  const avgSleepMinutes = withSleep.length > 0 ? Math.round(withSleep.reduce((sum, value) => sum + value, 0) / withSleep.length) : null;
 
   return {
     ready,
@@ -499,7 +433,7 @@ function buildSummary(readiness: AthleteReadiness[]) {
     cautionPercentage: toPercentage(caution, readiness.length),
     restrictedPercentage: toPercentage(restricted, readiness.length),
     avgSleep: formatMinutes(avgSleepMinutes),
-    avgSleepDelta: avgSleepMinutes && avgSleepMinutes >= 450 ? "on target" : "below target"
+    avgSleepDelta: avgSleepMinutes && avgSleepMinutes >= 450 ? "on target" : "below target",
   };
 }
 
@@ -513,23 +447,23 @@ function buildAlerts(readiness: AthleteReadiness[]) {
       ? {
           title: `${restricted.length} athletes need immediate review`,
           body: "Restricted readiness or recovery-focus recommendations are active before training.",
-          tone: "risk" as const
+          tone: "risk" as const,
         }
       : null,
     highStress.length > 0
       ? {
           title: `${highStress.length} athletes show elevated stress`,
           body: "Stress averages are up. Consider reducing volume or extending warm-up prep.",
-          tone: "warning" as const
+          tone: "warning" as const,
         }
       : null,
     missingData.length > 0
       ? {
           title: `${missingData.length} athletes have no fresh sync`,
           body: "Missing readiness data can hide risk. Check Garmin connectivity before session decisions.",
-          tone: "accent" as const
+          tone: "accent" as const,
         }
-      : null
+      : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 }
 
@@ -537,13 +471,13 @@ function buildTopMovers(readiness: AthleteReadiness[]) {
   return [...readiness]
     .map((item, index) => {
       const current = item.latestSnapshot?.readinessScore ?? 50;
-      const previous = current - (((index % 6) - 2) * 4);
+      const previous = current - ((index % 6) - 2) * 4;
       const delta = current - previous;
 
       return {
         ...item,
         delta,
-        trend: [previous - 4, previous - 2, previous, current - 3, current - 1, current]
+        trend: [previous - 4, previous - 2, previous, current - 3, current - 1, current],
       };
     })
     .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta))

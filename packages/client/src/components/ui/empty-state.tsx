@@ -1,10 +1,4 @@
-export function EmptyState({
-  title,
-  body
-}: {
-  title: string;
-  body: string;
-}) {
+export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="surface-panel rounded-[var(--radius-soft)] border-dashed p-8 text-center">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-obsidian-500">No data</p>

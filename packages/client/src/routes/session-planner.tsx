@@ -6,11 +6,7 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
-export const clientLoader = async ({
-  params
-}: {
-  params: Record<string, string | undefined>;
-}) => {
+export const clientLoader = async ({ params }: { params: Record<string, string | undefined> }) => {
   const tenantSlug = params.tenantSlug;
 
   if (!tenantSlug) {
@@ -22,9 +18,7 @@ export const clientLoader = async ({
     throw redirect(getDefaultAppPath(session));
   }
 
-  const activeMembership = session.memberships.find(
-    (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
-  );
+  const activeMembership = session.memberships.find((membership) => membership.status === "active" && membership.tenantSlug === tenantSlug);
 
   if (!activeMembership) {
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
@@ -51,11 +45,7 @@ export default function SessionPlannerRoute() {
           <p className="eyebrow">Recommended split</p>
           <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Today&apos;s roster allocation</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <PlannerCard
-              count={readiness.filter((item) => item.latestSnapshot?.readinessBand === "ready").length}
-              label="Full go"
-              tone="ready"
-            />
+            <PlannerCard count={readiness.filter((item) => item.latestSnapshot?.readinessBand === "ready").length} label="Full go" tone="ready" />
             <PlannerCard
               count={readiness.filter((item) => item.latestSnapshot?.readinessBand === "caution").length}
               label="Managed volume"
@@ -103,9 +93,7 @@ export default function SessionPlannerRoute() {
               <div className="font-medium text-obsidian-100">
                 {item.athlete.firstName} {item.athlete.lastName}
               </div>
-              <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
-                {item.athlete.position ?? "Player"}
-              </div>
+              <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">{item.athlete.position ?? "Player"}</div>
             </DataCell>
             <DataCell>{item.athlete.currentSquad?.name ?? item.athlete.squad ?? "Unassigned"}</DataCell>
             <DataCell>
@@ -121,22 +109,12 @@ export default function SessionPlannerRoute() {
   );
 }
 
-function PlannerCard({
-  count,
-  label,
-  tone
-}: {
-  count: number;
-  label: string;
-  tone: "ready" | "caution" | "restricted";
-}) {
+function PlannerCard({ count, label, tone }: { count: number; label: string; tone: "ready" | "caution" | "restricted" }) {
   return (
     <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4">
       <div className="eyebrow">{label}</div>
       <div
-        className={`mt-3 text-4xl font-semibold ${
-          tone === "ready" ? "text-ready-500" : tone === "caution" ? "text-caution-500" : "text-risk-500"
-        }`}
+        className={`mt-3 text-4xl font-semibold ${tone === "ready" ? "text-ready-500" : tone === "caution" ? "text-caution-500" : "text-risk-500"}`}
       >
         {count}
       </div>

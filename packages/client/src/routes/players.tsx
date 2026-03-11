@@ -12,11 +12,7 @@ import { useToast } from "../app/toast-provider";
 import { apiClient } from "../lib/api";
 import { getDashboardPath, getDefaultAppPath } from "../lib/session";
 
-export const clientLoader = async ({
-  params
-}: {
-  params: Record<string, string | undefined>;
-}) => {
+export const clientLoader = async ({ params }: { params: Record<string, string | undefined> }) => {
   const tenantSlug = params.tenantSlug;
   if (!tenantSlug) {
     throw new Error("Tenant slug is required to load players.");
@@ -26,9 +22,7 @@ export const clientLoader = async ({
   if (session.actorType === "athlete") {
     throw redirect(getDefaultAppPath(session));
   }
-  const activeMembership = session.memberships.find(
-    (membership) => membership.status === "active" && membership.tenantSlug === tenantSlug
-  );
+  const activeMembership = session.memberships.find((membership) => membership.status === "active" && membership.tenantSlug === tenantSlug);
 
   if (!activeMembership) {
     throw redirect(getDashboardPath(session.memberships[0]?.tenantSlug ?? tenantSlug));
@@ -37,19 +31,13 @@ export const clientLoader = async ({
   const [athletes, squads, garminConnections] = await Promise.all([
     apiClient.getTenantAthletes(tenantSlug, { status: "all" }),
     apiClient.getTenantSquads(tenantSlug, { status: "active" }),
-    apiClient.getGarminConnections(tenantSlug)
+    apiClient.getGarminConnections(tenantSlug),
   ]);
 
   return { activeMembership, athletes, garminConnections, squads, tenantSlug };
 };
 
-export const clientAction = async ({
-  params,
-  request
-}: {
-  params: Record<string, string | undefined>;
-  request: Request;
-}) => {
+export const clientAction = async ({ params, request }: { params: Record<string, string | undefined>; request: Request }) => {
   const feedbackId = crypto.randomUUID();
   const tenantSlug = params.tenantSlug;
   if (!tenantSlug) {
@@ -75,7 +63,7 @@ export const clientAction = async ({
         lastName,
         position: nullableText(formData.get("position")),
         squadId,
-        status: "active"
+        status: "active",
       });
 
       return { feedbackId, intent, success: "Player created." };
@@ -135,7 +123,7 @@ export const clientAction = async ({
         claimLink,
         feedbackId,
         intent,
-        success: "Athlete claim link generated."
+        success: "Athlete claim link generated.",
       };
     }
 
@@ -144,27 +132,25 @@ export const clientAction = async ({
     return {
       feedbackId,
       intent: intent || "unknown",
-      error: error instanceof Error ? error.message : "Unable to update players."
+      error: error instanceof Error ? error.message : "Unable to update players.",
     };
   }
 };
 
 export default function PlayersRoute() {
   const { activeMembership, athletes, garminConnections, squads } = useLoaderData<typeof clientLoader>();
-  const actionData = useActionData() as
-    | {
-        error?: string;
-        feedbackId?: string;
-        intent?: string;
-        success?: string;
-        claimLink?: {
-          athleteName: string;
-          claimUrl: string;
-          email: string;
-          expiresAt: string;
-        };
-      }
-    | null;
+  const actionData = useActionData() as {
+    error?: string;
+    feedbackId?: string;
+    intent?: string;
+    success?: string;
+    claimLink?: {
+      athleteName: string;
+      claimUrl: string;
+      email: string;
+      expiresAt: string;
+    };
+  } | null;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const canManage = hasTenantCapability(activeMembership.role, "athletes:manage");
@@ -177,11 +163,10 @@ export default function PlayersRoute() {
   const activeAthletes = athletes.filter((athlete) => athlete.status !== "inactive");
   const archivedAthletes = athletes.filter((athlete) => athlete.status === "inactive");
   const garminConnectedAthleteIds = new Set(
-    garminConnections.filter((connection) => connection.status === "active").map((connection) => connection.athleteId)
+    garminConnections.filter((connection) => connection.status === "active").map((connection) => connection.athleteId),
   );
   const moveModalAthlete = activeAthletes.find((athlete) => athlete.id === moveModalAthleteId) ?? null;
-  const accountDialogAthlete =
-    athletes.find((athlete) => athlete.id === accountDialogAthleteId && athlete.accountState === "claimed") ?? null;
+  const accountDialogAthlete = athletes.find((athlete) => athlete.id === accountDialogAthleteId && athlete.accountState === "claimed") ?? null;
 
   const submitDeleteAthlete = (athleteId: string) => {
     const formData = new FormData();
@@ -220,7 +205,7 @@ export default function PlayersRoute() {
     pushToast({
       body: message,
       title: actionData.error ? `${describeIntent(actionData.intent)} failed` : `${describeIntent(actionData.intent)} complete`,
-      tone: actionData.error ? "risk" : "success"
+      tone: actionData.error ? "risk" : "success",
     });
   }, [actionData, pushToast]);
 
@@ -229,12 +214,7 @@ export default function PlayersRoute() {
       <PageHeader
         actions={
           canManage ? (
-            <button
-              className="btn-primary"
-              disabled={squads.length === 0}
-              onClick={() => setCreateModalOpen(true)}
-              type="button"
-            >
+            <button className="btn-primary" disabled={squads.length === 0} onClick={() => setCreateModalOpen(true)} type="button">
               Add player
             </button>
           ) : undefined
@@ -245,101 +225,152 @@ export default function PlayersRoute() {
       />
 
       {!canManage ? (
-        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+        <section className="surface-panel rounded-panel p-5">
           <EmptyState body="Your role can review the roster but not change it." title="View only" />
         </section>
       ) : null}
 
       {canManage && squads.length === 0 ? (
-        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+        <section className="surface-panel rounded-panel p-5">
           <EmptyState body="Create a squad first so athletes can be assigned immediately." title="No active squads" />
         </section>
       ) : null}
 
       <div className="space-y-4">
-          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="eyebrow">Active roster</p>
-                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Manage current players</h2>
-              </div>
-              <StatusBadge label={String(activeAthletes.length)} status="active" />
+        <section className="surface-panel rounded-panel p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="eyebrow">Active roster</p>
+              <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Manage current players</h2>
             </div>
+            <StatusBadge label={String(activeAthletes.length)} status="active" />
+          </div>
 
-            <div className="mt-4">
-              <DataTable headers={["Athlete", "Pulsi account", "Squad", "Status", "Move squad", "Claim link", "Lifecycle"]}>
-                {activeAthletes.map((athlete) => (
+          <div className="mt-4">
+            <DataTable headers={["Athlete", "Pulsi account", "Squad", "Status", "Move squad", "Claim link", "Lifecycle"]}>
+              {activeAthletes.map((athlete) => (
+                <DataRow key={athlete.id}>
+                  <DataCell>
+                    <AthleteIdentityCell athlete={athlete} garminConnected={garminConnectedAthleteIds.has(athlete.id)} />
+                  </DataCell>
+                  <DataCell>
+                    <AccountStateBadge athlete={athlete} onOpenDetails={setAccountDialogAthleteId} />
+                  </DataCell>
+                  <DataCell>{athlete.currentSquad?.name ?? "No squad"}</DataCell>
+                  <DataCell>
+                    <StatusBadge label={athlete.status} status={athlete.status === "active" ? "active" : "no_data"} />
+                  </DataCell>
+                  <DataCell>
+                    {canManage && squads.length > 0 ? (
+                      <button className="btn-secondary h-10" onClick={() => setMoveModalAthleteId(athlete.id)} type="button">
+                        Move squad
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </DataCell>
+                  <DataCell>
+                    {canManage ? (
+                      athlete.accountState === "claimed" ? (
+                        <span className="pill pill-muted">Already claimed</span>
+                      ) : (
+                        <Form className="flex gap-2" method="post">
+                          <input name="intent" type="hidden" value="generate-claim-link" />
+                          <input name="athleteId" type="hidden" value={athlete.id} />
+                          <input
+                            className="input-field h-10 min-w-40"
+                            defaultValue={athlete.accountDetails?.pendingEmail ?? ""}
+                            name="email"
+                            placeholder="athlete@pulsi.com"
+                            type="email"
+                          />
+                          <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
+                            {athlete.accountState === "invited" ? "Regenerate" : "Generate"}
+                          </button>
+                        </Form>
+                      )
+                    ) : (
+                      "—"
+                    )}
+                  </DataCell>
+                  <DataCell>
+                    {canManage ? (
+                      <Form method="post">
+                        <input name="intent" type="hidden" value="archive-athlete" />
+                        <input name="athleteId" type="hidden" value={athlete.id} />
+                        <button className="btn-danger h-10" disabled={isSubmitting} type="submit">
+                          Archive
+                        </button>
+                      </Form>
+                    ) : (
+                      "—"
+                    )}
+                  </DataCell>
+                </DataRow>
+              ))}
+            </DataTable>
+          </div>
+        </section>
+
+        <section className="surface-panel rounded-panel p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="eyebrow">Archived athletes</p>
+              <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Restore or permanently remove</h2>
+            </div>
+            <StatusBadge label={String(archivedAthletes.length)} status="no_data" />
+          </div>
+          <p className="mt-3 text-sm text-obsidian-400">
+            Archiving is the default lifecycle path. Permanent deletion is only allowed for clean records with no Pulsi account, Garmin connection, or
+            historical data.
+          </p>
+
+          <div className="mt-4">
+            {archivedAthletes.length > 0 ? (
+              <DataTable headers={["Athlete", "Pulsi account", "Status", "Restore to squad", "Delete permanently"]}>
+                {archivedAthletes.map((athlete) => (
                   <DataRow key={athlete.id}>
                     <DataCell>
-                      <div className="flex items-center gap-2">
-                        <div className="font-medium text-obsidian-100">
-                          {athlete.firstName} {athlete.lastName}
-                        </div>
-                        {garminConnectedAthleteIds.has(athlete.id) ? (
-                          <MetricTooltip content="Garmin account connected">
-                            <span className="inline-flex size-7 items-center justify-center rounded-full border border-accent-500/25 bg-accent-500/10 text-accent-300">
-                              <GarminIcon />
-                            </span>
-                          </MetricTooltip>
-                        ) : null}
-                      </div>
-                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
-                        {athlete.position ?? "Player"}
-                      </div>
+                      <AthleteIdentityCell athlete={athlete} garminConnected={garminConnectedAthleteIds.has(athlete.id)} />
                     </DataCell>
                     <DataCell>
                       <AccountStateBadge athlete={athlete} onOpenDetails={setAccountDialogAthleteId} />
                     </DataCell>
-                    <DataCell>{athlete.currentSquad?.name ?? "No squad"}</DataCell>
                     <DataCell>
-                      <StatusBadge label={athlete.status} status={athlete.status === "active" ? "active" : "no_data"} />
+                      <StatusBadge label="archived" status="no_data" />
                     </DataCell>
                     <DataCell>
                       {canManage && squads.length > 0 ? (
-                        <button
-                          className="btn-secondary h-10"
-                          onClick={() => setMoveModalAthleteId(athlete.id)}
-                          type="button"
-                        >
-                          Move squad
-                        </button>
-                      ) : (
-                        "—"
-                      )}
-                    </DataCell>
-                    <DataCell>
-                      {canManage ? (
-                        athlete.accountState === "claimed" ? (
-                          <span className="pill pill-muted">Already claimed</span>
-                        ) : (
-                          <Form className="flex gap-2" method="post">
-                            <input name="intent" type="hidden" value="generate-claim-link" />
-                            <input name="athleteId" type="hidden" value={athlete.id} />
-                            <input
-                              className="input-field h-10 min-w-40"
-                              defaultValue={athlete.accountDetails?.pendingEmail ?? ""}
-                              name="email"
-                              placeholder="athlete@pulsi.com"
-                              type="email"
-                            />
-                            <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
-                              {athlete.accountState === "invited" ? "Regenerate" : "Generate"}
-                            </button>
-                          </Form>
-                        )
-                      ) : (
-                        "—"
-                      )}
-                    </DataCell>
-                    <DataCell>
-                      {canManage ? (
-                        <Form method="post">
-                          <input name="intent" type="hidden" value="archive-athlete" />
+                        <Form className="flex gap-2" method="post">
+                          <input name="intent" type="hidden" value="restore-athlete" />
                           <input name="athleteId" type="hidden" value={athlete.id} />
-                          <button className="btn-danger h-10" disabled={isSubmitting} type="submit">
-                            Archive
+                          <select className="input-field h-10 min-w-32" defaultValue="" name="squadId">
+                            <option disabled value="">
+                              Select squad
+                            </option>
+                            {squads.map((squad) => (
+                              <option key={squad.id} value={squad.id}>
+                                {squad.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
+                            Restore
                           </button>
                         </Form>
+                      ) : (
+                        "—"
+                      )}
+                    </DataCell>
+                    <DataCell>
+                      {canManage ? (
+                        <ConfirmDialog
+                          confirmLabel="Delete athlete"
+                          description={`Permanently remove ${athlete.firstName} ${athlete.lastName}. This only succeeds for archived profiles with no Pulsi athlete account, Garmin connection, or historical readiness data.`}
+                          onConfirm={() => submitDeleteAthlete(athlete.id)}
+                          title="Delete archived athlete?"
+                          trigger={<span className={`btn-danger h-10 ${isSubmitting ? "pointer-events-none opacity-45" : ""}`}>Delete</span>}
+                        />
                       ) : (
                         "—"
                       )}
@@ -347,101 +378,24 @@ export default function PlayersRoute() {
                   </DataRow>
                 ))}
               </DataTable>
-            </div>
-          </section>
+            ) : (
+              <EmptyState body="Archived athletes will appear here once a profile is removed from the active roster." title="No archived athletes" />
+            )}
+          </div>
+        </section>
 
-          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="eyebrow">Archived athletes</p>
-                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Restore or permanently remove</h2>
-              </div>
-              <StatusBadge label={String(archivedAthletes.length)} status="no_data" />
-            </div>
+        {actionData?.claimLink ? (
+          <section className="surface-grid rounded-panel p-5">
+            <p className="eyebrow">Latest athlete claim link</p>
+            <h2 className="mt-2 text-xl font-semibold text-obsidian-100">{actionData.claimLink.athleteName}</h2>
             <p className="mt-3 text-sm text-obsidian-400">
-              Archiving is the default lifecycle path. Permanent deletion is only allowed for clean records with no Pulsi account, Garmin connection, or historical data.
+              Send this to {actionData.claimLink.email}. It expires {new Date(actionData.claimLink.expiresAt).toLocaleString()}.
             </p>
-
-            <div className="mt-4">
-              {archivedAthletes.length > 0 ? (
-                <DataTable headers={["Athlete", "Pulsi account", "Status", "Restore to squad", "Delete permanently"]}>
-                  {archivedAthletes.map((athlete) => (
-                    <DataRow key={athlete.id}>
-                      <DataCell>
-                        <div className="font-medium text-obsidian-100">
-                          {athlete.firstName} {athlete.lastName}
-                        </div>
-                        <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
-                          {athlete.position ?? "Player"}
-                        </div>
-                      </DataCell>
-                      <DataCell>
-                        <AccountStateBadge athlete={athlete} onOpenDetails={setAccountDialogAthleteId} />
-                      </DataCell>
-                      <DataCell>
-                        <StatusBadge label="archived" status="no_data" />
-                      </DataCell>
-                      <DataCell>
-                        {canManage && squads.length > 0 ? (
-                          <Form className="flex gap-2" method="post">
-                            <input name="intent" type="hidden" value="restore-athlete" />
-                            <input name="athleteId" type="hidden" value={athlete.id} />
-                            <select className="input-field h-10 min-w-32" defaultValue="" name="squadId">
-                              <option disabled value="">
-                                Select squad
-                              </option>
-                              {squads.map((squad) => (
-                                <option key={squad.id} value={squad.id}>
-                                  {squad.name}
-                                </option>
-                              ))}
-                            </select>
-                            <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
-                              Restore
-                            </button>
-                          </Form>
-                        ) : (
-                          "—"
-                        )}
-                      </DataCell>
-                      <DataCell>
-                        {canManage ? (
-                          <ConfirmDialog
-                            confirmLabel="Delete athlete"
-                            description={`Permanently remove ${athlete.firstName} ${athlete.lastName}. This only succeeds for archived profiles with no Pulsi athlete account, Garmin connection, or historical readiness data.`}
-                            onConfirm={() => submitDeleteAthlete(athlete.id)}
-                            title="Delete archived athlete?"
-                            trigger={
-                              <span className={`btn-danger h-10 ${isSubmitting ? "pointer-events-none opacity-45" : ""}`}>
-                                Delete
-                              </span>
-                            }
-                          />
-                        ) : (
-                          "—"
-                        )}
-                      </DataCell>
-                    </DataRow>
-                  ))}
-                </DataTable>
-              ) : (
-                <EmptyState body="Archived athletes will appear here once a profile is removed from the active roster." title="No archived athletes" />
-              )}
-            </div>
+            <code className="mt-4 block rounded-soft border border-white/8 bg-black/20 px-4 py-3 text-xs text-accent-300">
+              {actionData.claimLink.claimUrl}
+            </code>
           </section>
-
-          {actionData?.claimLink ? (
-            <section className="surface-grid rounded-[var(--radius-panel)] p-5">
-              <p className="eyebrow">Latest athlete claim link</p>
-              <h2 className="mt-2 text-xl font-semibold text-obsidian-100">{actionData.claimLink.athleteName}</h2>
-              <p className="mt-3 text-sm text-obsidian-400">
-                Send this to {actionData.claimLink.email}. It expires {new Date(actionData.claimLink.expiresAt).toLocaleString()}.
-              </p>
-              <code className="mt-4 block rounded-[var(--radius-soft)] border border-white/8 bg-black/20 px-4 py-3 text-xs text-accent-300">
-                {actionData.claimLink.claimUrl}
-              </code>
-            </section>
-          ) : null}
+        ) : null}
       </div>
 
       <CenteredDialog
@@ -500,12 +454,8 @@ export default function PlayersRoute() {
             </select>
           </label>
 
-          {actionData?.intent === "create-athlete" && actionData?.error ? (
-            <Message tone="error">{actionData.error}</Message>
-          ) : null}
-          {actionData?.intent === "create-athlete" && actionData?.success ? (
-            <Message tone="success">{actionData.success}</Message>
-          ) : null}
+          {actionData?.intent === "create-athlete" && actionData?.error ? <Message tone="error">{actionData.error}</Message> : null}
+          {actionData?.intent === "create-athlete" && actionData?.success ? <Message tone="success">{actionData.success}</Message> : null}
         </Form>
       </CenteredDialog>
 
@@ -539,13 +489,11 @@ export default function PlayersRoute() {
             <input name="intent" type="hidden" value="move-athlete" />
             <input name="athleteId" type="hidden" value={moveModalAthlete.id} />
 
-            <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3">
+            <div className="rounded-soft border border-white/8 bg-white/3 px-4 py-3">
               <p className="text-sm font-medium text-obsidian-100">
                 {moveModalAthlete.firstName} {moveModalAthlete.lastName}
               </p>
-              <p className="mt-1 text-sm text-obsidian-400">
-                Current squad: {moveModalAthlete.currentSquad?.name ?? "Unassigned"}
-              </p>
+              <p className="mt-1 text-sm text-obsidian-400">Current squad: {moveModalAthlete.currentSquad?.name ?? "Unassigned"}</p>
             </div>
 
             <label className="grid gap-2">
@@ -559,9 +507,7 @@ export default function PlayersRoute() {
               </select>
             </label>
 
-            {actionData?.intent === "move-athlete" && actionData?.error ? (
-              <Message tone="error">{actionData.error}</Message>
-            ) : null}
+            {actionData?.intent === "move-athlete" && actionData?.error ? <Message tone="error">{actionData.error}</Message> : null}
           </Form>
         ) : null}
       </CenteredDialog>
@@ -588,13 +534,11 @@ export default function PlayersRoute() {
       >
         {accountDialogAthlete ? (
           <div className="space-y-4">
-            <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3">
+            <div className="rounded-soft border border-white/8 bg-white/3 px-4 py-3">
               <p className="text-sm font-medium text-obsidian-100">
                 {accountDialogAthlete.firstName} {accountDialogAthlete.lastName}
               </p>
-              <p className="mt-1 text-sm text-obsidian-400">
-                Squad: {accountDialogAthlete.currentSquad?.name ?? "Unassigned"}
-              </p>
+              <p className="mt-1 text-sm text-obsidian-400">Squad: {accountDialogAthlete.currentSquad?.name ?? "Unassigned"}</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -608,10 +552,7 @@ export default function PlayersRoute() {
                     : "Unknown"
                 }
               />
-              <AccountDetail
-                label="Garmin status"
-                value={garminConnectedAthleteIds.has(accountDialogAthlete.id) ? "Connected" : "Not connected"}
-              />
+              <AccountDetail label="Garmin status" value={garminConnectedAthleteIds.has(accountDialogAthlete.id) ? "Connected" : "Not connected"} />
             </div>
           </div>
         ) : null}
@@ -620,19 +561,13 @@ export default function PlayersRoute() {
   );
 }
 
-function Message({
-  tone,
-  children
-}: {
-  tone: "error" | "success";
-  children: string;
-}) {
+function Message({ tone, children }: { tone: "error" | "success"; children: string }) {
   return (
     <p
       className={
         tone === "success"
-          ? "rounded-[var(--radius-soft)] border border-ready-500/25 bg-ready-500/10 px-4 py-3 text-sm text-ready-500"
-          : "rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500"
+          ? "rounded-soft border border-ready-500/25 bg-ready-500/10 px-4 py-3 text-sm text-ready-500"
+          : "rounded-soft border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500"
       }
     >
       {children}
@@ -677,13 +612,27 @@ function GarminIcon() {
   );
 }
 
-function AccountStateBadge({
-  athlete,
-  onOpenDetails
-}: {
-  athlete: Athlete;
-  onOpenDetails: (athleteId: string) => void;
-}) {
+function AthleteIdentityCell({ athlete, garminConnected }: { athlete: Athlete; garminConnected: boolean }) {
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <div className="font-medium text-obsidian-100">
+          {athlete.firstName} {athlete.lastName}
+        </div>
+        {garminConnected ? (
+          <MetricTooltip content="Garmin account connected">
+            <span className="inline-flex size-7 items-center justify-center rounded-full border border-accent-500/25 bg-accent-500/10 text-accent-300">
+              <GarminIcon />
+            </span>
+          </MetricTooltip>
+        ) : null}
+      </div>
+      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">{athlete.position ?? "Player"}</div>
+    </>
+  );
+}
+
+function AccountStateBadge({ athlete, onOpenDetails }: { athlete: Athlete; onOpenDetails: (athleteId: string) => void }) {
   if (athlete.accountState === "claimed") {
     return (
       <button className="btn-secondary h-9" onClick={() => onOpenDetails(athlete.id)} type="button">
@@ -701,7 +650,7 @@ function AccountStateBadge({
 
 function AccountDetail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] px-4 py-3">
+    <div className="rounded-soft border border-white/8 bg-white/3 px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-obsidian-500">{label}</p>
       <p className="mt-2 text-sm text-obsidian-100">{value}</p>
     </div>

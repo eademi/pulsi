@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-  type PropsWithChildren
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Toast } from "@base-ui/react";
 
 import { cn } from "../lib/cn";
@@ -49,7 +41,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
 
       timeoutIds.current.set(id, timeoutId);
     },
-    [closeToast]
+    [closeToast],
   );
 
   const value = useMemo(() => ({ pushToast }), [pushToast]);
@@ -58,14 +50,14 @@ export function ToastProvider({ children }: PropsWithChildren) {
     <Toast.Provider limit={4} timeout={4500}>
       <ToastContext.Provider value={value}>
         {children}
-        <Toast.Viewport className="pointer-events-none fixed inset-x-4 bottom-4 z-[80] flex flex-col items-end gap-3 sm:inset-x-auto sm:right-5 sm:w-full sm:max-w-sm">
+        <Toast.Viewport className="pointer-events-none fixed inset-x-4 bottom-4 z-80 flex flex-col items-end gap-3 sm:inset-x-auto sm:right-5 sm:w-full sm:max-w-sm">
           {toasts.map((toast) => (
             <Toast.Root
               className={cn(
-                "pointer-events-auto w-full rounded-[var(--radius-soft)] border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl transition duration-200 data-[starting-style]:translate-y-2 data-[starting-style]:opacity-0 data-[ending-style]:translate-y-1 data-[ending-style]:opacity-0",
+                "pointer-events-auto w-full rounded-soft border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl transition duration-200 data-starting-style:translate-y-2 data-starting-style:opacity-0 data-ending-style:translate-y-1 data-ending-style:opacity-0",
                 "data-[type=accent]:border-accent-500/25 data-[type=accent]:bg-accent-500/12 data-[type=accent]:text-obsidian-100",
                 "data-[type=success]:border-ready-500/25 data-[type=success]:bg-ready-500/12 data-[type=success]:text-obsidian-100",
-                "data-[type=risk]:border-risk-500/25 data-[type=risk]:bg-risk-500/12 data-[type=risk]:text-obsidian-100"
+                "data-[type=risk]:border-risk-500/25 data-[type=risk]:bg-risk-500/12 data-[type=risk]:text-obsidian-100",
               )}
               key={toast.id}
               toast={{
@@ -74,7 +66,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
                 onClose: () => closeToast(toast.id),
                 priority: toast.tone === "risk" ? "high" : "low",
                 title: toast.title,
-                type: toast.tone
+                type: toast.tone,
               }}
             >
               <div className="flex items-start justify-between gap-3">

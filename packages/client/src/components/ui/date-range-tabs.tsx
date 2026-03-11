@@ -4,12 +4,12 @@ const RANGES = [
   { label: "Today", value: "today" },
   { label: "Last 7d", value: "7d" },
   { label: "Last 28d", value: "28d" },
-  { label: "Custom", value: "custom" }
+  { label: "Custom", value: "custom" },
 ] as const;
 
 export function DateRangeTabs({
   value,
-  onValueChange
+  onValueChange,
 }: {
   value: (typeof RANGES)[number]["value"];
   onValueChange: (value: (typeof RANGES)[number]["value"]) => void;

@@ -7,7 +7,7 @@ export function SideSheet({
   trigger,
   title,
   description,
-  children
+  children,
 }: PropsWithChildren<{
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -24,11 +24,7 @@ export function SideSheet({
           <div className="flex items-start justify-between gap-4 border-b border-white/8 pb-4">
             <div>
               <Dialog.Title className="text-xl font-semibold text-obsidian-100">{title}</Dialog.Title>
-              {description ? (
-                <Dialog.Description className="mt-1 text-sm text-obsidian-400">
-                  {description}
-                </Dialog.Description>
-              ) : null}
+              {description ? <Dialog.Description className="mt-1 text-sm text-obsidian-400">{description}</Dialog.Description> : null}
             </div>
             <Dialog.Close className="btn-secondary size-10 rounded-full p-0">×</Dialog.Close>
           </div>
@@ -44,7 +40,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
-  onConfirm
+  onConfirm,
 }: {
   trigger: ReactNode;
   title: string;
@@ -59,9 +55,7 @@ export function ConfirmDialog({
         <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
         <Dialog.Popup className="surface-panel fixed left-1/2 top-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-panel)] p-6 outline-none">
           <Dialog.Title className="text-lg font-semibold text-obsidian-100">{title}</Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm text-obsidian-400">
-            {description}
-          </Dialog.Description>
+          <Dialog.Description className="mt-2 text-sm text-obsidian-400">{description}</Dialog.Description>
           <div className="mt-6 flex justify-end gap-3">
             <Dialog.Close className="btn-secondary">Cancel</Dialog.Close>
             <Dialog.Close className="btn-danger" onClick={onConfirm}>
@@ -81,7 +75,7 @@ export function CenteredDialog({
   description,
   widthClassName = "max-w-2xl",
   children,
-  footer
+  footer,
 }: PropsWithChildren<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -100,11 +94,7 @@ export function CenteredDialog({
           <div className="flex items-start justify-between gap-4 border-b border-white/8 px-6 py-5">
             <div className="min-w-0">
               <Dialog.Title className="text-xl font-semibold text-obsidian-100">{title}</Dialog.Title>
-              {description ? (
-                <Dialog.Description className="mt-2 text-sm leading-6 text-obsidian-400">
-                  {description}
-                </Dialog.Description>
-              ) : null}
+              {description ? <Dialog.Description className="mt-2 text-sm leading-6 text-obsidian-400">{description}</Dialog.Description> : null}
             </div>
             <Dialog.Close className="btn-secondary size-10 shrink-0 rounded-full p-0" aria-label="Close dialog">
               ×
@@ -113,11 +103,7 @@ export function CenteredDialog({
 
           <div className="min-h-0 overflow-y-auto px-6 py-5">{children}</div>
 
-          {footer ? (
-            <div className="flex items-center justify-end gap-3 border-t border-white/8 px-6 py-4">
-              {footer}
-            </div>
-          ) : null}
+          {footer ? <div className="flex items-center justify-end gap-3 border-t border-white/8 px-6 py-4">{footer}</div> : null}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

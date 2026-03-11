@@ -3,13 +3,7 @@ import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } fro
 import { apiClient } from "../lib/api";
 import { getAthleteHomePath, getDefaultAppPath } from "../lib/session";
 
-export const clientLoader = async ({
-  params,
-  request
-}: {
-  params: Record<string, string | undefined>;
-  request: Request;
-}) => {
+export const clientLoader = async ({ params, request }: { params: Record<string, string | undefined>; request: Request }) => {
   const token = params.token;
 
   if (!token) {
@@ -34,15 +28,11 @@ export const clientLoader = async ({
 
   return {
     claim,
-    session
+    session,
   };
 };
 
-export const clientAction = async ({
-  params
-}: {
-  params: Record<string, string | undefined>;
-}) => {
+export const clientAction = async ({ params }: { params: Record<string, string | undefined> }) => {
   const token = params.token;
 
   if (!token) {
@@ -55,7 +45,7 @@ export const clientAction = async ({
     throw redirect(getDefaultAppPath(session));
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Unable to claim athlete profile."
+      error: error instanceof Error ? error.message : "Unable to claim athlete profile.",
     };
   }
 };
@@ -72,9 +62,7 @@ export default function AthleteClaimRoute() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="eyebrow">Athlete claim</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-obsidian-100">
-              Claim your Pulsi profile
-            </h1>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-obsidian-100">Claim your Pulsi profile</h1>
             <p className="mt-3 text-sm text-obsidian-400">
               This link was issued for {claim.email}. You are signed in as {session.user.email}.
             </p>
@@ -97,14 +85,12 @@ export default function AthleteClaimRoute() {
         </section>
 
         <section className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4 text-sm text-obsidian-400">
-          Use the same email address your club entered when they generated the claim link. Once
-          claimed, this account becomes athlete-only and will no longer access staff routes.
+          Use the same email address your club entered when they generated the claim link. Once claimed, this account becomes athlete-only and will no
+          longer access staff routes.
         </section>
 
         {actionData?.error ? (
-          <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">
-            {actionData.error}
-          </p>
+          <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">{actionData.error}</p>
         ) : null}
 
         <Form className="grid gap-3" method="post">

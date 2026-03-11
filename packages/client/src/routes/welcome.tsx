@@ -33,9 +33,10 @@ export const clientAction = async ({ request }: { request: Request }) => {
   try {
     if (intent === "create-tenant") {
       const name = String(formData.get("name") ?? "").trim();
-      const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
-      const timezone =
-        String(formData.get("timezone") ?? "").trim() || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const slug = String(formData.get("slug") ?? "")
+        .trim()
+        .toLowerCase();
+      const timezone = String(formData.get("timezone") ?? "").trim() || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       if (!name || !slug) {
         return { error: "Club name and slug are required." };
@@ -60,7 +61,7 @@ export const clientAction = async ({ request }: { request: Request }) => {
     return { error: "Unsupported welcome action." };
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Unable to complete the request."
+      error: error instanceof Error ? error.message : "Unable to complete the request.",
     };
   }
 };
@@ -85,9 +86,7 @@ export default function WelcomeRoute() {
           <section className="surface-panel rounded-[var(--radius-panel)] p-6">
             <p className="eyebrow">Create a club workspace</p>
             <h2 className="mt-3 text-2xl font-semibold text-obsidian-100">Start a new organization</h2>
-            <p className="mt-3 text-sm text-obsidian-400">
-              Use this when you are the first owner for a club or performance department.
-            </p>
+            <p className="mt-3 text-sm text-obsidian-400">Use this when you are the first owner for a club or performance department.</p>
 
             <Form className="mt-6 space-y-4" method="post">
               <input name="intent" type="hidden" value="create-tenant" />
@@ -132,11 +131,7 @@ export default function WelcomeRoute() {
             {invitations.length > 0 ? (
               <div className="mt-6 grid gap-3">
                 {invitations.map((invitation) => (
-                  <Form
-                    className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4"
-                    key={invitation.id}
-                    method="post"
-                  >
+                  <Form className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4" key={invitation.id} method="post">
                     <input name="intent" type="hidden" value="accept-invitation" />
                     <input name="invitationId" type="hidden" value={invitation.id} />
 
@@ -144,8 +139,7 @@ export default function WelcomeRoute() {
                       <div>
                         <p className="text-sm font-medium text-obsidian-100">{invitation.tenantName}</p>
                         <p className="mt-1 text-sm text-obsidian-400">
-                          {invitation.role.replaceAll("_", " ")} · expires{" "}
-                          {new Date(invitation.expiresAt).toLocaleDateString()}
+                          {invitation.role.replaceAll("_", " ")} · expires {new Date(invitation.expiresAt).toLocaleDateString()}
                         </p>
                       </div>
                       <button className="btn-secondary justify-center" disabled={isSubmitting} type="submit">

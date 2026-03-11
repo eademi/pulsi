@@ -179,10 +179,12 @@ textarea:focus-visible,
 .surface-grid {
   border: 1px solid var(--color-border-subtle);
   background:
-    linear-gradient(180deg, var(--surface-grid-start), var(--surface-grid-end)),
-    linear-gradient(var(--surface-grid-line) 1px, transparent 1px),
+    linear-gradient(180deg, var(--surface-grid-start), var(--surface-grid-end)), linear-gradient(var(--surface-grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--surface-grid-line) 1px, transparent 1px);
-  background-size: auto, 24px 24px, 24px 24px;
+  background-size:
+    auto,
+    24px 24px,
+    24px 24px;
 }
 
 .eyebrow {
@@ -217,31 +219,31 @@ textarea:focus-visible,
 }
 
 .btn-base {
-  @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-soft)] border px-3.5 py-2.5 text-sm font-medium transition duration-150 disabled:cursor-not-allowed disabled:opacity-45;
+  @apply inline-flex items-center justify-center gap-2 rounded-soft border px-3.5 py-2.5 text-sm font-medium transition duration-150 disabled:cursor-not-allowed disabled:opacity-45;
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-soft)] border border-accent-500/30 bg-accent-500 px-3.5 py-2.5 text-sm font-medium text-obsidian-950 shadow-[0_0_24px_rgba(56,189,248,0.18)] transition duration-150 hover:bg-accent-400 disabled:cursor-not-allowed disabled:opacity-45;
+  @apply inline-flex items-center justify-center gap-2 rounded-soft border border-accent-500/30 bg-accent-500 px-3.5 py-2.5 text-sm font-medium text-obsidian-950 shadow-[0_0_24px_rgba(56,189,248,0.18)] transition duration-150 hover:bg-accent-400 disabled:cursor-not-allowed disabled:opacity-45;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-soft)] border px-3.5 py-2.5 text-sm font-medium text-obsidian-200 transition duration-150 hover:border-accent-500/30 hover:bg-accent-500/10 disabled:cursor-not-allowed disabled:opacity-45;
+  @apply inline-flex items-center justify-center gap-2 rounded-soft border px-3.5 py-2.5 text-sm font-medium text-obsidian-200 transition duration-150 hover:border-accent-500/30 hover:bg-accent-500/10 disabled:cursor-not-allowed disabled:opacity-45;
   border-color: var(--utility-surface-border-strong);
   background: var(--utility-surface-fill-strong);
 }
 
 .btn-danger {
-  @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-soft)] border border-risk-500/30 bg-risk-500/14 px-3.5 py-2.5 text-sm font-medium text-risk-500 transition duration-150 hover:bg-risk-500/20 disabled:cursor-not-allowed disabled:opacity-45;
+  @apply inline-flex items-center justify-center gap-2 rounded-soft border border-risk-500/30 bg-risk-500/14 px-3.5 py-2.5 text-sm font-medium text-risk-500 transition duration-150 hover:bg-risk-500/20 disabled:cursor-not-allowed disabled:opacity-45;
 }
 
 .input-field {
-  @apply h-11 w-full rounded-[var(--radius-soft)] border px-3.5 text-sm text-obsidian-200 placeholder:text-obsidian-500;
+  @apply h-11 w-full rounded-soft border px-3.5 text-sm text-obsidian-200 placeholder:text-obsidian-500;
   border-color: var(--field-border);
   background: var(--field-background);
 }
 
 .input-shell {
-  @apply flex items-center gap-3 rounded-[var(--radius-soft)] border px-3.5 text-sm text-obsidian-200;
+  @apply flex items-center gap-3 rounded-soft border px-3.5 text-sm text-obsidian-200;
   border-color: var(--field-border);
   background: var(--field-background);
 }
@@ -256,7 +258,7 @@ textarea:focus-visible,
 }
 
 .route-error-card {
-  @apply flex w-full max-w-2xl flex-col gap-4 rounded-[var(--radius-panel)] p-8;
+  @apply flex w-full max-w-2xl flex-col gap-4 rounded-panel p-8;
   border: 1px solid var(--color-border-subtle);
   background: linear-gradient(180deg, var(--panel-gradient-start), var(--panel-gradient-end));
   box-shadow: var(--shadow-panel);
