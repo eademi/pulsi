@@ -13,7 +13,7 @@ It focuses on:
 
 For the staff-vs-athlete identity model and the future athlete-account design, also read:
 
-- `AUTH_AND_ACTOR_MODEL.md`
+- `docs/architecture/AUTH_AND_ACTOR_MODEL.md`
 - `docs/LIFECYCLE_STATE_MATRIX.md`
 
 ## 1. High-Level Mental Model
@@ -725,7 +725,7 @@ Recommended split:
 If you want to understand the system fast, read in this order:
 
 1. `docs/architecture.md`
-2. `GARMIN_INTEGRATION.md`
+2. `docs/integrations/GARMIN_INTEGRATION.md`
 3. `packages/api/src/app.ts`
 4. `packages/api/src/http/middleware.ts`
 5. `packages/api/src/db/schema.ts`

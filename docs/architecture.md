@@ -46,9 +46,10 @@ It is not modeled as an on-demand pull sync because Garmin’s Health API docs e
 
 ```text
 .
-├── GARMIN_INTEGRATION.md
 ├── docs/
-│   └── architecture.md
+│   ├── architecture.md
+│   ├── architecture/
+│   └── integrations/
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json

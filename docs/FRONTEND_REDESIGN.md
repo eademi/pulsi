@@ -9,7 +9,7 @@ This redesign establishes a dark-first, data-dense interface system for Pulsi's 
 - Make readiness states readable in under a second.
 - Give staff and athlete surfaces distinct tones while preserving a single design system.
 - Keep the UI built on Base UI primitives and Tailwind CSS v4 tokens so future work stays consistent.
-- Treat `/Users/ea/Desktop/projects/pulsi-app/BASE_UI.md` as the canonical local reference for Base UI usage, and prefer `@base-ui/react` root exports plus shared wrappers over deep per-component imports.
+- Treat `/Users/ea/Desktop/projects/pulsi-app/docs/frontend/BASE_UI.md` as the canonical local reference for Base UI usage, and prefer `@base-ui/react` root exports plus shared wrappers over deep per-component imports.
 
 ## Core Layout
 

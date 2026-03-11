@@ -4,8 +4,8 @@ This document is the fastest way to understand how the main parts of Pulsi fit t
 
 Use it together with:
 - [architecture.md](/Users/ea/Desktop/projects/pulsi-app/docs/architecture.md)
-- [AUTH_AND_ACTOR_MODEL.md](/Users/ea/Desktop/projects/pulsi-app/AUTH_AND_ACTOR_MODEL.md)
-- [GARMIN_INTEGRATION.md](/Users/ea/Desktop/projects/pulsi-app/GARMIN_INTEGRATION.md)
+- [AUTH_AND_ACTOR_MODEL.md](/Users/ea/Desktop/projects/pulsi-app/docs/architecture/AUTH_AND_ACTOR_MODEL.md)
+- [GARMIN_INTEGRATION.md](/Users/ea/Desktop/projects/pulsi-app/docs/integrations/GARMIN_INTEGRATION.md)
 
 ## 1. Big Picture
 
