@@ -4,7 +4,9 @@ import {
   athleteSchema,
   createApiSuccessSchema,
   createAthleteInputSchema,
+  deleteAthleteResponseSchema,
   listAthletesQuerySchema,
+  restoreAthleteInputSchema,
   updateAthleteSquadInputSchema
 } from "@pulsi/shared";
 
@@ -28,6 +30,7 @@ export const buildAthleteRoutes = (
       const athletes = await athleteRepository.listByTenant(requestContext.tenant!.id, {
         accessScope: requestContext.tenant!.accessScope,
         accessibleSquadIds: requestContext.tenant!.accessibleSquadIds,
+        status: query.status,
         squadId: query.squadId,
         squadSlug: query.squadSlug
       });
@@ -80,4 +83,58 @@ export const buildAthleteRoutes = (
       createApiSuccessSchema(athleteSchema).parse({ data: payload });
 
       return ok(c, payload);
+    })
+    .patch("/athletes/:athleteId/archive", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "athletes:manage");
+
+      const athlete = await athleteManagementService.archiveAthlete({
+        tenantId: requestContext.tenant!.id,
+        athleteId: c.req.param("athleteId"),
+        accessScope: requestContext.tenant!.accessScope,
+        accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      });
+      const payload = {
+        ...athlete,
+        createdAt: new Date(athlete.createdAt).toISOString()
+      };
+
+      createApiSuccessSchema(athleteSchema).parse({ data: payload });
+
+      return ok(c, payload);
+    })
+    .patch("/athletes/:athleteId/restore", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "athletes:manage");
+
+      const body = parseOrThrow(restoreAthleteInputSchema.safeParse(await c.req.json()));
+      const athlete = await athleteManagementService.restoreAthlete({
+        tenantId: requestContext.tenant!.id,
+        athleteId: c.req.param("athleteId"),
+        squadId: body.squadId,
+        accessScope: requestContext.tenant!.accessScope,
+        accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      });
+      const payload = {
+        ...athlete,
+        createdAt: new Date(athlete.createdAt).toISOString()
+      };
+
+      createApiSuccessSchema(athleteSchema).parse({ data: payload });
+
+      return ok(c, payload);
+    })
+    .delete("/athletes/:athleteId", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "athletes:manage");
+
+      const result = await athleteManagementService.deleteAthlete({
+        tenantId: requestContext.tenant!.id,
+        athleteId: c.req.param("athleteId"),
+        accessScope: requestContext.tenant!.accessScope
+      });
+
+      createApiSuccessSchema(deleteAthleteResponseSchema).parse({ data: result });
+
+      return ok(c, result);
     });

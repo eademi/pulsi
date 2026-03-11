@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import type { TenantAccessScope } from "@pulsi/shared";
 
@@ -10,6 +10,7 @@ import { AppError } from "../http/errors";
 export interface AthleteVisibilityFilter {
   accessScope?: TenantAccessScope;
   accessibleSquadIds?: string[];
+  status?: "active" | "inactive" | "rehab" | "all";
   squadId?: string;
   squadSlug?: string;
 }
@@ -69,7 +70,8 @@ export class AthleteRepository {
       .where(
         and(
           eq(athletes.tenantId, tenantId),
-          eq(athletes.status, "active"),
+          filters.status && filters.status !== "all" ? eq(athletes.status, filters.status) : undefined,
+          !filters.status ? eq(athletes.status, "active") : undefined,
           filters.squadId ? eq(squads.id, filters.squadId) : undefined,
           squadSlug ? eq(squads.slug, squadSlug) : undefined,
           buildVisibilityClause(filters)
@@ -150,6 +152,86 @@ export class AthleteRepository {
     }
 
     return assignment;
+  }
+
+  public async endActiveSquadAssignment(
+    input: {
+      tenantId: string;
+      athleteId: string;
+      endedAt: Date;
+    },
+    executor: DbExecutor = this.db
+  ) {
+    return executor
+      .update(athleteSquadAssignments)
+      .set({
+        endedAt: input.endedAt,
+        updatedAt: input.endedAt
+      })
+      .where(
+        and(
+          eq(athleteSquadAssignments.tenantId, input.tenantId),
+          eq(athleteSquadAssignments.athleteId, input.athleteId),
+          isNull(athleteSquadAssignments.endedAt)
+        )
+      )
+      .returning();
+  }
+
+  public async updateStatus(
+    tenantId: string,
+    athleteId: string,
+    status: "active" | "inactive" | "rehab",
+    executor: DbExecutor = this.db
+  ) {
+    const [athlete] = await executor
+      .update(athletes)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(and(eq(athletes.tenantId, tenantId), eq(athletes.id, athleteId)))
+      .returning();
+
+    if (!athlete) {
+      throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete not found");
+    }
+
+    return athlete;
+  }
+
+  public async deleteById(tenantId: string, athleteId: string, executor: DbExecutor = this.db) {
+    const [athlete] = await executor
+      .delete(athletes)
+      .where(and(eq(athletes.tenantId, tenantId), eq(athletes.id, athleteId)))
+      .returning();
+
+    if (!athlete) {
+      throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete not found");
+    }
+
+    return athlete;
+  }
+
+  public async findMostRecentSquadAssignment(tenantId: string, athleteId: string) {
+    const [assignment] = await this.db
+      .select({
+        squadId: squads.id,
+        squadName: squads.name,
+        squadSlug: squads.slug
+      })
+      .from(athleteSquadAssignments)
+      .innerJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
+      .where(
+        and(
+          eq(athleteSquadAssignments.tenantId, tenantId),
+          eq(athleteSquadAssignments.athleteId, athleteId)
+        )
+      )
+      .orderBy(desc(athleteSquadAssignments.startedAt))
+      .limit(1);
+
+    return assignment ?? null;
   }
 }
 

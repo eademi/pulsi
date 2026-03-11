@@ -1,8 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
+import { and, eq, ne, or, sql } from "drizzle-orm";
 
 import type { AthletePortal } from "@pulsi/shared";
 
 import type { Database } from "../db/client";
+import { athleteClaimLinks, athleteUserAccounts, athletes, user } from "../db/schema";
 import { AppError } from "../http/errors";
 import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
 import type { AthleteClaimRepository } from "../repositories/athlete-claim-repository";
@@ -33,6 +35,7 @@ export class AthleteAccountService {
     accessibleSquadIds: string[];
     now?: Date;
   }) {
+    const normalizedEmail = input.email.trim().toLowerCase();
     const athlete = await this.athleteRepository.findByIdForTenant(input.tenantId, input.athleteId, {
       accessScope: input.accessScope,
       accessibleSquadIds: input.accessibleSquadIds
@@ -47,6 +50,22 @@ export class AthleteAccountService {
       throw new AppError(409, "CONFLICT", "This athlete already has a claimed Pulsi account");
     }
 
+    // Claim-link email is the durable identity checkpoint for athletes. Guard it
+    // across tenant athlete identities so archived profiles are restored instead
+    // of silently duplicating the same person under a new athlete record.
+    const emailConflict = await this.findEmailConflict(input.tenantId, input.athleteId, normalizedEmail);
+    if (emailConflict) {
+      if (emailConflict.status === "inactive") {
+        throw new AppError(
+          409,
+          "CONFLICT",
+          "This email is already linked to an archived athlete profile. Restore that athlete instead of creating a new identity."
+        );
+      }
+
+      throw new AppError(409, "CONFLICT", "This email is already linked to another athlete profile");
+    }
+
     const now = input.now ?? new Date();
     const expiresAt = new Date(now.getTime() + CLAIM_LINK_TTL_MS);
     const rawToken = randomBytes(24).toString("hex");
@@ -59,7 +78,7 @@ export class AthleteAccountService {
         {
           tenantId: input.tenantId,
           athleteId: input.athleteId,
-          email: input.email.trim().toLowerCase(),
+          email: normalizedEmail,
           tokenHash,
           expiresAt,
           createdByUserId: input.createdByUserId
@@ -72,7 +91,7 @@ export class AthleteAccountService {
       id: claimLink.id,
       athleteId: athlete.id,
       athleteName: `${athlete.firstName} ${athlete.lastName}`,
-      email: input.email.trim().toLowerCase(),
+      email: normalizedEmail,
       status: claimLink.status,
       claimUrl: buildClaimUrl(this.clientUrl, rawToken),
       expiresAt: claimLink.expiresAt.toISOString(),
@@ -257,6 +276,48 @@ export class AthleteAccountService {
       },
       garminConnected: Boolean(garminConnection)
     };
+  }
+
+  private async findEmailConflict(tenantId: string, athleteId: string, email: string) {
+    const [accountConflict] = await this.db
+      .select({
+        athleteId: athletes.id,
+        status: athletes.status
+      })
+      .from(athleteUserAccounts)
+      .innerJoin(athletes, eq(athleteUserAccounts.athleteId, athletes.id))
+      .innerJoin(user, eq(athleteUserAccounts.userId, user.id))
+      .where(
+        and(
+          eq(athletes.tenantId, tenantId),
+          ne(athletes.id, athleteId),
+          sql`lower(${user.email}) = ${email}`
+        )
+      )
+      .limit(1);
+
+    if (accountConflict) {
+      return accountConflict;
+    }
+
+    const [claimConflict] = await this.db
+      .select({
+        athleteId: athletes.id,
+        status: athletes.status
+      })
+      .from(athleteClaimLinks)
+      .innerJoin(athletes, eq(athleteClaimLinks.athleteId, athletes.id))
+      .where(
+        and(
+          eq(athleteClaimLinks.tenantId, tenantId),
+          ne(athleteClaimLinks.athleteId, athleteId),
+          eq(athleteClaimLinks.email, email),
+          or(eq(athleteClaimLinks.status, "pending"), eq(athleteClaimLinks.status, "claimed"))
+        )
+      )
+      .limit(1);
+
+    return claimConflict ?? null;
   }
 }
 

@@ -12,6 +12,7 @@ import {
 export { athleteStatusSchema };
 
 export const listAthletesQuerySchema = z.object({
+  status: z.enum(["active", "inactive", "rehab", "all"]).default("active").optional(),
   squadId: z.string().uuid().optional(),
   squadSlug: z.string().min(1).max(64).optional()
 });
@@ -27,6 +28,15 @@ export const createAthleteInputSchema = z.object({
 
 export const updateAthleteSquadInputSchema = z.object({
   squadId: z.string().uuid()
+});
+
+export const restoreAthleteInputSchema = z.object({
+  squadId: z.string().uuid()
+});
+
+export const deleteAthleteResponseSchema = z.object({
+  athleteId: z.string().uuid(),
+  deleted: z.boolean()
 });
 
 export const athleteClaimLinkStatusSchema = z.enum(["pending", "claimed", "revoked", "expired"]);
@@ -102,6 +112,7 @@ export const createAthleteResponseSchema = athleteSchema;
 export type ListAthletesQuery = z.infer<typeof listAthletesQuerySchema>;
 export type CreateAthleteInput = z.infer<typeof createAthleteInputSchema>;
 export type UpdateAthleteSquadInput = z.infer<typeof updateAthleteSquadInputSchema>;
+export type RestoreAthleteInput = z.infer<typeof restoreAthleteInputSchema>;
 export type CreateAthleteClaimLinkInput = z.infer<typeof createAthleteClaimLinkInputSchema>;
 export type AthleteClaimLink = z.infer<typeof athleteClaimLinkSchema>;
 export type AthleteClaimDetails = z.infer<typeof athleteClaimDetailsSchema>;

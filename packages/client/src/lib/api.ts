@@ -15,10 +15,13 @@ import {
   createSquadInputSchema,
   createTenantInputSchema,
   createGarminConnectionSessionInputSchema,
+  deleteAthleteResponseSchema,
   garminConnectionSessionSchema,
   garminIntegrationStatusSchema,
   inviteTenantMemberInputSchema,
   listSquadsQuerySchema,
+  listAthletesQuerySchema,
+  restoreAthleteInputSchema,
   squadSchema,
   tenantInvitationSchema,
   tenantMemberSchema,
@@ -165,9 +168,23 @@ export const apiClient = {
     return parsed.data;
   },
 
-  async getTenantAthletes(tenantSlug: string) {
+  async getTenantAthletes(
+    tenantSlug: string,
+    query: Partial<z.infer<typeof listAthletesQuerySchema>> = {}
+  ) {
+    const search = new URLSearchParams();
+    if (query.status) {
+      search.set("status", query.status);
+    }
+    if (query.squadId) {
+      search.set("squadId", query.squadId);
+    }
+    if (query.squadSlug) {
+      search.set("squadSlug", query.squadSlug);
+    }
+
     const parsed = await request(
-      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes`,
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes${search.size > 0 ? `?${search.toString()}` : ""}`,
       athletesResponseSchema,
       {
         method: "GET"
@@ -201,6 +218,47 @@ export const apiClient = {
       {
         method: "PATCH",
         body: JSON.stringify(input)
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async archiveAthlete(tenantSlug: string, athleteId: string) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}/archive`,
+      createApiSuccessSchema(athleteSchema),
+      {
+        method: "PATCH"
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async restoreAthlete(
+    tenantSlug: string,
+    athleteId: string,
+    input: z.infer<typeof restoreAthleteInputSchema>
+  ) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}/restore`,
+      createApiSuccessSchema(athleteSchema),
+      {
+        method: "PATCH",
+        body: JSON.stringify(input)
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async deleteAthlete(tenantSlug: string, athleteId: string) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}`,
+      createApiSuccessSchema(deleteAthleteResponseSchema),
+      {
+        method: "DELETE"
       }
     );
 

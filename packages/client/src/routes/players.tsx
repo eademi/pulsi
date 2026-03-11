@@ -31,7 +31,7 @@ export const clientLoader = async ({
   }
 
   const [athletes, squads] = await Promise.all([
-    apiClient.getTenantAthletes(tenantSlug),
+    apiClient.getTenantAthletes(tenantSlug, { status: "all" }),
     apiClient.getTenantSquads(tenantSlug, { status: "active" })
   ]);
 
@@ -86,6 +86,37 @@ export const clientAction = async ({
       return { success: "Player moved to the selected squad." };
     }
 
+    if (intent === "archive-athlete") {
+      const athleteId = String(formData.get("athleteId") ?? "").trim();
+      if (!athleteId) {
+        return { error: "Athlete is required." };
+      }
+
+      await apiClient.archiveAthlete(tenantSlug, athleteId);
+      return { success: "Athlete archived. Garmin access and pending claim links were revoked." };
+    }
+
+    if (intent === "restore-athlete") {
+      const athleteId = String(formData.get("athleteId") ?? "").trim();
+      const squadId = String(formData.get("squadId") ?? "").trim();
+      if (!athleteId || !squadId) {
+        return { error: "Athlete and squad are required to restore an archived profile." };
+      }
+
+      await apiClient.restoreAthlete(tenantSlug, athleteId, { squadId });
+      return { success: "Athlete restored to the selected squad." };
+    }
+
+    if (intent === "delete-athlete") {
+      const athleteId = String(formData.get("athleteId") ?? "").trim();
+      if (!athleteId) {
+        return { error: "Athlete is required." };
+      }
+
+      await apiClient.deleteAthlete(tenantSlug, athleteId);
+      return { success: "Athlete permanently deleted." };
+    }
+
     if (intent === "generate-claim-link") {
       const athleteId = String(formData.get("athleteId") ?? "").trim();
       const email = String(formData.get("email") ?? "").trim();
@@ -125,6 +156,8 @@ export default function PlayersRoute() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const canManage = hasTenantCapability(activeMembership.role, "athletes:manage");
+  const activeAthletes = athletes.filter((athlete) => athlete.status !== "inactive");
+  const archivedAthletes = athletes.filter((athlete) => athlete.status === "inactive");
 
   return (
     <section className="space-y-4">
@@ -194,58 +227,156 @@ export default function PlayersRoute() {
         </section>
 
         <section className="space-y-4">
-          <DataTable headers={["Athlete", "Squad", "Status", "Move squad", "Claim link"]}>
-            {athletes.map((athlete) => (
-              <DataRow key={athlete.id}>
-                <DataCell>
-                  <div className="font-medium text-obsidian-100">
-                    {athlete.firstName} {athlete.lastName}
-                  </div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
-                    {athlete.position ?? "Player"}
-                  </div>
-                </DataCell>
-                <DataCell>{athlete.currentSquad?.name ?? "No squad"}</DataCell>
-                <DataCell>
-                  <StatusBadge label={athlete.status} status={athlete.status === "active" ? "active" : "no_data"} />
-                </DataCell>
-                <DataCell>
-                  {canManage && squads.length > 0 ? (
-                    <Form className="flex gap-2" method="post">
-                      <input name="intent" type="hidden" value="move-athlete" />
-                      <input name="athleteId" type="hidden" value={athlete.id} />
-                      <select className="input-field h-10 min-w-32" defaultValue={athlete.currentSquad?.id ?? ""} name="squadId">
-                        {squads.map((squad) => (
-                          <option key={squad.id} value={squad.id}>
-                            {squad.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
-                        Move
-                      </button>
-                    </Form>
-                  ) : (
-                    "—"
-                  )}
-                </DataCell>
-                <DataCell>
-                  {canManage ? (
-                    <Form className="flex gap-2" method="post">
-                      <input name="intent" type="hidden" value="generate-claim-link" />
-                      <input name="athleteId" type="hidden" value={athlete.id} />
-                      <input className="input-field h-10 min-w-40" name="email" placeholder="athlete@pulsi.com" type="email" />
-                      <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
-                        Generate
-                      </button>
-                    </Form>
-                  ) : (
-                    "—"
-                  )}
-                </DataCell>
-              </DataRow>
-            ))}
-          </DataTable>
+          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow">Active roster</p>
+                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Manage current players</h2>
+              </div>
+              <StatusBadge label={String(activeAthletes.length)} status="active" />
+            </div>
+
+            <div className="mt-4">
+              <DataTable headers={["Athlete", "Squad", "Status", "Move squad", "Claim link", "Lifecycle"]}>
+                {activeAthletes.map((athlete) => (
+                  <DataRow key={athlete.id}>
+                    <DataCell>
+                      <div className="font-medium text-obsidian-100">
+                        {athlete.firstName} {athlete.lastName}
+                      </div>
+                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
+                        {athlete.position ?? "Player"}
+                      </div>
+                    </DataCell>
+                    <DataCell>{athlete.currentSquad?.name ?? "No squad"}</DataCell>
+                    <DataCell>
+                      <StatusBadge label={athlete.status} status={athlete.status === "active" ? "active" : "no_data"} />
+                    </DataCell>
+                    <DataCell>
+                      {canManage && squads.length > 0 ? (
+                        <Form className="flex gap-2" method="post">
+                          <input name="intent" type="hidden" value="move-athlete" />
+                          <input name="athleteId" type="hidden" value={athlete.id} />
+                          <select className="input-field h-10 min-w-32" defaultValue={athlete.currentSquad?.id ?? ""} name="squadId">
+                            {squads.map((squad) => (
+                              <option key={squad.id} value={squad.id}>
+                                {squad.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
+                            Move
+                          </button>
+                        </Form>
+                      ) : (
+                        "—"
+                      )}
+                    </DataCell>
+                    <DataCell>
+                      {canManage ? (
+                        <Form className="flex gap-2" method="post">
+                          <input name="intent" type="hidden" value="generate-claim-link" />
+                          <input name="athleteId" type="hidden" value={athlete.id} />
+                          <input className="input-field h-10 min-w-40" name="email" placeholder="athlete@pulsi.com" type="email" />
+                          <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
+                            Generate
+                          </button>
+                        </Form>
+                      ) : (
+                        "—"
+                      )}
+                    </DataCell>
+                    <DataCell>
+                      {canManage ? (
+                        <Form method="post">
+                          <input name="intent" type="hidden" value="archive-athlete" />
+                          <input name="athleteId" type="hidden" value={athlete.id} />
+                          <button className="btn-danger h-10" disabled={isSubmitting} type="submit">
+                            Archive
+                          </button>
+                        </Form>
+                      ) : (
+                        "—"
+                      )}
+                    </DataCell>
+                  </DataRow>
+                ))}
+              </DataTable>
+            </div>
+          </section>
+
+          <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow">Archived athletes</p>
+                <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Restore or permanently remove</h2>
+              </div>
+              <StatusBadge label={String(archivedAthletes.length)} status="no_data" />
+            </div>
+            <p className="mt-3 text-sm text-obsidian-400">
+              Archiving is the default lifecycle path. Permanent deletion is only allowed for clean records with no Pulsi account, Garmin connection, or historical data.
+            </p>
+
+            <div className="mt-4">
+              {archivedAthletes.length > 0 ? (
+                <DataTable headers={["Athlete", "Status", "Restore to squad", "Delete permanently"]}>
+                  {archivedAthletes.map((athlete) => (
+                    <DataRow key={athlete.id}>
+                      <DataCell>
+                        <div className="font-medium text-obsidian-100">
+                          {athlete.firstName} {athlete.lastName}
+                        </div>
+                        <div className="mt-1 text-xs uppercase tracking-[0.16em] text-obsidian-500">
+                          {athlete.position ?? "Player"}
+                        </div>
+                      </DataCell>
+                      <DataCell>
+                        <StatusBadge label="archived" status="no_data" />
+                      </DataCell>
+                      <DataCell>
+                        {canManage && squads.length > 0 ? (
+                          <Form className="flex gap-2" method="post">
+                            <input name="intent" type="hidden" value="restore-athlete" />
+                            <input name="athleteId" type="hidden" value={athlete.id} />
+                            <select className="input-field h-10 min-w-32" defaultValue="" name="squadId">
+                              <option disabled value="">
+                                Select squad
+                              </option>
+                              {squads.map((squad) => (
+                                <option key={squad.id} value={squad.id}>
+                                  {squad.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
+                              Restore
+                            </button>
+                          </Form>
+                        ) : (
+                          "—"
+                        )}
+                      </DataCell>
+                      <DataCell>
+                        {canManage ? (
+                          <Form method="post">
+                            <input name="intent" type="hidden" value="delete-athlete" />
+                            <input name="athleteId" type="hidden" value={athlete.id} />
+                            <button className="btn-danger h-10" disabled={isSubmitting} type="submit">
+                              Delete
+                            </button>
+                          </Form>
+                        ) : (
+                          "—"
+                        )}
+                      </DataCell>
+                    </DataRow>
+                  ))}
+                </DataTable>
+              ) : (
+                <EmptyState body="Archived athletes will appear here once a profile is removed from the active roster." title="No archived athletes" />
+              )}
+            </div>
+          </section>
 
           {actionData?.claimLink ? (
             <section className="surface-grid rounded-[var(--radius-panel)] p-5">

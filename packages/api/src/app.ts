@@ -77,7 +77,14 @@ const tenantService = new TenantService(
 );
 const tenantAccessService = new TenantAccessService(membershipRepository);
 const activityService = new ActivityService(athleteRepository, activityRepository);
-const athleteManagementService = new AthleteManagementService(db, athleteRepository, squadRepository);
+const athleteManagementService = new AthleteManagementService(
+  db,
+  athleteRepository,
+  squadRepository,
+  athleteAccountRepository,
+  athleteClaimRepository,
+  garminRepository
+);
 const athleteAccountService = new AthleteAccountService(
   db,
   athleteRepository,

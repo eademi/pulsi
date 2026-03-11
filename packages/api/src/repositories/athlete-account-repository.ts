@@ -49,6 +49,16 @@ export class AthleteAccountRepository {
     return account ?? null;
   }
 
+  public async findAnyByAthleteId(athleteId: string) {
+    const [account] = await this.db
+      .select()
+      .from(athleteUserAccounts)
+      .where(eq(athleteUserAccounts.athleteId, athleteId))
+      .limit(1);
+
+    return account ?? null;
+  }
+
   public async findActiveByUserId(userId: string) {
     const [account] = await this.db
       .select()
@@ -57,6 +67,21 @@ export class AthleteAccountRepository {
       .limit(1);
 
     return account ?? null;
+  }
+
+  public async updateStatusByAthleteId(
+    athleteId: string,
+    status: "active" | "revoked",
+    executor: DbExecutor = this.db
+  ) {
+    return executor
+      .update(athleteUserAccounts)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(eq(athleteUserAccounts.athleteId, athleteId))
+      .returning();
   }
 
   public async findActiveProfileByUserId(userId: string): Promise<AthleteActorProfile | null> {
