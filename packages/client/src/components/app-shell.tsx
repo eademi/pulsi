@@ -22,6 +22,8 @@ interface NavigationItem {
   label: string;
 }
 
+const THEME_STORAGE_KEY = "pulsi.theme";
+
 export function AppShell({
   session,
   activeMembership,
@@ -32,6 +34,13 @@ export function AppShell({
 }>) {
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof document === "undefined") {
+      return "dark";
+    }
+
+    return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+  });
   const location = useLocation();
 
   const navigationItems = useMemo(() => {
@@ -100,6 +109,11 @@ export function AppShell({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   return (
     <div className="min-h-screen bg-transparent px-4 py-4 lg:px-6">
@@ -210,6 +224,14 @@ export function AppShell({
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+                  className="btn-secondary size-11 rounded-full p-0"
+                  onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+                  type="button"
+                >
+                  {theme === "dark" ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+                </button>
                 <button className="btn-secondary" onClick={() => setCommandOpen(true)} type="button">
                   ⌘K Quick search
                 </button>
@@ -275,4 +297,13 @@ function BoltIcon({ className }: { className?: string }) {
 }
 function LogoutIcon({ className }: { className?: string }) {
   return iconPath(className, "M15 3h4v18h-4M10 7l-5 5 5 5M5 12h10");
+}
+function SunIcon({ className }: { className?: string }) {
+  return iconPath(
+    className,
+    "M12 3v2.5M12 18.5V21M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M3 12h2.5M18.5 12H21M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10z"
+  );
+}
+function MoonIcon({ className }: { className?: string }) {
+  return iconPath(className, "M20 15.5A8.5 8.5 0 0 1 8.5 4a8.5 8.5 0 1 0 11.5 11.5z");
 }

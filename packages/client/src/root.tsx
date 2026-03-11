@@ -13,6 +13,15 @@ import { AppProviders } from "./app/providers";
 
 export const links = () => [{ rel: "stylesheet", href: stylesheetHref }];
 
+const themeInitScript = `
+(() => {
+  const storageKey = "pulsi.theme";
+  const storedTheme = window.localStorage.getItem(storageKey);
+  const theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
+  document.documentElement.dataset.theme = theme;
+})();
+`;
+
 const Document = ({ children }: PropsWithChildren) => (
   <html lang="en">
     <head>
@@ -20,6 +29,7 @@ const Document = ({ children }: PropsWithChildren) => (
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <Meta />
       <Links />
+      <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
     </head>
     <body>
       <AppProviders>{children}</AppProviders>

@@ -3,6 +3,7 @@
 @theme {
   --font-sans: "Inter", "Geist", "DM Sans", ui-sans-serif, system-ui, sans-serif;
 
+  --color-obsidian-100: #f3f7fb;
   --color-obsidian-950: #06080d;
   --color-obsidian-900: #0a0f16;
   --color-obsidian-850: #101722;
@@ -44,6 +45,68 @@
   color-scheme: dark;
   font-family: var(--font-sans);
   --focus-ring: 0 0 0 2px rgba(56, 189, 248, 0.85);
+  --app-radial-primary: rgba(56, 189, 248, 0.18);
+  --app-radial-secondary: rgba(132, 204, 22, 0.12);
+  --app-background-start: #05070c;
+  --app-background-mid: #0a0f16;
+  --app-background-end: #071018;
+  --selection-color: rgba(56, 189, 248, 0.28);
+  --panel-gradient-start: rgba(17, 24, 37, 0.94);
+  --panel-gradient-end: rgba(10, 14, 22, 0.96);
+  --surface-muted-background: rgba(10, 15, 24, 0.86);
+  --surface-grid-start: rgba(12, 17, 28, 0.86);
+  --surface-grid-end: rgba(8, 12, 20, 0.94);
+  --surface-grid-line: rgba(145, 163, 184, 0.04);
+  --utility-surface-border: rgba(255, 255, 255, 0.08);
+  --utility-surface-border-strong: rgba(255, 255, 255, 0.1);
+  --utility-surface-fill: rgba(255, 255, 255, 0.03);
+  --utility-surface-fill-strong: rgba(255, 255, 255, 0.05);
+  --utility-black-fill: rgba(0, 0, 0, 0.15);
+  --field-background: rgba(10, 15, 24, 0.8);
+  --field-border: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --color-obsidian-100: #182231;
+  --color-obsidian-200: #243447;
+  --color-obsidian-300: #304055;
+  --color-obsidian-400: #53657a;
+  --color-obsidian-500: #6d7f93;
+  --color-obsidian-600: #8ea0b3;
+  --color-obsidian-700: #b6c2cf;
+  --color-obsidian-760: #c9d4df;
+  --color-obsidian-800: #dbe3ea;
+  --color-obsidian-850: #e6edf3;
+  --color-obsidian-900: #f4f8fb;
+  --color-obsidian-950: #fbfdff;
+  --color-surface-base: rgba(255, 255, 255, 0.92);
+  --color-surface-raised: rgba(247, 250, 253, 0.98);
+  --color-surface-muted: rgba(242, 246, 250, 0.88);
+  --color-surface-glass: rgba(255, 255, 255, 0.82);
+  --color-border-subtle: rgba(24, 34, 49, 0.1);
+  --color-border-strong: rgba(24, 34, 49, 0.16);
+  --shadow-panel: 0 18px 48px rgba(23, 37, 61, 0.08);
+  --shadow-glow: 0 0 0 1px rgba(56, 189, 248, 0.18), 0 0 18px rgba(56, 189, 248, 0.1);
+  --app-radial-primary: rgba(56, 189, 248, 0.14);
+  --app-radial-secondary: rgba(132, 204, 22, 0.08);
+  --app-background-start: #f7fbff;
+  --app-background-mid: #edf4fa;
+  --app-background-end: #f8fbfd;
+  --selection-color: rgba(56, 189, 248, 0.18);
+  --panel-gradient-start: rgba(255, 255, 255, 0.96);
+  --panel-gradient-end: rgba(243, 248, 252, 0.98);
+  --surface-muted-background: rgba(245, 249, 252, 0.94);
+  --surface-grid-start: rgba(255, 255, 255, 0.96);
+  --surface-grid-end: rgba(243, 248, 252, 0.98);
+  --surface-grid-line: rgba(24, 34, 49, 0.04);
+  --utility-surface-border: rgba(24, 34, 49, 0.08);
+  --utility-surface-border-strong: rgba(24, 34, 49, 0.12);
+  --utility-surface-fill: rgba(24, 34, 49, 0.03);
+  --utility-surface-fill-strong: rgba(24, 34, 49, 0.05);
+  --utility-black-fill: rgba(24, 34, 49, 0.06);
+  --field-background: rgba(255, 255, 255, 0.94);
+  --field-border: rgba(24, 34, 49, 0.12);
 }
 
 * {
@@ -58,10 +121,10 @@ body {
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 28rem),
-    radial-gradient(circle at top right, rgba(132, 204, 22, 0.12), transparent 24rem),
-    linear-gradient(180deg, #05070c 0%, #0a0f16 55%, #071018 100%);
-  color: theme(colors.obsidian.200);
+    radial-gradient(circle at top left, var(--app-radial-primary), transparent 28rem),
+    radial-gradient(circle at top right, var(--app-radial-secondary), transparent 24rem),
+    linear-gradient(180deg, var(--app-background-start) 0%, var(--app-background-mid) 55%, var(--app-background-end) 100%);
+  color: var(--color-obsidian-200);
   font-variant-numeric: tabular-nums;
 }
 
@@ -78,7 +141,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(56, 189, 248, 0.28);
+  background: var(--selection-color);
 }
 
 button:focus-visible,
@@ -103,22 +166,22 @@ textarea:focus-visible,
 
 .surface-panel {
   border: 1px solid var(--color-border-subtle);
-  background: linear-gradient(180deg, rgba(17, 24, 37, 0.94), rgba(10, 14, 22, 0.96));
+  background: linear-gradient(180deg, var(--panel-gradient-start), var(--panel-gradient-end));
   box-shadow: var(--shadow-panel);
   backdrop-filter: blur(18px);
 }
 
 .surface-muted {
   border: 1px solid var(--color-border-subtle);
-  background: rgba(10, 15, 24, 0.86);
+  background: var(--surface-muted-background);
 }
 
 .surface-grid {
   border: 1px solid var(--color-border-subtle);
   background:
-    linear-gradient(180deg, rgba(12, 17, 28, 0.86), rgba(8, 12, 20, 0.94)),
-    linear-gradient(rgba(145, 163, 184, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(145, 163, 184, 0.04) 1px, transparent 1px);
+    linear-gradient(180deg, var(--surface-grid-start), var(--surface-grid-end)),
+    linear-gradient(var(--surface-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--surface-grid-line) 1px, transparent 1px);
   background-size: auto, 24px 24px, 24px 24px;
 }
 
@@ -131,7 +194,8 @@ textarea:focus-visible,
 }
 
 .pill {
-  @apply inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em];
+  @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em];
+  border-color: var(--utility-surface-border-strong);
 }
 
 .pill-ready {
@@ -147,7 +211,9 @@ textarea:focus-visible,
 }
 
 .pill-muted {
-  @apply border-white/8 bg-white/6 text-obsidian-400;
+  @apply text-obsidian-400;
+  border-color: var(--utility-surface-border);
+  background: var(--utility-surface-fill-strong);
 }
 
 .btn-base {
@@ -159,7 +225,9 @@ textarea:focus-visible,
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-soft)] border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm font-medium text-obsidian-200 transition duration-150 hover:border-accent-500/30 hover:bg-accent-500/10 disabled:cursor-not-allowed disabled:opacity-45;
+  @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-soft)] border px-3.5 py-2.5 text-sm font-medium text-obsidian-200 transition duration-150 hover:border-accent-500/30 hover:bg-accent-500/10 disabled:cursor-not-allowed disabled:opacity-45;
+  border-color: var(--utility-surface-border-strong);
+  background: var(--utility-surface-fill-strong);
 }
 
 .btn-danger {
@@ -167,11 +235,15 @@ textarea:focus-visible,
 }
 
 .input-field {
-  @apply h-11 w-full rounded-[var(--radius-soft)] border border-white/10 bg-obsidian-900/80 px-3.5 text-sm text-obsidian-200 placeholder:text-obsidian-500;
+  @apply h-11 w-full rounded-[var(--radius-soft)] border px-3.5 text-sm text-obsidian-200 placeholder:text-obsidian-500;
+  border-color: var(--field-border);
+  background: var(--field-background);
 }
 
 .input-shell {
-  @apply flex items-center gap-3 rounded-[var(--radius-soft)] border border-white/10 bg-obsidian-900/80 px-3.5 text-sm text-obsidian-200;
+  @apply flex items-center gap-3 rounded-[var(--radius-soft)] border px-3.5 text-sm text-obsidian-200;
+  border-color: var(--field-border);
+  background: var(--field-background);
 }
 
 .divider-grid {
@@ -186,7 +258,27 @@ textarea:focus-visible,
 .route-error-card {
   @apply flex w-full max-w-2xl flex-col gap-4 rounded-[var(--radius-panel)] p-8;
   border: 1px solid var(--color-border-subtle);
-  background: linear-gradient(180deg, rgba(17, 24, 37, 0.94), rgba(10, 14, 22, 0.96));
+  background: linear-gradient(180deg, var(--panel-gradient-start), var(--panel-gradient-end));
   box-shadow: var(--shadow-panel);
   backdrop-filter: blur(18px);
+}
+
+[data-theme="light"] [class*="border-white/"] {
+  border-color: var(--utility-surface-border) !important;
+}
+
+[data-theme="light"] [class*="bg-white/"] {
+  background-color: var(--utility-surface-fill) !important;
+}
+
+[data-theme="light"] [class*="bg-black/"] {
+  background-color: var(--utility-black-fill) !important;
+}
+
+[data-theme="light"] [class*="bg-obsidian-900"] {
+  background-color: var(--field-background) !important;
+}
+
+[data-theme="light"] [class*="text-obsidian-950"] {
+  color: var(--color-obsidian-100) !important;
 }
