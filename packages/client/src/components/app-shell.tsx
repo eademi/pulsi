@@ -20,6 +20,12 @@ interface NavigationItem {
   href: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
+  section: "operations" | "management";
+}
+
+interface NavigationSection {
+  items: NavigationItem[];
+  label: string;
 }
 
 const THEME_STORAGE_KEY = "pulsi.theme";
@@ -49,37 +55,43 @@ export function AppShell({
         href: getDashboardPath(activeMembership.tenantSlug),
         label: "Dashboard",
         description: "Live readiness overview and alerts",
-        icon: ActivityIcon
+        icon: ActivityIcon,
+        section: "operations"
       },
       {
         href: getSquadsPath(activeMembership.tenantSlug),
         label: "Squad Readiness",
         description: "Pre-session go/no-go board",
-        icon: GridIcon
+        icon: GridIcon,
+        section: "operations"
       },
       {
         href: getPlayersPath(activeMembership.tenantSlug),
         label: "Players",
         description: "Roster, claim links, and athlete ownership",
-        icon: UsersIcon
+        icon: UsersIcon,
+        section: "operations"
       },
       {
         href: getSessionPlannerPath(activeMembership.tenantSlug),
         label: "Session Planner",
         description: "Availability flags versus target load",
-        icon: CalendarIcon
+        icon: CalendarIcon,
+        section: "operations"
       },
       {
         href: getReportsPath(activeMembership.tenantSlug),
         label: "Reports",
         description: "Trend analysis and export-oriented views",
-        icon: ReportIcon
+        icon: ReportIcon,
+        section: "operations"
       },
       {
         href: getGarminIntegrationPath(activeMembership.tenantSlug),
         label: "Garmin",
         description: "Connection state and consent workflows",
-        icon: LinkIcon
+        icon: LinkIcon,
+        section: "management"
       }
     ];
 
@@ -88,12 +100,28 @@ export function AppShell({
         href: getOrganizationSettingsPath(activeMembership.tenantSlug),
         label: "Settings",
         description: "Staff access and organization controls",
-        icon: CogIcon
+        icon: CogIcon,
+        section: "management"
       });
     }
 
     return items;
   }, [activeMembership.role, activeMembership.tenantSlug]);
+
+  const navigationSections = useMemo<NavigationSection[]>(
+    () =>
+      [
+        {
+          label: "Performance",
+          items: navigationItems.filter((item) => item.section === "operations")
+        },
+        {
+          label: "Administration",
+          items: navigationItems.filter((item) => item.section === "management")
+        }
+      ].filter((section) => section.items.length > 0),
+    [navigationItems]
+  );
 
   const activeRoute = navigationItems.find((item) => location.pathname.startsWith(item.href));
   const breadcrumbs = buildBreadcrumbs(activeMembership.tenantName, activeRoute?.label ?? "Workspace");
@@ -116,11 +144,11 @@ export function AppShell({
   }, [theme]);
 
   return (
-    <div className="min-h-screen bg-transparent px-4 py-4 lg:px-6">
-      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[1800px] grid-cols-1 gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
+    <div className="h-screen overflow-hidden bg-transparent px-4 py-4 lg:px-6">
+      <div className="mx-auto grid h-full max-w-[1800px] grid-cols-1 gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
         <aside
           className={cn(
-            "surface-panel hidden rounded-[var(--radius-panel)] lg:flex lg:flex-col",
+            "surface-panel hidden self-start overflow-hidden rounded-[var(--radius-panel)] lg:sticky lg:top-4 lg:flex lg:h-[calc(100vh-2rem)] lg:flex-col",
             collapsed ? "w-[92px]" : "w-[320px]"
           )}
         >
@@ -147,7 +175,7 @@ export function AppShell({
             </button>
           </div>
 
-          <div className="flex-1 overflow-auto p-3">
+          <div className="flex-1 overflow-x-hidden overflow-y-auto p-3">
             {!collapsed ? (
               <div className="surface-grid rounded-[var(--radius-soft)] p-4">
                 <p className="eyebrow">Active organization</p>
@@ -160,28 +188,64 @@ export function AppShell({
               </div>
             ) : null}
 
-            <nav className="mt-4 grid gap-2" aria-label="Primary navigation">
-              {navigationItems.map((item) => (
-                <NavLink
-                  className={({ isActive }) =>
-                    cn(
-                      "group flex items-center gap-3 rounded-[var(--radius-soft)] border px-3 py-3 transition",
-                      isActive
-                        ? "border-accent-500/35 bg-accent-500/12 text-obsidian-100"
-                        : "border-transparent text-obsidian-400 hover:border-white/8 hover:bg-white/4 hover:text-obsidian-100"
-                    )
-                  }
-                  key={item.href}
-                  to={item.href}
-                >
-                  <item.icon className="size-5 shrink-0" />
-                  {!collapsed ? (
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium">{item.label}</div>
-                      <div className="truncate text-xs text-obsidian-500">{item.description}</div>
-                    </div>
-                  ) : null}
-                </NavLink>
+            <nav aria-label="Primary navigation" className="mt-4 min-w-0 space-y-4">
+              {!collapsed ? (
+                <button className="btn-secondary w-full justify-center" onClick={() => setCommandOpen(true)} type="button">
+                  ⌘K Quick search
+                </button>
+              ) : null}
+
+              {navigationSections.map((section) => (
+                <div className="space-y-2" key={section.label}>
+                  {!collapsed ? <p className="eyebrow px-2">{section.label}</p> : null}
+                  <ul className="grid min-w-0 gap-1.5" role="list">
+                    {section.items.map((item) => (
+                      <li className="min-w-0" key={item.href}>
+                        <NavLink
+                          className={({ isActive }) =>
+                            cn(
+                              "group relative flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-[var(--radius-soft)] px-3 py-3 transition",
+                              isActive
+                                ? "bg-accent-500/12 text-obsidian-100"
+                                : "text-obsidian-400 hover:bg-white/4 hover:text-obsidian-100"
+                            )
+                          }
+                          to={item.href}
+                        >
+                          {({ isActive }) => (
+                            <>
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "absolute inset-y-2 left-0 w-1 rounded-full transition",
+                                  isActive ? "bg-accent-400 shadow-[var(--shadow-glow)]" : "bg-transparent"
+                                )}
+                              />
+                              <span
+                                className={cn(
+                                  "flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-tight)] border transition",
+                                  isActive
+                                    ? "border-accent-500/30 bg-accent-500/12 text-accent-300"
+                                    : "border-white/8 bg-white/[0.03] text-obsidian-500 group-hover:border-white/12"
+                                )}
+                              >
+                                <item.icon className="size-5" />
+                              </span>
+                              {!collapsed ? (
+                                <span className="min-w-0 flex-1 overflow-hidden">
+                                  <span className="block truncate text-sm font-medium">{item.label}</span>
+                                  <span className="mt-0.5 block truncate text-xs text-obsidian-500">
+                                    {item.description}
+                                  </span>
+                                </span>
+                              ) : null}
+                            </>
+                          )}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
             </nav>
           </div>
@@ -203,8 +267,8 @@ export function AppShell({
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-col gap-4">
-          <header className="surface-panel rounded-[var(--radius-panel)] p-4 lg:p-5">
+        <div className="flex min-w-0 min-h-0 flex-col gap-4 overflow-hidden">
+          <header className="surface-panel shrink-0 rounded-[var(--radius-panel)] p-4 lg:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-obsidian-500">
@@ -247,7 +311,7 @@ export function AppShell({
             </div>
           </header>
 
-          <main className="min-w-0">{children}</main>
+          <main className="min-w-0 min-h-0 overflow-y-auto pr-1">{children}</main>
         </div>
       </div>
 

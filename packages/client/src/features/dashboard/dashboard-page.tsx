@@ -89,38 +89,55 @@ export function DashboardPage({
         </div>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricStat
-            delta={`${summary.readyPercentage}% of roster`}
-            label="Ready today"
-            tone="ready"
-            value={String(summary.ready)}
-          />
-          <MetricStat
-            delta={`${summary.cautionPercentage}% need managed volume`}
-            helper="Athletes who should train with moderation or closer monitoring."
-            label="Caution"
-            tone="caution"
-            value={String(summary.caution)}
-          />
-          <MetricStat
-            delta={`${summary.restrictedPercentage}% high-risk`}
-            helper="Immediate review queue before session planning."
-            label="At risk"
-            tone="risk"
-            value={String(summary.restricted)}
-          />
-          <MetricStat
-            delta={summary.avgSleepDelta}
-            helper="Average overnight sleep duration across synced athletes."
-            label="Avg sleep"
-            tone="accent"
-            value={summary.avgSleep}
-          />
-        </section>
+      <section className="surface-panel rounded-[var(--radius-panel)] p-4 lg:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="eyebrow">Today at a glance</p>
+            <h2 className="mt-2 text-xl font-semibold text-obsidian-100">Session readiness snapshot</h2>
+          </div>
+          <p className="max-w-xl text-sm leading-6 text-obsidian-400">
+            High-signal metrics for the morning staff check. Use this strip as the fast go or no-go layer before drilling into the board.
+          </p>
+        </div>
 
-        <section className="surface-panel rounded-[var(--radius-panel)] p-5">
+        <div className="mt-5 overflow-hidden rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03]">
+          <div className="grid divide-y divide-white/8 md:grid-cols-2 md:divide-x md:divide-y-0 2xl:grid-cols-4">
+            <MetricStat
+              delta={`${summary.readyPercentage}% of roster`}
+              label="Ready today"
+              tone="ready"
+              value={String(summary.ready)}
+              variant="scoreboard"
+            />
+            <MetricStat
+              delta={`${summary.cautionPercentage}% need managed volume`}
+              helper="Athletes who should train with moderation or closer monitoring."
+              label="Caution"
+              tone="caution"
+              value={String(summary.caution)}
+              variant="scoreboard"
+            />
+            <MetricStat
+              delta={`${summary.restrictedPercentage}% high-risk`}
+              helper="Immediate review queue before session planning."
+              label="At risk"
+              tone="risk"
+              value={String(summary.restricted)}
+              variant="scoreboard"
+            />
+            <MetricStat
+              delta={summary.avgSleepDelta}
+              helper="Average overnight sleep duration across synced athletes."
+              label="Avg sleep"
+              tone="accent"
+              value={summary.avgSleep}
+              variant="scoreboard"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="surface-panel rounded-[var(--radius-panel)] p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="eyebrow">Top movers</p>
@@ -162,8 +179,7 @@ export function DashboardPage({
               </button>
             ))}
           </div>
-        </section>
-      </div>
+      </section>
 
       <section className="surface-panel rounded-[var(--radius-panel)] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
