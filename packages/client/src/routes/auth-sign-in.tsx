@@ -21,16 +21,16 @@ export const clientAction = async ({ request }: { request: Request }) => {
       password,
       rememberMe
     });
-
-    const session = await apiClient.getSession();
-    const next = new URL(request.url).searchParams.get("next");
-
-    throw redirect(next || getDefaultAppPath(session));
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Unable to sign in."
     };
   }
+
+  const session = await apiClient.getSession();
+  const next = new URL(request.url).searchParams.get("next");
+
+  throw redirect(next || getDefaultAppPath(session));
 };
 
 export default function SignInRoute() {
