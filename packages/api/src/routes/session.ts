@@ -7,7 +7,7 @@ import { requireAuth } from "../http/middleware";
 import { ok } from "../http/responses";
 
 export const sessionRoutes = new Hono<AppBindings>()
-  .use("*", requireAuth)
+  .use("/session", requireAuth)
   .get("/session", (c) => {
     const requestContext = c.get("requestContext");
     const actor = requestContext.actor!;

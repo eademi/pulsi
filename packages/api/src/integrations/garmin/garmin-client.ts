@@ -16,6 +16,7 @@ import {
   type GarminNotificationSummaryType
 } from "./health-api.contracts";
 import type { GarminTokenBundle } from "./garmin.types";
+import { ZodError, type ZodTypeAny, type output } from "zod";
 
 const sleep = async (durationMs: number) =>
   new Promise((resolve) => {
@@ -60,12 +61,16 @@ export class GarminApiClient {
 
   public async getUserId(accessToken: string): Promise<string> {
     const payload = await this.authorizedGet("/wellness-api/rest/user/id", accessToken);
-    return garminUserIdResponseSchema.parse(payload).userId;
+    return this.parseGarminPayload("/wellness-api/rest/user/id", garminUserIdResponseSchema, payload).userId;
   }
 
   public async getPermissions(accessToken: string): Promise<string[]> {
     const payload = await this.authorizedGet("/wellness-api/rest/user/permissions", accessToken);
-    return garminPermissionsResponseSchema.parse(payload);
+    return this.parseGarminPayload(
+      "/wellness-api/rest/user/permissions",
+      garminPermissionsResponseSchema,
+      payload
+    );
   }
 
   public async deleteUserRegistration(accessToken: string): Promise<void> {
@@ -267,7 +272,11 @@ export class GarminApiClient {
         );
       }
 
-      return garminTokenResponseSchema.parse(await response.json());
+      return this.parseGarminPayload(
+        "https://diauth.garmin.com/di-oauth2-service/oauth/token",
+        garminTokenResponseSchema,
+        await response.json()
+      );
     });
 
     return {
@@ -310,6 +319,26 @@ export class GarminApiClient {
 
   private buildApiUrl(path: string): string {
     return new URL(path, env.GARMIN_API_BASE_URL).toString();
+  }
+
+  private parseGarminPayload<TSchema extends ZodTypeAny>(
+    endpoint: string,
+    schema: TSchema,
+    payload: unknown
+  ): output<TSchema> {
+    try {
+      return schema.parse(payload);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new AppError(502, "EXTERNAL_SERVICE_FAILURE", "Garmin response validation failed", {
+          endpoint,
+          issues: error.issues,
+          payload
+        });
+      }
+
+      throw error;
+    }
   }
 
   private validateGarminCallbackUrl(callbackUrl: string, allowedPathPrefixes: string[]): URL {

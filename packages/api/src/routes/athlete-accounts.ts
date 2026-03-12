@@ -27,7 +27,9 @@ const requireUnassignedAccount = (actor: NonNullable<AppBindings["Variables"]["r
 
 export const buildAthleteAccountRoutes = (athleteAccountService: AthleteAccountService) =>
   new Hono<AppBindings>()
-    .use("*", requireAuth)
+    .use("/athlete-claims/:token", requireAuth)
+    .use("/athlete-claims/:token/accept", requireAuth)
+    .use("/me/athlete", requireAuth)
     .get("/athlete-claims/:token", async (c) => {
       const actor = c.get("requestContext").actor!;
       requireUnassignedAccount(actor);

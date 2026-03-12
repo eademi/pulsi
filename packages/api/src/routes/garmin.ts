@@ -183,7 +183,8 @@ export const buildGarminAthleteRoutes = (
   }
 ) =>
   new Hono<AppBindings>()
-    .use("*", requireAuth)
+    .use("/me/athlete/garmin", requireAuth)
+    .use("/me/athlete/garmin/connection-sessions", requireAuth)
     // Athlete-facing Garmin status for the signed-in claimed profile only.
     .get("/me/athlete/garmin", async (c) => {
       const actor = c.get("requestContext").actor!;

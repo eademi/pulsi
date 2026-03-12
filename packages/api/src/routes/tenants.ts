@@ -20,7 +20,9 @@ import type { TenantService } from "../services/tenant-service";
 
 export const buildTenantRoutes = (tenantService: TenantService) =>
   new Hono<AppBindings>()
-    .use("*", requireAuth)
+    .use("/tenants", requireAuth)
+    .use("/invitations", requireAuth)
+    .use("/invitations/:invitationId/accept", requireAuth)
     .get("/tenants", async (c) => {
       const requestContext = c.get("requestContext");
       const memberships = await tenantService.listMemberships(requestContext.actor!.userId);
@@ -88,7 +90,9 @@ export const buildTenantRoutes = (tenantService: TenantService) =>
 
 export const buildTenantAccessRoutes = (tenantService: TenantService) =>
   new Hono<AppBindings>()
-    .use("*", requireAuth)
+    .use("/memberships", requireAuth)
+    .use("/invitations", requireAuth)
+    .use("/memberships/:userId/access", requireAuth)
     .get("/memberships", async (c) => {
       const requestContext = c.get("requestContext");
       requireCapability(requestContext.tenant!.role, "staff:manage");
