@@ -2,7 +2,8 @@
 
 Pulsi is a multi-tenant sports readiness platform for football clubs.
 
-Architecture and implementation notes live in [docs/architecture.md](/Users/ea/Desktop/projects/pulsi-app/docs/architecture.md).
+For the agent-optimized documentation index, start with [docs/AGENT_DOCS.md](/Users/ea/Desktop/projects/pulsi-app/docs/AGENT_DOCS.md).
+For the smallest high-signal project overview, start with [docs/PROJECT_CORE.md](/Users/ea/Desktop/projects/pulsi-app/docs/PROJECT_CORE.md).
 
 ## Local database
 
