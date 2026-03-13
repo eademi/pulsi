@@ -3,10 +3,16 @@ import { Form, redirect, useActionData, useLoaderData, useNavigation } from "rea
 import { apiClient } from "../lib/api";
 
 export const clientLoader = async () => {
-  const viewer = await apiClient.getAdminBootstrapOptional();
+  let viewer = await apiClient.getAdminBootstrapOptional();
+
+  // Cross-origin auth cookies can be visible one tick after sign-in in some browsers.
+  if (!viewer) {
+    await new Promise((resolve) => window.setTimeout(resolve, 150));
+    viewer = await apiClient.getAdminBootstrapOptional();
+  }
 
   if (!viewer) {
-    throw redirect("/sign-in");
+    throw redirect("/sign-in?error=access");
   }
 
   const overview = await apiClient.getAdminGarminOverview();

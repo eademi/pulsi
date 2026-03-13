@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 
 import { closeDatabase, db } from "./client";
@@ -29,6 +29,11 @@ const DEMO_TENANT = {
   name: "Pulsi Demo FC",
   timezone: DEMO_TIMEZONE
 };
+
+const PLATFORM_ADMIN_FIXTURE = {
+  email: "platform.admin@pulsi.com",
+  name: "Priya Platform Admin"
+} as const;
 
 const STAFF_FIXTURES = [
   {
@@ -78,18 +83,25 @@ const SQUAD_FIXTURES = [
   { slug: "u18", name: "U18", category: "Academy" }
 ] as const;
 
+const ATHLETES_PER_SQUAD = 5;
+
 const LINKED_ATHLETE_EMAILS = new Map<string, string>([
   ["senior-01", "senior.01@pulsi.com"],
   ["senior-02", "senior.02@pulsi.com"],
+  ["senior-03", "senior.03@pulsi.com"],
   ["u18-01", "u18.01@pulsi.com"],
-  ["u18-02", "u18.02@pulsi.com"]
+  ["u18-02", "u18.02@pulsi.com"],
+  ["u18-03", "u18.03@pulsi.com"]
 ]);
 
 const PENDING_INVITE_EMAILS = new Map<string, string>([
-  ["senior-03", "senior.03@pulsi.com"],
   ["senior-04", "senior.04@pulsi.com"],
-  ["u18-03", "u18.03@pulsi.com"],
   ["u18-04", "u18.04@pulsi.com"]
+]);
+
+const EXPIRED_INVITE_EMAILS = new Map<string, string>([
+  ["senior-05", "senior.05@pulsi.com"],
+  ["u18-05", "u18.05@pulsi.com"]
 ]);
 
 const POSITION_ROTATION = ["Goalkeeper", "Center Back", "Full Back", "Midfielder", "Winger", "Forward"];
@@ -99,7 +111,11 @@ const main = async () => {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const tenant = await upsertTenant();
   const staffUsers = await upsertStaffUsers(passwordHash);
-  await upsertPlatformAdmins(staffUsers);
+  const platformAdminUser = await upsertPlatformAdmin(passwordHash);
+  await upsertPlatformAdmins({
+    platformAdminUser,
+    staffUsers
+  });
   const squadRecords = await upsertSquads(tenant.id);
   const squadBySlug = new Map(squadRecords.map((squad) => [squad.slug, squad]));
 
@@ -112,9 +128,12 @@ const main = async () => {
   const athleteRecords = await upsertAthletes(tenant.id, squadBySlug);
   const athleteByExternalRef = new Map(athleteRecords.map((athlete) => [athlete.externalRef ?? "", athlete]));
   const connectedAthleteIds = new Set(
-    athleteRecords.filter((_, index) => index < 24).map((athlete) => athlete.id)
+    athleteRecords
+      .filter((athlete) => athlete.externalRef !== null && LINKED_ATHLETE_EMAILS.has(athlete.externalRef))
+      .map((athlete) => athlete.id)
   );
 
+  await pruneDisconnectedAthleteSeedData(athleteRecords, connectedAthleteIds);
   const garminConnections = await upsertGarminConnections(tenant.id, athleteRecords, connectedAthleteIds);
   await upsertReadinessFixtures(tenant.id, athleteRecords, garminConnections, connectedAthleteIds);
 
@@ -122,7 +141,7 @@ const main = async () => {
     passwordHash,
     athleteByExternalRef
   });
-  const athleteInvites = await upsertPendingAthleteInvites({
+  const athleteInviteSummary = await upsertAthleteInvites({
     tenantId: tenant.id,
     createdByUserId: staffUsers.get("owner")!.id,
     athleteByExternalRef
@@ -130,9 +149,11 @@ const main = async () => {
 
   printSummary({
     tenant,
+    platformAdminUser,
     staffUsers,
     athleteUsers,
-    athleteInvites
+    pendingAthleteInvites: athleteInviteSummary.pendingInvites,
+    expiredAthleteInvites: athleteInviteSummary.expiredInvites
   });
 };
 
@@ -268,18 +289,29 @@ const upsertStaffUsers = async (passwordHash: string) => {
   return users;
 };
 
-const upsertPlatformAdmins = async (staffUsers: Map<string, typeof user.$inferSelect>) => {
-  const adminUser = staffUsers.get("admin");
+const upsertPlatformAdmin = async (passwordHash: string) =>
+  upsertAuthUser({
+    id: deterministicTextId(`platform-admin:${PLATFORM_ADMIN_FIXTURE.email}`),
+    name: PLATFORM_ADMIN_FIXTURE.name,
+    email: PLATFORM_ADMIN_FIXTURE.email,
+    passwordHash
+  });
 
-  if (!adminUser) {
-    throw new Error("Missing seeded platform admin user");
+const upsertPlatformAdmins = async (input: {
+  platformAdminUser: typeof user.$inferSelect;
+  staffUsers: Map<string, typeof user.$inferSelect>;
+}) => {
+  const tenantOrgAdminUser = input.staffUsers.get("admin");
+
+  if (tenantOrgAdminUser) {
+    await db.delete(platformAdmins).where(eq(platformAdmins.userId, tenantOrgAdminUser.id));
   }
 
   await db
     .insert(platformAdmins)
     .values({
-      userId: adminUser.id,
-      grantedByUserId: adminUser.id,
+      userId: input.platformAdminUser.id,
+      grantedByUserId: input.platformAdminUser.id,
       createdAt: TODAY
     })
     .onConflictDoNothing();
@@ -407,6 +439,37 @@ const upsertAthletes = async (
   squadBySlug: Map<string, typeof squads.$inferSelect>
 ) => {
   const records: Array<typeof athletes.$inferSelect & { currentSquadId: string }> = [];
+  const expectedExternalRefs = new Set<string>();
+
+  for (const squadFixture of SQUAD_FIXTURES) {
+    for (let index = 1; index <= ATHLETES_PER_SQUAD; index += 1) {
+      expectedExternalRefs.add(`${squadFixture.slug}-${String(index).padStart(2, "0")}`);
+    }
+  }
+
+  const existingDemoAthletes = await db
+    .select({
+      id: athletes.id,
+      externalRef: athletes.externalRef
+    })
+    .from(athletes)
+    .where(eq(athletes.tenantId, tenantId));
+
+  const staleAthleteIds = existingDemoAthletes
+    .filter((athleteRecord) => {
+      const externalRef = athleteRecord.externalRef;
+      if (!externalRef) {
+        return false;
+      }
+
+      const isDemoFixtureAthlete = SQUAD_FIXTURES.some((fixture) => externalRef.startsWith(`${fixture.slug}-`));
+      return isDemoFixtureAthlete && !expectedExternalRefs.has(externalRef);
+    })
+    .map((athleteRecord) => athleteRecord.id);
+
+  if (staleAthleteIds.length > 0) {
+    await db.delete(athletes).where(inArray(athletes.id, staleAthleteIds));
+  }
 
   for (const squadFixture of SQUAD_FIXTURES) {
     const squad = squadBySlug.get(squadFixture.slug);
@@ -414,7 +477,7 @@ const upsertAthletes = async (
       throw new Error(`Missing squad ${squadFixture.slug}`);
     }
 
-    for (let index = 1; index <= 15; index += 1) {
+    for (let index = 1; index <= ATHLETES_PER_SQUAD; index += 1) {
       const externalRef = `${squadFixture.slug}-${String(index).padStart(2, "0")}`;
       const firstName = `${squadFixture.slug === "senior" ? "Senior" : "Academy"}${index}`;
       const lastName = `Player${String(index).padStart(2, "0")}`;
@@ -566,6 +629,22 @@ const upsertGarminConnections = async (
   return connectionByAthleteId;
 };
 
+const pruneDisconnectedAthleteSeedData = async (
+  athleteRecords: Array<typeof athletes.$inferSelect & { currentSquadId: string }>,
+  connectedAthleteIds: Set<string>
+) => {
+  const disconnectedAthleteIds = athleteRecords
+    .filter((athleteRecord) => !connectedAthleteIds.has(athleteRecord.id))
+    .map((athleteRecord) => athleteRecord.id);
+
+  if (disconnectedAthleteIds.length === 0) {
+    return;
+  }
+
+  await db.delete(readinessSnapshots).where(inArray(readinessSnapshots.athleteId, disconnectedAthleteIds));
+  await db.delete(athleteIntegrations).where(inArray(athleteIntegrations.athleteId, disconnectedAthleteIds));
+};
+
 const upsertReadinessFixtures = async (
   tenantId: string,
   athleteRecords: Array<typeof athletes.$inferSelect & { currentSquadId: string }>,
@@ -700,69 +779,87 @@ const upsertLinkedAthleteUsers = async (input: {
         }
       });
 
+    await db.delete(athleteInvites).where(eq(athleteInvites.athleteId, athleteRecord.id));
+
     users.set(email, authUser);
   }
 
   return users;
 };
 
-const upsertPendingAthleteInvites = async (input: {
+const upsertAthleteInvites = async (input: {
   tenantId: string;
   createdByUserId: string;
   athleteByExternalRef: Map<string, typeof athletes.$inferSelect & { currentSquadId: string }>;
 }) => {
-  const inviteUrls: Array<{ athleteName: string; inviteUrl: string; email: string }> = [];
+  const pendingInvites: Array<{ athleteName: string; inviteUrl: string; email: string }> = [];
+  const expiredInvites: Array<{ athleteName: string; inviteUrl: string; email: string }> = [];
 
-  for (const [externalRef, email] of PENDING_INVITE_EMAILS) {
-    const athleteRecord = input.athleteByExternalRef.get(externalRef);
-    if (!athleteRecord) {
-      throw new Error(`Missing athlete ${externalRef} for pending invite seed`);
-    }
+  const inviteFixtures = [
+    { status: "pending" as const, emails: PENDING_INVITE_EMAILS, expiresAt: daysFrom(TODAY, 14) },
+    { status: "expired" as const, emails: EXPIRED_INVITE_EMAILS, expiresAt: daysAgo(TODAY, 14) }
+  ];
 
-    const rawToken = `demo-invite-${externalRef}`;
-    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-    const inviteId = deterministicUuid(`athlete-invite:${externalRef}`);
-    const expiresAt = daysFrom(TODAY, 14);
+  for (const inviteFixture of inviteFixtures) {
+    for (const [externalRef, email] of inviteFixture.emails) {
+      const athleteRecord = input.athleteByExternalRef.get(externalRef);
+      if (!athleteRecord) {
+        throw new Error(`Missing athlete ${externalRef} for ${inviteFixture.status} invite seed`);
+      }
 
-    await db
-      .insert(athleteInvites)
-      .values({
-        id: inviteId,
-        tenantId: input.tenantId,
-        athleteId: athleteRecord.id,
-        email,
-        tokenHash,
-        status: "pending",
-        expiresAt,
-        createdByUserId: input.createdByUserId,
-        acceptedByUserId: null,
-        acceptedAt: null,
-        createdAt: TODAY,
-        updatedAt: TODAY
-      })
-      .onConflictDoUpdate({
-        target: athleteInvites.tokenHash,
-        set: {
+      const rawToken = `demo-invite-${externalRef}`;
+      const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+      const inviteId = deterministicUuid(`athlete-invite:${externalRef}`);
+
+      await db
+        .insert(athleteInvites)
+        .values({
+          id: inviteId,
           tenantId: input.tenantId,
           athleteId: athleteRecord.id,
           email,
-          status: "pending",
-          expiresAt,
+          tokenHash,
+          status: inviteFixture.status,
+          expiresAt: inviteFixture.expiresAt,
           createdByUserId: input.createdByUserId,
           acceptedByUserId: null,
           acceptedAt: null,
+          createdAt: TODAY,
           updatedAt: TODAY
-        }
-      });
+        })
+        .onConflictDoUpdate({
+          target: athleteInvites.tokenHash,
+          set: {
+            tenantId: input.tenantId,
+            athleteId: athleteRecord.id,
+            email,
+            status: inviteFixture.status,
+            expiresAt: inviteFixture.expiresAt,
+            createdByUserId: input.createdByUserId,
+            acceptedByUserId: null,
+            acceptedAt: null,
+            updatedAt: TODAY
+          }
+        });
 
-    inviteUrls.push({
-      athleteName: `${athleteRecord.firstName} ${athleteRecord.lastName}`,
-      email,
-      inviteUrl: `http://localhost:3000/athlete/setup/${rawToken}`
-    });
+      const seededInvite = {
+        athleteName: `${athleteRecord.firstName} ${athleteRecord.lastName}`,
+        email,
+        inviteUrl: `http://localhost:3000/athlete/setup/${rawToken}`
+      };
+
+      if (inviteFixture.status === "pending") {
+        pendingInvites.push(seededInvite);
+      } else {
+        expiredInvites.push(seededInvite);
+      }
+    }
   }
 
-  return inviteUrls;
+  return {
+    pendingInvites,
+    expiredInvites
+  };
 };
 
 const buildReadinessFixture = (athleteIndex: number, dayOffset: number) => {
@@ -818,12 +915,16 @@ const buildRationale = (
 
 const printSummary = (input: {
   tenant: typeof tenants.$inferSelect;
+  platformAdminUser: typeof user.$inferSelect;
   staffUsers: Map<string, typeof user.$inferSelect>;
   athleteUsers: Map<string, typeof user.$inferSelect>;
-  athleteInvites: Array<{ athleteName: string; inviteUrl: string; email: string }>;
+  pendingAthleteInvites: Array<{ athleteName: string; inviteUrl: string; email: string }>;
+  expiredAthleteInvites: Array<{ athleteName: string; inviteUrl: string; email: string }>;
 }) => {
   process.stdout.write(`\nSeeded demo environment for ${input.tenant.name} (${input.tenant.slug})\n`);
   process.stdout.write(`Shared demo password: ${DEMO_PASSWORD}\n\n`);
+  process.stdout.write("Platform admin account:\n");
+  process.stdout.write(`- ${input.platformAdminUser.email}\n\n`);
   process.stdout.write("Staff accounts:\n");
   for (const fixture of STAFF_FIXTURES) {
     process.stdout.write(`- ${fixture.email} (${fixture.role})\n`);
@@ -836,9 +937,16 @@ const printSummary = (input: {
     }
   }
 
-  if (input.athleteInvites.length > 0) {
+  if (input.pendingAthleteInvites.length > 0) {
     process.stdout.write("\nPending athlete setup invites:\n");
-    for (const invite of input.athleteInvites) {
+    for (const invite of input.pendingAthleteInvites) {
+      process.stdout.write(`- ${invite.athleteName} <${invite.email}> -> ${invite.inviteUrl}\n`);
+    }
+  }
+
+  if (input.expiredAthleteInvites.length > 0) {
+    process.stdout.write("\nExpired athlete setup invites:\n");
+    for (const invite of input.expiredAthleteInvites) {
       process.stdout.write(`- ${invite.athleteName} <${invite.email}> -> ${invite.inviteUrl}\n`);
     }
   }

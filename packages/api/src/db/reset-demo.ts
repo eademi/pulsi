@@ -8,6 +8,7 @@ import {
 
 const DEMO_TENANT_SLUG = "pulsi-demo-fc";
 const DEMO_USER_EMAILS = [
+  "platform.admin@pulsi.com",
   "owner@pulsi.com",
   "admin@pulsi.com",
   "coach.senior@pulsi.com",
@@ -15,8 +16,10 @@ const DEMO_USER_EMAILS = [
   "analyst.u18@pulsi.com",
   "senior.01@pulsi.com",
   "senior.02@pulsi.com",
+  "senior.03@pulsi.com",
   "u18.01@pulsi.com",
-  "u18.02@pulsi.com"
+  "u18.02@pulsi.com",
+  "u18.03@pulsi.com"
 ];
 
 const main = async () => {

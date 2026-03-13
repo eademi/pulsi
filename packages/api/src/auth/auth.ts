@@ -20,6 +20,7 @@ export const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: {
       httpOnly: true,
+      path: "/",
       sameSite: "lax",
       secure: env.NODE_ENV === "production"
     }
