@@ -3,11 +3,13 @@ import { z } from "zod";
 import {
   athleteGarminConnectionSchema,
   athleteDeviceConnectionSchema,
-  athleteClaimDetailsSchema,
-  athleteClaimLinkSchema,
+  athleteInviteDetailsSchema,
+  athleteInviteSchema,
   athletePortalSchema,
+  garminAdminBackfillRerunSchema,
+  garminAdminOverviewSchema,
   athleteSchema,
-  createAthleteClaimLinkInputSchema,
+  createAthleteInviteInputSchema,
   actorSessionSchema,
   athleteReadinessSchema,
   createAthleteInputSchema,
@@ -37,9 +39,10 @@ const AUTH_BASE_URL = `${API_BASE_URL}/api/auth`;
 const sessionResponseSchema = createApiSuccessSchema(actorSessionSchema);
 const readinessResponseSchema = createApiSuccessSchema(athleteReadinessSchema.array());
 const athletesResponseSchema = createApiSuccessSchema(athleteSchema.array());
-const athleteClaimLinkResponseSchema = createApiSuccessSchema(athleteClaimLinkSchema);
-const athleteClaimDetailsResponseSchema = createApiSuccessSchema(athleteClaimDetailsSchema);
+const athleteInviteResponseSchema = createApiSuccessSchema(athleteInviteSchema);
+const athleteInviteDetailsResponseSchema = createApiSuccessSchema(athleteInviteDetailsSchema);
 const athletePortalResponseSchema = createApiSuccessSchema(athletePortalSchema);
+const garminAdminOverviewResponseSchema = createApiSuccessSchema(garminAdminOverviewSchema);
 const athleteGarminConnectionResponseSchema = createApiSuccessSchema(athleteGarminConnectionSchema);
 const tenantsResponseSchema = createApiSuccessSchema(tenantSchema.array());
 const createTenantResponseSchema = createApiSuccessSchema(tenantSchema);
@@ -266,14 +269,14 @@ export const apiClient = {
     return parsed.data;
   },
 
-  async createAthleteClaimLink(
+  async createAthleteInvite(
     tenantSlug: string,
     athleteId: string,
-    input: z.infer<typeof createAthleteClaimLinkInputSchema>
+    input: z.infer<typeof createAthleteInviteInputSchema>
   ) {
     const parsed = await request(
       `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}/invites`,
-      athleteClaimLinkResponseSchema,
+      athleteInviteResponseSchema,
       {
         method: "POST",
         body: JSON.stringify(input)
@@ -283,10 +286,10 @@ export const apiClient = {
     return parsed.data;
   },
 
-  async getAthleteClaim(token: string) {
+  async getAthleteInvite(token: string) {
     const parsed = await request(
       `${API_BASE_URL}/v1/athlete-invites/${token}`,
-      athleteClaimDetailsResponseSchema,
+      athleteInviteDetailsResponseSchema,
       {
         method: "GET"
       }
@@ -295,7 +298,7 @@ export const apiClient = {
     return parsed.data;
   },
 
-  async acceptAthleteClaim(token: string) {
+  async acceptAthleteInvite(token: string) {
     const parsed = await request(
       `${API_BASE_URL}/v1/athlete-invites/${token}/accept`,
       createApiSuccessSchema(
@@ -325,6 +328,26 @@ export const apiClient = {
       athleteGarminConnectionResponseSchema,
       {
         method: "GET"
+      }
+    );
+
+    return parsed.data;
+  },
+
+  async getAdminGarminOverview() {
+    const parsed = await request(`${API_BASE_URL}/v1/admin/garmin`, garminAdminOverviewResponseSchema, {
+      method: "GET"
+    });
+
+    return parsed.data;
+  },
+
+  async rerunAdminGarminBackfill(connectionId: string) {
+    const parsed = await request(
+      `${API_BASE_URL}/v1/admin/garmin/connections/${connectionId}/backfill`,
+      createApiSuccessSchema(garminAdminBackfillRerunSchema),
+      {
+        method: "POST"
       }
     );
 

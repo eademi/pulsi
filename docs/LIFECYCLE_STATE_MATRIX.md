@@ -8,8 +8,8 @@ This document defines the important state combinations in Pulsi so staff UI, ath
   - Domain player record inside a tenant
   - Status: `active`, `inactive`, `rehab`
 - `athlete_invites`
-  - Invitation/claim flow for athlete Pulsi accounts
-  - Status: `pending`, `claimed`, `expired`, `revoked`
+  - Invitation/setup flow for athlete Pulsi accounts
+  - Status: `pending`, `accepted`, `expired`, `revoked`
 - `athlete_accounts`
   - Durable link between a Better Auth user and an athlete profile
   - Status: `active`, `revoked`
@@ -24,51 +24,51 @@ Pulsi has two different truths:
 - `active access`
   - whether a user can log in as an athlete right now
 - `historical identity`
-  - whether this athlete profile has ever been claimed by a Pulsi account
+  - whether this athlete profile has ever been linked to a Pulsi account
 
 Those must not be conflated.
 
 Example:
 
 - archiving an athlete revokes athlete login access
-- but staff roster views should still show that the athlete had already claimed a Pulsi account
+- but staff roster views should still show that the athlete already linked a Pulsi account
 
 ## Athlete lifecycle
 
 ```mermaid
 stateDiagram-v2
-  [*] --> ActiveUnclaimed
-  ActiveUnclaimed --> ActiveInvited: send athlete invite
-  ActiveInvited --> ActiveClaimed: athlete claims profile
-  ActiveClaimed --> ActiveGarmin: connect Garmin
-  ActiveUnclaimed --> ArchivedUnclaimed: archive
-  ActiveInvited --> ArchivedClaimed: archive after historical claim
-  ActiveClaimed --> ArchivedClaimed: archive
-  ActiveGarmin --> ArchivedClaimed: archive
-  ArchivedUnclaimed --> ActiveUnclaimed: restore
-  ArchivedClaimed --> ActiveClaimed: restore
-  ArchivedClaimed --> Deleted: permanent delete blocked if history/account exists
+  [*] --> ActiveUnlinked
+  ActiveUnlinked --> ActiveInvited: send athlete invite
+  ActiveInvited --> ActiveLinked: athlete accepts invite
+  ActiveLinked --> ActiveGarmin: connect Garmin
+  ActiveUnlinked --> ArchivedUnlinked: archive
+  ActiveInvited --> ArchivedLinked: archive after historical link
+  ActiveLinked --> ArchivedLinked: archive
+  ActiveGarmin --> ArchivedLinked: archive
+  ArchivedUnlinked --> ActiveUnlinked: restore
+  ArchivedLinked --> ActiveLinked: restore
+  ArchivedLinked --> Deleted: permanent delete blocked if history/account exists
 ```
 
 ## State matrix
 
 ### Staff roster projection
 
-| Athlete status | Claim link | Athlete account | Garmin | Staff roster account badge | Staff roster Garmin badge | Athlete login allowed |
+| Athlete status | Athlete invite | Athlete account | Garmin | Staff roster account badge | Staff roster Garmin badge | Athlete login allowed |
 | --- | --- | --- | --- | --- | --- | --- |
 | `active` | none | none | none | `No account` | `No Garmin` | No |
 | `active` | `pending` | none | none | `Invite pending` | `No Garmin` | No |
-| `active` | `claimed` or none | `active` | none | `Claimed` | `No Garmin` | Yes |
-| `active` | `claimed` or none | `active` | `active` | `Claimed` | `Garmin connected` | Yes |
+| `active` | `accepted` or none | `active` | none | `Linked` | `No Garmin` | Yes |
+| `active` | `accepted` or none | `active` | `active` | `Linked` | `Garmin connected` | Yes |
 | `inactive` | none | none | none | `No account` | `No Garmin` | No |
-| `inactive` | none | `revoked` | `revoked` or historical | `Claimed` | `Garmin connected` if a connection record still exists, otherwise `No Garmin` | No |
+| `inactive` | none | `revoked` | `revoked` or historical | `Linked` | `Garmin connected` if a connection record still exists, otherwise `No Garmin` | No |
 | `inactive` | `pending` | none | none | `Invite pending` | `No Garmin` | No |
 
 ### Rules behind the roster badge
 
-- `Claimed` wins over `Invite pending`
+- `Linked` wins over `Invite pending`
 - `Invite pending` wins over `No account`
-- A revoked `athlete_account` still counts as historically `Claimed` for staff views
+- A revoked `athlete_account` still counts as historically `Linked` for staff views
 - A revoked `athlete_account` does not count as active athlete access
 
 ## Archive behavior
@@ -121,10 +121,10 @@ Delete must be blocked when any of these are true:
 
 ## Test cases that must stay green
 
-- Active claimed athlete shows `Claimed`
-- Archived previously claimed athlete still shows `Claimed`
+- Active linked athlete shows `Linked`
+- Archived previously linked athlete still shows `Linked`
 - Active pending invite athlete shows `Invite pending`
-- Archived athlete without claim history shows `No account`
+- Archived athlete without invite/account history shows `No account`
 - Archive revokes athlete login access
 - Restore reactivates athlete login access
 - Permanent delete rejects historical Pulsi-account athletes

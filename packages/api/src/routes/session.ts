@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import { actorSessionSchema, createApiSuccessSchema } from "@pulsi/shared";
 
+import { isPlatformAdminEmail } from "../auth/platform-admin";
 import type { AppBindings } from "../context/app-context";
 import { requireAuth } from "../http/middleware";
 import { ok } from "../http/responses";
@@ -14,6 +15,7 @@ export const sessionRoutes = new Hono<AppBindings>()
 
     const payload = {
       actorType: actor.actorType,
+      platformAdmin: isPlatformAdminEmail(actor.email) && actor.actorType === "staff",
       user: {
         id: actor.userId,
         email: actor.email,

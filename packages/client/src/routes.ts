@@ -3,9 +3,9 @@ import { index, layout, route, type RouteConfig } from "@react-router/dev/routes
 export default [
   index("routes/index.tsx"),
   route("welcome", "routes/welcome.tsx"),
+  route("admin/garmin", "routes/admin-garmin.tsx"),
   route("athlete", "routes/athlete-home.tsx"),
-  route("athlete/setup/:token", "routes/athlete-claim.tsx"),
-  route("athlete/claim/:token", "routes/athlete-claim-redirect.tsx"),
+  route("athlete/setup/:token", "routes/athlete-setup.tsx"),
   layout("routes/auth-layout.tsx", [
     route("auth/sign-in", "routes/auth-sign-in.tsx"),
     route("auth/register", "routes/auth-register.tsx")

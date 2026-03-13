@@ -5,7 +5,7 @@ import { athleteInvites, athletes, squads, tenants } from "../db/schema";
 import { AppError } from "../http/errors";
 import { athleteSquadAssignments } from "../db/schema";
 
-export class AthleteClaimRepository {
+export class AthleteInviteRepository {
   public constructor(private readonly db: Database) {}
 
   public async create(
@@ -19,7 +19,7 @@ export class AthleteClaimRepository {
     },
     executor: DbExecutor = this.db
   ) {
-    const [claimLink] = await executor
+    const [invite] = await executor
       .insert(athleteInvites)
       .values({
         tenantId: input.tenantId,
@@ -31,11 +31,11 @@ export class AthleteClaimRepository {
       })
       .returning();
 
-    if (!claimLink) {
+    if (!invite) {
       throw new AppError(500, "INTERNAL_ERROR", "Failed to create athlete invite");
     }
 
-    return claimLink;
+    return invite;
   }
 
   public async revokePendingForAthlete(athleteId: string, executor: DbExecutor = this.db) {
@@ -49,26 +49,21 @@ export class AthleteClaimRepository {
       .returning();
   }
 
-  public async markExpiredPendingLinks(now: Date, executor: DbExecutor = this.db) {
+  public async markExpiredPendingInvites(now: Date, executor: DbExecutor = this.db) {
     return executor
       .update(athleteInvites)
       .set({
         status: "expired",
         updatedAt: now
       })
-      .where(
-        and(
-          eq(athleteInvites.status, "pending"),
-          lt(athleteInvites.expiresAt, now)
-        )
-      )
+      .where(and(eq(athleteInvites.status, "pending"), lt(athleteInvites.expiresAt, now)))
       .returning();
   }
 
   public async findPendingByTokenHash(tokenHash: string) {
-    const [claimLink] = await this.db
+    const [inviteLookup] = await this.db
       .select({
-        claimLink: athleteInvites,
+        invite: athleteInvites,
         athleteFirstName: athletes.firstName,
         athleteLastName: athletes.lastName,
         tenantName: tenants.name,
@@ -91,30 +86,30 @@ export class AthleteClaimRepository {
       .where(and(eq(athleteInvites.tokenHash, tokenHash), eq(athleteInvites.status, "pending")))
       .limit(1);
 
-    return claimLink ?? null;
+    return inviteLookup ?? null;
   }
 
-  public async markClaimed(
-    claimLinkId: string,
-    claimedByUserId: string,
-    claimedAt: Date,
+  public async markAccepted(
+    inviteId: string,
+    acceptedByUserId: string,
+    acceptedAt: Date,
     executor: DbExecutor = this.db
   ) {
-    const [claimLink] = await executor
+    const [invite] = await executor
       .update(athleteInvites)
       .set({
-        status: "claimed",
-        claimedByUserId,
-        claimedAt,
-        updatedAt: claimedAt
+        status: "accepted",
+        acceptedByUserId,
+        acceptedAt,
+        updatedAt: acceptedAt
       })
-      .where(eq(athleteInvites.id, claimLinkId))
+      .where(eq(athleteInvites.id, inviteId))
       .returning();
 
-    if (!claimLink) {
+    if (!invite) {
       throw new AppError(500, "INTERNAL_ERROR", "Failed to mark athlete invite as accepted");
     }
 
-    return claimLink;
+    return invite;
   }
 }

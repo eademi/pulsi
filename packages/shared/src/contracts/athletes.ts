@@ -40,24 +40,24 @@ export const deleteAthleteResponseSchema = z.object({
   deleted: z.boolean()
 });
 
-export const athleteClaimLinkStatusSchema = z.enum(["pending", "claimed", "revoked", "expired"]);
+export const athleteInviteStatusSchema = z.enum(["pending", "accepted", "revoked", "expired"]);
 
-export const createAthleteClaimLinkInputSchema = z.object({
+export const createAthleteInviteInputSchema = z.object({
   email: z.string().trim().email()
 });
 
-export const athleteClaimLinkSchema = z.object({
+export const athleteInviteSchema = z.object({
   id: z.string().uuid(),
   athleteId: z.string().uuid(),
   athleteName: z.string(),
   email: z.string().email(),
-  status: athleteClaimLinkStatusSchema,
-  claimUrl: z.string().url(),
+  status: athleteInviteStatusSchema,
+  inviteUrl: z.string().url(),
   expiresAt: z.string().datetime(),
   createdAt: z.string().datetime()
 });
 
-export const athleteClaimDetailsSchema = z.object({
+export const athleteInviteDetailsSchema = z.object({
   token: z.string(),
   athleteId: z.string().uuid(),
   athleteName: z.string(),
@@ -110,14 +110,14 @@ export const athletePortalSchema = z.object({
 
 export const createAthleteResponseSchema = z.object({
   athlete: athleteSchema,
-  invite: athleteClaimLinkSchema
+  invite: athleteInviteSchema
 });
 
 export type ListAthletesQuery = z.infer<typeof listAthletesQuerySchema>;
 export type CreateAthleteInput = z.infer<typeof createAthleteInputSchema>;
 export type UpdateAthleteSquadInput = z.infer<typeof updateAthleteSquadInputSchema>;
 export type RestoreAthleteInput = z.infer<typeof restoreAthleteInputSchema>;
-export type CreateAthleteClaimLinkInput = z.infer<typeof createAthleteClaimLinkInputSchema>;
-export type AthleteClaimLink = z.infer<typeof athleteClaimLinkSchema>;
-export type AthleteClaimDetails = z.infer<typeof athleteClaimDetailsSchema>;
+export type CreateAthleteInviteInput = z.infer<typeof createAthleteInviteInputSchema>;
+export type AthleteInvite = z.infer<typeof athleteInviteSchema>;
+export type AthleteInviteDetails = z.infer<typeof athleteInviteDetailsSchema>;
 export type AthletePortal = z.infer<typeof athletePortalSchema>;

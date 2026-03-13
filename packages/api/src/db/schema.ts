@@ -34,9 +34,9 @@ export const athleteUserAccountStatusEnum = pgEnum("athlete_user_account_status"
   "active",
   "revoked"
 ]);
-export const athleteClaimLinkStatusEnum = pgEnum("athlete_claim_link_status", [
+export const athleteInviteStatusEnum = pgEnum("athlete_invite_status", [
   "pending",
-  "claimed",
+  "accepted",
   "revoked",
   "expired"
 ]);
@@ -259,7 +259,7 @@ export const athleteAccounts = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     status: athleteUserAccountStatusEnum("status").default("active").notNull(),
-    claimedAt: timestamp("claimed_at", { withTimezone: true }).defaultNow().notNull(),
+    linkedAt: timestamp("linked_at", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
@@ -283,13 +283,13 @@ export const athleteInvites = pgTable(
       .references(() => athletes.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
     tokenHash: text("token_hash").notNull(),
-    status: athleteClaimLinkStatusEnum("status").default("pending").notNull(),
+    status: athleteInviteStatusEnum("status").default("pending").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdByUserId: text("created_by_user_id")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
-    claimedByUserId: text("claimed_by_user_id").references(() => user.id, { onDelete: "set null" }),
-    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    acceptedByUserId: text("accepted_by_user_id").references(() => user.id, { onDelete: "set null" }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },

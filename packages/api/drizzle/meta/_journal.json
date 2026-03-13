@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1773199633009,
-      "tag": "0000_big_mongu",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1773360555602,
-      "tag": "0001_rename_domain_tables",
+      "when": 1773363758393,
+      "tag": "0000_sloppy_puck",
       "breakpoints": true
     }
   ]

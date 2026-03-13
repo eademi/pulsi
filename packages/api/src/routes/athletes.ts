@@ -59,7 +59,7 @@ export const buildAthleteRoutes = (
 
       // Athlete onboarding now expects Pulsi account setup immediately, so a
       // roster create also issues the initial athlete invite in the same flow.
-      const invite = await athleteAccountService.createClaimLink({
+      const invite = await athleteAccountService.createInvite({
         tenantId: requestContext.tenant!.id,
         athleteId: athlete.id,
         email: body.email,

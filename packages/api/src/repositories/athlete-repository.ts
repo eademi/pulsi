@@ -34,10 +34,10 @@ export class AthleteRepository {
         athleteAccountUserId: athleteAccounts.userId,
         athleteAccountName: user.name,
         athleteAccountEmail: user.email,
-        athleteAccountClaimedAt: athleteAccounts.claimedAt,
-        pendingClaimLinkId: athleteInvites.id,
-        pendingClaimEmail: athleteInvites.email,
-        pendingClaimExpiresAt: athleteInvites.expiresAt
+        athleteAccountLinkedAt: athleteAccounts.linkedAt,
+        pendingInviteId: athleteInvites.id,
+        pendingInviteEmail: athleteInvites.email,
+        pendingInviteExpiresAt: athleteInvites.expiresAt
       })
       .from(athletes)
       .leftJoin(
@@ -49,7 +49,7 @@ export class AthleteRepository {
         athleteAccounts,
         // Roster views should preserve historical athlete-account linkage even
         // after archive revokes login access, so staff can still see that the
-        // athlete had already claimed a Pulsi account.
+        // athlete already linked a Pulsi account.
         eq(athleteAccounts.athleteId, athletes.id)
       )
       .leftJoin(user, eq(athleteAccounts.userId, user.id))
@@ -83,10 +83,10 @@ export class AthleteRepository {
         athleteAccountUserId: athleteAccounts.userId,
         athleteAccountName: user.name,
         athleteAccountEmail: user.email,
-        athleteAccountClaimedAt: athleteAccounts.claimedAt,
-        pendingClaimLinkId: athleteInvites.id,
-        pendingClaimEmail: athleteInvites.email,
-        pendingClaimExpiresAt: athleteInvites.expiresAt
+        athleteAccountLinkedAt: athleteAccounts.linkedAt,
+        pendingInviteId: athleteInvites.id,
+        pendingInviteEmail: athleteInvites.email,
+        pendingInviteExpiresAt: athleteInvites.expiresAt
       })
       .from(athletes)
       .leftJoin(
@@ -98,7 +98,7 @@ export class AthleteRepository {
         athleteAccounts,
         // Roster views should preserve historical athlete-account linkage even
         // after archive revokes login access, so staff can still see that the
-        // athlete had already claimed a Pulsi account.
+        // athlete already linked a Pulsi account.
         eq(athleteAccounts.athleteId, athletes.id)
       )
       .leftJoin(user, eq(athleteAccounts.userId, user.id))
@@ -294,10 +294,10 @@ const mapAthleteRecord = (row: {
   athleteAccountUserId: string | null;
   athleteAccountName: string | null;
   athleteAccountEmail: string | null;
-  athleteAccountClaimedAt: Date | null;
-  pendingClaimLinkId: string | null;
-  pendingClaimEmail: string | null;
-  pendingClaimExpiresAt: Date | null;
+  athleteAccountLinkedAt: Date | null;
+  pendingInviteId: string | null;
+  pendingInviteEmail: string | null;
+  pendingInviteExpiresAt: Date | null;
 }) => ({
   ...row.athlete,
   accountState: deriveAthleteAccountState(row satisfies AthleteRosterStateRow),

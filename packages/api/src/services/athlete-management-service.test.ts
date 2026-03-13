@@ -13,7 +13,7 @@ const createHarness = () => {
     endedAssignments: [] as Array<Record<string, unknown>>,
     restoredAccounts: [] as Array<Record<string, unknown>>,
     revokedAccounts: [] as Array<Record<string, unknown>>,
-    revokedClaims: [] as string[],
+    revokedInvites: [] as string[],
     revokedConnections: [] as string[][]
   };
 
@@ -103,9 +103,9 @@ const createHarness = () => {
     }
   };
 
-  const athleteClaimRepository = {
+  const athleteInviteRepository = {
     revokePendingForAthlete: async (athleteId: string) => {
-      calls.revokedClaims.push(athleteId);
+      calls.revokedInvites.push(athleteId);
       return [];
     }
   };
@@ -129,7 +129,7 @@ const createHarness = () => {
       athleteRepository as never,
       squadRepository as never,
       athleteAccountRepository as never,
-      athleteClaimRepository as never,
+      athleteInviteRepository as never,
       garminRepository as never
     ),
     setAthlete(value: typeof athlete) {
@@ -194,7 +194,7 @@ test("archiveAthlete marks the athlete inactive and revokes lifecycle state", as
   });
 
   assert.equal(athlete.status, "inactive");
-  assert.equal(harness.calls.revokedClaims[0], "athlete-1");
+  assert.equal(harness.calls.revokedInvites[0], "athlete-1");
   assert.equal(harness.calls.revokedAccounts.length, 1);
   assert.equal(harness.calls.endedAssignments.length, 1);
 });

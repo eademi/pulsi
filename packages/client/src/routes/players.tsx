@@ -125,7 +125,7 @@ export const clientAction = async ({ params, request }: { params: Record<string,
         return { error: "Athlete and email are required to generate an athlete invite.", feedbackId, intent };
       }
 
-      const invite = await apiClient.createAthleteClaimLink(tenantSlug, athleteId, { email });
+      const invite = await apiClient.createAthleteInvite(tenantSlug, athleteId, { email });
       return {
         invite,
         feedbackId,
@@ -153,7 +153,7 @@ export default function PlayersRoute() {
     success?: string;
     invite?: {
       athleteName: string;
-      claimUrl: string;
+      inviteUrl: string;
       email: string;
       expiresAt: string;
     };
@@ -173,7 +173,7 @@ export default function PlayersRoute() {
     garminConnections.filter((connection) => connection.status === "active").map((connection) => connection.athleteId),
   );
   const moveModalAthlete = activeAthletes.find((athlete) => athlete.id === moveModalAthleteId) ?? null;
-  const accountDialogAthlete = athletes.find((athlete) => athlete.id === accountDialogAthleteId && athlete.accountState === "claimed") ?? null;
+  const accountDialogAthlete = athletes.find((athlete) => athlete.id === accountDialogAthleteId && athlete.accountState === "linked") ?? null;
 
   const submitDeleteAthlete = (athleteId: string) => {
     const formData = new FormData();
@@ -278,8 +278,8 @@ export default function PlayersRoute() {
                   </DataCell>
                   <DataCell>
                     {canManage ? (
-      athlete.accountState === "claimed" ? (
-                        <span className="pill pill-muted">Already claimed</span>
+      athlete.accountState === "linked" ? (
+                        <span className="pill pill-muted">Already linked</span>
                       ) : (
                         <Form className="flex gap-2" method="post">
                           <input name="intent" type="hidden" value="generate-athlete-invite" />
@@ -402,7 +402,7 @@ export default function PlayersRoute() {
               Send this setup link to {actionData.invite.email}. It expires {new Date(actionData.invite.expiresAt).toLocaleString()}.
             </p>
             <code className="mt-4 block rounded-soft border border-white/8 bg-black/20 px-4 py-3 text-xs text-accent-300">
-              {actionData.invite.claimUrl}
+              {actionData.invite.inviteUrl}
             </code>
           </section>
         ) : null}
@@ -563,8 +563,8 @@ export default function PlayersRoute() {
               <AccountDetail
                 label="Activated at"
                 value={
-                  accountDialogAthlete.accountDetails?.claimedAt
-                    ? new Date(accountDialogAthlete.accountDetails.claimedAt).toLocaleString()
+                  accountDialogAthlete.accountDetails?.linkedAt
+                    ? new Date(accountDialogAthlete.accountDetails.linkedAt).toLocaleString()
                     : "Unknown"
                 }
               />
@@ -662,10 +662,10 @@ function GarminConnectionBadge({ connected }: { connected: boolean }) {
 }
 
 function AccountStateBadge({ athlete, onOpenDetails }: { athlete: Athlete; onOpenDetails: (athleteId: string) => void }) {
-  if (athlete.accountState === "claimed") {
+  if (athlete.accountState === "linked") {
     return (
       <button className="btn-secondary h-9" onClick={() => onOpenDetails(athlete.id)} type="button">
-        Claimed
+        Linked
       </button>
     );
   }
@@ -674,7 +674,7 @@ function AccountStateBadge({ athlete, onOpenDetails }: { athlete: Athlete; onOpe
     return <span className="pill pill-caution">Invite pending</span>;
   }
 
-  return <span className="pill pill-muted">No account</span>;
+  return <span className="pill pill-muted">No account linked</span>;
 }
 
 function AccountDetail({ label, value }: { label: string; value: string }) {

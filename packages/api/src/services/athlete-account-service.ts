@@ -7,12 +7,12 @@ import type { Database } from "../db/client";
 import { athleteAccounts, athleteInvites, athletes, user } from "../db/schema";
 import { AppError } from "../http/errors";
 import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
-import type { AthleteClaimRepository } from "../repositories/athlete-claim-repository";
+import type { AthleteInviteRepository } from "../repositories/athlete-invite-repository";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { GarminRepository } from "../repositories/garmin-repository";
 import type { ReadinessRepository } from "../repositories/readiness-repository";
 
-const CLAIM_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const ATHLETE_INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const ATHLETE_TREND_WINDOW_DAYS = 7;
 
 export class AthleteAccountService {
@@ -20,13 +20,13 @@ export class AthleteAccountService {
     private readonly db: Database,
     private readonly athleteRepository: AthleteRepository,
     private readonly athleteAccountRepository: AthleteAccountRepository,
-    private readonly athleteClaimRepository: AthleteClaimRepository,
+    private readonly athleteInviteRepository: AthleteInviteRepository,
     private readonly readinessRepository: ReadinessRepository,
     private readonly garminRepository: GarminRepository,
     private readonly clientUrl: string
   ) {}
 
-  public async createClaimLink(input: {
+  public async createInvite(input: {
     tenantId: string;
     athleteId: string;
     email: string;
@@ -47,10 +47,10 @@ export class AthleteAccountService {
 
     const existingAccount = await this.athleteAccountRepository.findActiveByAthleteId(input.athleteId);
     if (existingAccount) {
-      throw new AppError(409, "CONFLICT", "This athlete already has a claimed Pulsi account");
+      throw new AppError(409, "CONFLICT", "This athlete already has a linked Pulsi account");
     }
 
-    // Claim-link email is the durable identity checkpoint for athletes. Guard it
+    // Athlete-invite email is the durable identity checkpoint for athletes. Guard it
     // across tenant athlete identities so archived profiles are restored instead
     // of silently duplicating the same person under a new athlete record.
     const emailConflict = await this.findEmailConflict(input.tenantId, input.athleteId, normalizedEmail);
@@ -67,14 +67,14 @@ export class AthleteAccountService {
     }
 
     const now = input.now ?? new Date();
-    const expiresAt = new Date(now.getTime() + CLAIM_LINK_TTL_MS);
+    const expiresAt = new Date(now.getTime() + ATHLETE_INVITE_TTL_MS);
     const rawToken = randomBytes(24).toString("hex");
-    const tokenHash = hashClaimToken(rawToken);
+    const tokenHash = hashInviteToken(rawToken);
 
-    const claimLink = await this.db.transaction(async (tx) => {
-      await this.athleteClaimRepository.markExpiredPendingLinks(now, tx);
-      await this.athleteClaimRepository.revokePendingForAthlete(input.athleteId, tx);
-      return this.athleteClaimRepository.create(
+    const invite = await this.db.transaction(async (tx) => {
+      await this.athleteInviteRepository.markExpiredPendingInvites(now, tx);
+      await this.athleteInviteRepository.revokePendingForAthlete(input.athleteId, tx);
+      return this.athleteInviteRepository.create(
         {
           tenantId: input.tenantId,
           athleteId: input.athleteId,
@@ -88,50 +88,50 @@ export class AthleteAccountService {
     });
 
     return {
-      id: claimLink.id,
+      id: invite.id,
       athleteId: athlete.id,
       athleteName: `${athlete.firstName} ${athlete.lastName}`,
       email: normalizedEmail,
-      status: claimLink.status,
-      claimUrl: buildClaimUrl(this.clientUrl, rawToken),
-      expiresAt: claimLink.expiresAt.toISOString(),
-      createdAt: claimLink.createdAt.toISOString()
+      status: invite.status,
+      inviteUrl: buildInviteUrl(this.clientUrl, rawToken),
+      expiresAt: invite.expiresAt.toISOString(),
+      createdAt: invite.createdAt.toISOString()
     };
   }
 
-  public async getClaimDetails(token: string, now = new Date()) {
-    const claimLink = await this.athleteClaimRepository.findPendingByTokenHash(hashClaimToken(token));
+  public async getInviteDetails(token: string, now = new Date()) {
+    const inviteLookup = await this.athleteInviteRepository.findPendingByTokenHash(hashInviteToken(token));
 
-    if (!claimLink) {
+    if (!inviteLookup) {
       throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete invite not found");
     }
 
-    if (claimLink.claimLink.expiresAt < now) {
-      await this.athleteClaimRepository.markExpiredPendingLinks(now);
+    if (inviteLookup.invite.expiresAt < now) {
+      await this.athleteInviteRepository.markExpiredPendingInvites(now);
       throw new AppError(409, "CONFLICT", "Athlete invite has expired");
     }
 
     return {
       token,
-      athleteId: claimLink.claimLink.athleteId,
-      athleteName: `${claimLink.athleteFirstName} ${claimLink.athleteLastName}`,
-      email: claimLink.claimLink.email,
-      tenantId: claimLink.claimLink.tenantId,
-      tenantName: claimLink.tenantName,
-      tenantSlug: claimLink.tenantSlug,
+      athleteId: inviteLookup.invite.athleteId,
+      athleteName: `${inviteLookup.athleteFirstName} ${inviteLookup.athleteLastName}`,
+      email: inviteLookup.invite.email,
+      tenantId: inviteLookup.invite.tenantId,
+      tenantName: inviteLookup.tenantName,
+      tenantSlug: inviteLookup.tenantSlug,
       currentSquad:
-        claimLink.currentSquadId && claimLink.currentSquadSlug && claimLink.currentSquadName
+        inviteLookup.currentSquadId && inviteLookup.currentSquadSlug && inviteLookup.currentSquadName
           ? {
-              id: claimLink.currentSquadId,
-              slug: claimLink.currentSquadSlug,
-              name: claimLink.currentSquadName
+              id: inviteLookup.currentSquadId,
+              slug: inviteLookup.currentSquadSlug,
+              name: inviteLookup.currentSquadName
             }
           : null,
-      expiresAt: claimLink.claimLink.expiresAt.toISOString()
+      expiresAt: inviteLookup.invite.expiresAt.toISOString()
     };
   }
 
-  public async acceptClaim(input: {
+  public async acceptInvite(input: {
     token: string;
     userId: string;
     userEmail: string;
@@ -144,7 +144,7 @@ export class AthleteAccountService {
     }
 
     if (input.membershipCount > 0) {
-      throw new AppError(409, "CONFLICT", "Staff accounts cannot claim athlete profiles");
+      throw new AppError(409, "CONFLICT", "Staff accounts cannot accept athlete invites");
     }
 
     const existingAthleteAccount = await this.athleteAccountRepository.findActiveByUserId(input.userId);
@@ -152,19 +152,19 @@ export class AthleteAccountService {
       throw new AppError(409, "CONFLICT", "This account is already linked to an athlete profile");
     }
 
-    const claimLink = await this.athleteClaimRepository.findPendingByTokenHash(hashClaimToken(input.token));
+    const inviteLookup = await this.athleteInviteRepository.findPendingByTokenHash(hashInviteToken(input.token));
 
-    if (!claimLink) {
+    if (!inviteLookup) {
       throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete invite not found");
     }
 
     const now = input.now ?? new Date();
-    if (claimLink.claimLink.expiresAt < now) {
-      await this.athleteClaimRepository.markExpiredPendingLinks(now);
+    if (inviteLookup.invite.expiresAt < now) {
+      await this.athleteInviteRepository.markExpiredPendingInvites(now);
       throw new AppError(409, "CONFLICT", "Athlete invite has expired");
     }
 
-    if (claimLink.claimLink.email.toLowerCase() !== input.userEmail.trim().toLowerCase()) {
+    if (inviteLookup.invite.email.toLowerCase() !== input.userEmail.trim().toLowerCase()) {
       throw new AppError(
         403,
         "FORBIDDEN",
@@ -173,24 +173,24 @@ export class AthleteAccountService {
     }
 
     const existingLinkedAthlete = await this.athleteAccountRepository.findActiveByAthleteId(
-      claimLink.claimLink.athleteId
+      inviteLookup.invite.athleteId
     );
     if (existingLinkedAthlete) {
-      throw new AppError(409, "CONFLICT", "This athlete profile has already been claimed");
+      throw new AppError(409, "CONFLICT", "This athlete profile is already linked to a Pulsi account");
     }
 
     await this.db.transaction(async (tx) => {
       await this.athleteAccountRepository.create(
         {
-          athleteId: claimLink.claimLink.athleteId,
+          athleteId: inviteLookup.invite.athleteId,
           userId: input.userId,
-          claimedAt: now
+          linkedAt: now
         },
         tx
       );
 
-      await this.athleteClaimRepository.markClaimed(
-        claimLink.claimLink.id,
+      await this.athleteInviteRepository.markAccepted(
+        inviteLookup.invite.id,
         input.userId,
         now,
         tx
@@ -300,7 +300,7 @@ export class AthleteAccountService {
       return accountConflict;
     }
 
-    const [claimConflict] = await this.db
+    const [inviteConflict] = await this.db
       .select({
         athleteId: athletes.id,
         status: athletes.status
@@ -312,18 +312,18 @@ export class AthleteAccountService {
           eq(athleteInvites.tenantId, tenantId),
           ne(athleteInvites.athleteId, athleteId),
           eq(athleteInvites.email, email),
-          or(eq(athleteInvites.status, "pending"), eq(athleteInvites.status, "claimed"))
+          or(eq(athleteInvites.status, "pending"), eq(athleteInvites.status, "accepted"))
         )
       )
       .limit(1);
 
-    return claimConflict ?? null;
+    return inviteConflict ?? null;
   }
 }
 
-const hashClaimToken = (token: string) => createHash("sha256").update(token).digest("hex");
+const hashInviteToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-const buildClaimUrl = (clientUrl: string, token: string) =>
+const buildInviteUrl = (clientUrl: string, token: string) =>
   new URL(`/athlete/setup/${token}`, clientUrl).toString();
 
 const buildTrendSummary = (

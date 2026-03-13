@@ -19,7 +19,7 @@ export class AthleteAccountRepository {
     input: {
       athleteId: string;
       userId: string;
-      claimedAt: Date;
+      linkedAt: Date;
     },
     executor: DbExecutor = this.db
   ) {
@@ -28,7 +28,7 @@ export class AthleteAccountRepository {
       .values({
         athleteId: input.athleteId,
         userId: input.userId,
-        claimedAt: input.claimedAt
+        linkedAt: input.linkedAt
       })
       .returning();
 

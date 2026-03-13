@@ -5,6 +5,7 @@ import type { ActorSession, TenantMembership } from "@pulsi/shared";
 
 import { CommandPalette } from "./ui/command-palette";
 import {
+  getAdminGarminPath,
   getDashboardPath,
   getGarminIntegrationPath,
   getOrganizationSettingsPath,
@@ -105,8 +106,18 @@ export function AppShell({
       });
     }
 
+    if (session.platformAdmin) {
+      items.push({
+        href: getAdminGarminPath(),
+        label: "Pulsi Admin",
+        description: "Internal Garmin diagnostics and controls",
+        icon: ShieldIcon,
+        section: "management",
+      });
+    }
+
     return items;
-  }, [activeMembership.role, activeMembership.tenantSlug]);
+  }, [activeMembership.role, activeMembership.tenantSlug, session.platformAdmin]);
 
   const navigationSections = useMemo<NavigationSection[]>(
     () =>
@@ -347,6 +358,19 @@ function CogIcon({ className }: { className?: string }) {
   return iconPath(
     className,
     "M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-5 1.2 2.47 2.73.4-.97 2.57 1.8 2.08-2.4 1.34.27 2.75L12 14.95l-2.63 1.66.27-2.75-2.4-1.34 1.8-2.08-.97-2.57 2.73-.4L12 3z",
+  );
+}
+
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+      <path
+        d="M12 3.5 18.5 6v5.75c0 4.06-2.3 7.14-6.5 8.75-4.2-1.61-6.5-4.69-6.5-8.75V6z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path d="M9.75 12.25 11.25 13.75 14.75 10.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
   );
 }
 function BellIcon({ className }: { className?: string }) {

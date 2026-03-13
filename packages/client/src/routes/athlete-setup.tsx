@@ -7,7 +7,7 @@ export const clientLoader = async ({ params, request }: { params: Record<string,
   const token = params.token;
 
   if (!token) {
-    throw new Error("Claim token is required.");
+    throw new Error("Invite token is required.");
   }
 
   const session = await apiClient.getSessionOptional();
@@ -24,10 +24,10 @@ export const clientLoader = async ({ params, request }: { params: Record<string,
     throw redirect(getDefaultAppPath(session));
   }
 
-  const claim = await apiClient.getAthleteClaim(token);
+  const invite = await apiClient.getAthleteInvite(token);
 
   return {
-    invite: claim,
+    invite,
     session,
   };
 };
@@ -36,21 +36,21 @@ export const clientAction = async ({ params }: { params: Record<string, string |
   const token = params.token;
 
   if (!token) {
-    return { error: "Claim token is required." };
+    return { error: "Invite token is required." };
   }
 
   try {
-    await apiClient.acceptAthleteClaim(token);
+    await apiClient.acceptAthleteInvite(token);
     const session = await apiClient.getSession();
     throw redirect(getDefaultAppPath(session));
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Unable to claim athlete profile.",
+      error: error instanceof Error ? error.message : "Unable to activate athlete account.",
     };
   }
 };
 
-export default function AthleteClaimRoute() {
+export default function AthleteSetupRoute() {
   const { invite, session } = useLoaderData<typeof clientLoader>();
   const actionData = useActionData() as { error?: string } | undefined;
   const navigation = useNavigation();

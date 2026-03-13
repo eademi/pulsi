@@ -323,7 +323,7 @@ Recommended columns:
 - `user_id`
 - `athlete_id`
 - `status`
-- `claimed_at`
+- `linked_at`
 - `created_at`
 - `updated_at`
 
@@ -469,10 +469,10 @@ To be ready for athlete accounts, do this in order:
    - repository
    - service
 
-4. Add athlete claim / invitation flow
+4. Add athlete invite / setup flow
    - decide whether athlete accounts are:
      - created by staff invite
-     - claimed by secure link
+     - accepted by secure setup link
      - created self-serve with a matching rule
 
 5. Add athlete-only routes and auth guards
@@ -488,7 +488,7 @@ The cleanest first implementation is:
 - staff creates athlete record
 - staff sends athlete setup invite
 - athlete registers/signs in
-- athlete claims that athlete profile
+- athlete accepts the invite for that athlete profile
 - `athlete_accounts` row is created
 
 Why this is better than open self-signup:
@@ -547,7 +547,7 @@ The next implementation step should be:
 
 - add `actorType` to request-context design
 - introduce `athlete_accounts`
-- design the athlete claim flow
+- design the athlete invite flow
 
 That is the clean boundary where Pulsi moves from:
 

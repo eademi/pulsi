@@ -77,14 +77,14 @@ const SQUAD_FIXTURES = [
   { slug: "u18", name: "U18", category: "Academy" }
 ] as const;
 
-const CLAIMED_ATHLETE_EMAILS = new Map<string, string>([
+const LINKED_ATHLETE_EMAILS = new Map<string, string>([
   ["senior-01", "senior.01@pulsi.com"],
   ["senior-02", "senior.02@pulsi.com"],
   ["u18-01", "u18.01@pulsi.com"],
   ["u18-02", "u18.02@pulsi.com"]
 ]);
 
-const PENDING_CLAIM_EMAILS = new Map<string, string>([
+const PENDING_INVITE_EMAILS = new Map<string, string>([
   ["senior-03", "senior.03@pulsi.com"],
   ["senior-04", "senior.04@pulsi.com"],
   ["u18-03", "u18.03@pulsi.com"],
@@ -116,11 +116,11 @@ const main = async () => {
   const garminConnections = await upsertGarminConnections(tenant.id, athleteRecords, connectedAthleteIds);
   await upsertReadinessFixtures(tenant.id, athleteRecords, garminConnections, connectedAthleteIds);
 
-  const athleteUsers = await upsertClaimedAthleteUsers({
+  const athleteUsers = await upsertLinkedAthleteUsers({
     passwordHash,
     athleteByExternalRef
   });
-  const claimLinks = await upsertPendingClaimLinks({
+  const athleteInvites = await upsertPendingAthleteInvites({
     tenantId: tenant.id,
     createdByUserId: staffUsers.get("owner")!.id,
     athleteByExternalRef
@@ -130,7 +130,7 @@ const main = async () => {
     tenant,
     staffUsers,
     athleteUsers,
-    claimLinks
+    athleteInvites
   });
 };
 
@@ -641,16 +641,16 @@ const upsertReadinessFixtures = async (
   }
 };
 
-const upsertClaimedAthleteUsers = async (input: {
+const upsertLinkedAthleteUsers = async (input: {
   passwordHash: string;
   athleteByExternalRef: Map<string, typeof athletes.$inferSelect & { currentSquadId: string }>;
 }) => {
   const users = new Map<string, typeof user.$inferSelect>();
 
-  for (const [externalRef, email] of CLAIMED_ATHLETE_EMAILS) {
+  for (const [externalRef, email] of LINKED_ATHLETE_EMAILS) {
     const athleteRecord = input.athleteByExternalRef.get(externalRef);
     if (!athleteRecord) {
-      throw new Error(`Missing athlete ${externalRef} for claimed athlete seed`);
+      throw new Error(`Missing athlete ${externalRef} for linked athlete seed`);
     }
 
     const authUser = await upsertAuthUser({
@@ -667,7 +667,7 @@ const upsertClaimedAthleteUsers = async (input: {
         athleteId: athleteRecord.id,
         userId: authUser.id,
         status: "active",
-        claimedAt: TODAY,
+        linkedAt: TODAY,
         createdAt: TODAY,
         updatedAt: TODAY
       })
@@ -676,7 +676,7 @@ const upsertClaimedAthleteUsers = async (input: {
         set: {
           athleteId: athleteRecord.id,
           status: "active",
-          claimedAt: TODAY,
+          linkedAt: TODAY,
           updatedAt: TODAY
         }
       });
@@ -687,28 +687,28 @@ const upsertClaimedAthleteUsers = async (input: {
   return users;
 };
 
-const upsertPendingClaimLinks = async (input: {
+const upsertPendingAthleteInvites = async (input: {
   tenantId: string;
   createdByUserId: string;
   athleteByExternalRef: Map<string, typeof athletes.$inferSelect & { currentSquadId: string }>;
 }) => {
-  const claimUrls: Array<{ athleteName: string; claimUrl: string; email: string }> = [];
+  const inviteUrls: Array<{ athleteName: string; inviteUrl: string; email: string }> = [];
 
-  for (const [externalRef, email] of PENDING_CLAIM_EMAILS) {
+  for (const [externalRef, email] of PENDING_INVITE_EMAILS) {
     const athleteRecord = input.athleteByExternalRef.get(externalRef);
     if (!athleteRecord) {
-      throw new Error(`Missing athlete ${externalRef} for pending claim seed`);
+      throw new Error(`Missing athlete ${externalRef} for pending invite seed`);
     }
 
-    const rawToken = `demo-claim-${externalRef}`;
+    const rawToken = `demo-invite-${externalRef}`;
     const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-    const claimId = deterministicUuid(`claim-link:${externalRef}`);
+    const inviteId = deterministicUuid(`athlete-invite:${externalRef}`);
     const expiresAt = daysFrom(TODAY, 14);
 
     await db
       .insert(athleteInvites)
       .values({
-        id: claimId,
+        id: inviteId,
         tenantId: input.tenantId,
         athleteId: athleteRecord.id,
         email,
@@ -716,8 +716,8 @@ const upsertPendingClaimLinks = async (input: {
         status: "pending",
         expiresAt,
         createdByUserId: input.createdByUserId,
-        claimedByUserId: null,
-        claimedAt: null,
+        acceptedByUserId: null,
+        acceptedAt: null,
         createdAt: TODAY,
         updatedAt: TODAY
       })
@@ -730,20 +730,20 @@ const upsertPendingClaimLinks = async (input: {
           status: "pending",
           expiresAt,
           createdByUserId: input.createdByUserId,
-          claimedByUserId: null,
-          claimedAt: null,
+          acceptedByUserId: null,
+          acceptedAt: null,
           updatedAt: TODAY
         }
       });
 
-    claimUrls.push({
+    inviteUrls.push({
       athleteName: `${athleteRecord.firstName} ${athleteRecord.lastName}`,
       email,
-      claimUrl: `http://localhost:3000/athlete/setup/${rawToken}`
+      inviteUrl: `http://localhost:3000/athlete/setup/${rawToken}`
     });
   }
 
-  return claimUrls;
+  return inviteUrls;
 };
 
 const buildReadinessFixture = (athleteIndex: number, dayOffset: number) => {
@@ -801,7 +801,7 @@ const printSummary = (input: {
   tenant: typeof tenants.$inferSelect;
   staffUsers: Map<string, typeof user.$inferSelect>;
   athleteUsers: Map<string, typeof user.$inferSelect>;
-  claimLinks: Array<{ athleteName: string; claimUrl: string; email: string }>;
+  athleteInvites: Array<{ athleteName: string; inviteUrl: string; email: string }>;
 }) => {
   process.stdout.write(`\nSeeded demo environment for ${input.tenant.name} (${input.tenant.slug})\n`);
   process.stdout.write(`Shared demo password: ${DEMO_PASSWORD}\n\n`);
@@ -811,16 +811,16 @@ const printSummary = (input: {
   }
 
   if (input.athleteUsers.size > 0) {
-    process.stdout.write("\nClaimed athlete accounts:\n");
+    process.stdout.write("\nLinked athlete accounts:\n");
     for (const email of input.athleteUsers.keys()) {
       process.stdout.write(`- ${email}\n`);
     }
   }
 
-  if (input.claimLinks.length > 0) {
+  if (input.athleteInvites.length > 0) {
     process.stdout.write("\nPending athlete setup invites:\n");
-    for (const claimLink of input.claimLinks) {
-      process.stdout.write(`- ${claimLink.athleteName} <${claimLink.email}> -> ${claimLink.claimUrl}\n`);
+    for (const invite of input.athleteInvites) {
+      process.stdout.write(`- ${invite.athleteName} <${invite.email}> -> ${invite.inviteUrl}\n`);
     }
   }
 };

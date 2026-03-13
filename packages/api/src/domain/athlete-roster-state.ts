@@ -1,34 +1,34 @@
 import type { AthleteAccountDetails, AthleteAccountState } from "@pulsi/shared";
 
 export interface AthleteRosterStateRow {
-  athleteAccountClaimedAt: Date | null;
+  athleteAccountLinkedAt: Date | null;
   athleteAccountEmail: string | null;
   athleteAccountName: string | null;
   athleteAccountUserId: string | null;
-  pendingClaimEmail: string | null;
-  pendingClaimExpiresAt: Date | null;
-  pendingClaimLinkId: string | null;
+  pendingInviteEmail: string | null;
+  pendingInviteExpiresAt: Date | null;
+  pendingInviteId: string | null;
 }
 
 export const deriveAthleteAccountState = (row: AthleteRosterStateRow): AthleteAccountState => {
   // Historical athlete-account linkage must win over pending invites so roster
-  // views continue to reflect that the athlete has already claimed a Pulsi
+  // views continue to reflect that the athlete already linked a Pulsi
   // account, even after archive revokes active login access.
   if (row.athleteAccountUserId) {
-    return "claimed";
+    return "linked";
   }
 
-  if (row.pendingClaimLinkId) {
+  if (row.pendingInviteId) {
     return "invited";
   }
 
-  return "unclaimed";
+  return "unlinked";
 };
 
 export const buildAthleteAccountDetails = (
   row: AthleteRosterStateRow
 ): AthleteAccountDetails | null => {
-  if (!row.athleteAccountUserId && !row.pendingClaimLinkId) {
+  if (!row.athleteAccountUserId && !row.pendingInviteId) {
     return null;
   }
 
@@ -36,8 +36,8 @@ export const buildAthleteAccountDetails = (
     userId: row.athleteAccountUserId,
     name: row.athleteAccountName,
     email: row.athleteAccountEmail,
-    claimedAt: row.athleteAccountClaimedAt?.toISOString() ?? null,
-    pendingEmail: row.pendingClaimEmail,
-    pendingExpiresAt: row.pendingClaimExpiresAt?.toISOString() ?? null
+    linkedAt: row.athleteAccountLinkedAt?.toISOString() ?? null,
+    pendingEmail: row.pendingInviteEmail,
+    pendingExpiresAt: row.pendingInviteExpiresAt?.toISOString() ?? null
   };
 };

@@ -99,8 +99,8 @@ flowchart TD
   CreateAthlete --> AthleteRecord["athletes row"]
   CreateAthlete --> SquadAssignment["active squad assignment"]
 
-  AthleteRecord --> ClaimLink["optional athlete_invites"]
-  ClaimLink --> Register["Athlete registers/signs in"]
+  AthleteRecord --> AthleteInvite["optional athlete_invites"]
+  AthleteInvite --> Register["Athlete registers/signs in"]
   Register --> Claim["Claim profile"]
   Claim --> AthleteUserAccount["athlete_accounts row"]
 ```
@@ -214,7 +214,7 @@ erDiagram
   TENANT ||--o{ ATHLETE : contains
   ATHLETE ||--o{ ATHLETE_SQUAD_ASSIGNMENT : assigned_to
   ATHLETE ||--o| ATHLETE_DEVICE_CONNECTION : "garmin connection"
-  ATHLETE ||--o{ ATHLETE_CLAIM_LINK : "claim flow"
+  ATHLETE ||--o{ ATHLETE_INVITE : "invite flow"
 ```
 
 Read this carefully:

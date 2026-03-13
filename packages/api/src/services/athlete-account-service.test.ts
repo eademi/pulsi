@@ -7,8 +7,8 @@ import { AthleteAccountService } from "./athlete-account-service";
 const createHarness = () => {
   const calls = {
     createAccount: [] as Array<Record<string, unknown>>,
-    createClaimLink: [] as Array<Record<string, unknown>>,
-    markClaimed: [] as Array<Record<string, unknown>>,
+    createInvite: [] as Array<Record<string, unknown>>,
+    markAccepted: [] as Array<Record<string, unknown>>,
     revokePending: [] as string[]
   };
 
@@ -30,10 +30,10 @@ const createHarness = () => {
 
   let activeAthleteAccountByAthleteId: null | { athleteId: string } = null;
   let activeAthleteAccountByUserId: null | { userId: string } = null;
-  let claimLookup: null | {
+  let inviteLookup: null | {
     athleteFirstName: string;
     athleteLastName: string;
-    claimLink: {
+    invite: {
       athleteId: string;
       email: string;
       expiresAt: Date;
@@ -90,22 +90,22 @@ const createHarness = () => {
     findActiveByUserId: async () => activeAthleteAccountByUserId
   };
 
-  const athleteClaimRepository = {
+  const athleteInviteRepository = {
     create: async (input: Record<string, unknown>) => {
-      calls.createClaimLink.push(input);
+      calls.createInvite.push(input);
       return {
         createdAt: new Date("2026-03-10T08:00:00.000Z"),
         expiresAt: input.expiresAt as Date,
-        id: "claim-1",
+        id: "invite-1",
         status: "pending" as const
       };
     },
-    findPendingByTokenHash: async () => claimLookup,
-    markClaimed: async (claimLinkId: string, claimedByUserId: string, claimedAt: Date) => {
-      calls.markClaimed.push({ claimLinkId, claimedAt, claimedByUserId });
+    findPendingByTokenHash: async () => inviteLookup,
+    markAccepted: async (inviteId: string, acceptedByUserId: string, acceptedAt: Date) => {
+      calls.markAccepted.push({ inviteId, acceptedAt, acceptedByUserId });
       return null;
     },
-    markExpiredPendingLinks: async () => [],
+    markExpiredPendingInvites: async () => [],
     revokePendingForAthlete: async (athleteId: string) => {
       calls.revokePending.push(athleteId);
       return [];
@@ -126,7 +126,7 @@ const createHarness = () => {
       db as never,
       athleteRepository as never,
       athleteAccountRepository as never,
-      athleteClaimRepository as never,
+      athleteInviteRepository as never,
       readinessRepository as never,
       garminRepository as never,
       "http://localhost:3000"
@@ -140,8 +140,8 @@ const createHarness = () => {
     setAthlete(value: typeof athlete) {
       athlete = value;
     },
-    setClaimLookup(value: typeof claimLookup) {
-      claimLookup = value;
+    setInviteLookup(value: typeof inviteLookup) {
+      inviteLookup = value;
     },
     setGarminConnection(value: typeof garminConnection) {
       garminConnection = value;
@@ -152,7 +152,7 @@ const createHarness = () => {
   };
 };
 
-test("createClaimLink rejects athletes that already have a claimed account", async () => {
+test("createInvite rejects athletes that already have a linked account", async () => {
   const harness = createHarness();
   harness.setActiveAthleteAccountByAthleteId({
     athleteId: "athlete-1"
@@ -160,7 +160,7 @@ test("createClaimLink rejects athletes that already have a claimed account", asy
 
   await assert.rejects(
     () =>
-      harness.service.createClaimLink({
+      harness.service.createInvite({
         tenantId: "tenant-1",
         athleteId: "athlete-1",
         email: "athlete@club.com",
@@ -176,12 +176,12 @@ test("createClaimLink rejects athletes that already have a claimed account", asy
   );
 });
 
-test("acceptClaim rejects staff accounts", async () => {
+test("acceptInvite rejects staff accounts", async () => {
   const harness = createHarness();
 
   await assert.rejects(
     () =>
-      harness.service.acceptClaim({
+      harness.service.acceptInvite({
         token: "token-1",
         userId: "user-1",
         userEmail: "athlete@club.com",
@@ -196,16 +196,16 @@ test("acceptClaim rejects staff accounts", async () => {
   );
 });
 
-test("acceptClaim rejects mismatched email addresses", async () => {
+test("acceptInvite rejects mismatched email addresses", async () => {
   const harness = createHarness();
-  harness.setClaimLookup({
+  harness.setInviteLookup({
     athleteFirstName: "Alex",
     athleteLastName: "Athlete",
-    claimLink: {
+    invite: {
       athleteId: "athlete-1",
       email: "athlete@club.com",
       expiresAt: new Date("2026-03-20T08:00:00.000Z"),
-      id: "claim-1",
+      id: "invite-1",
       tenantId: "tenant-1"
     },
     currentSquadId: "squad-1",
@@ -217,7 +217,7 @@ test("acceptClaim rejects mismatched email addresses", async () => {
 
   await assert.rejects(
     () =>
-      harness.service.acceptClaim({
+      harness.service.acceptInvite({
         token: "token-1",
         userId: "user-1",
         userEmail: "other@club.com",
@@ -232,16 +232,16 @@ test("acceptClaim rejects mismatched email addresses", async () => {
   );
 });
 
-test("acceptClaim creates the athlete account and marks the claim as claimed", async () => {
+test("acceptInvite creates the athlete account and marks the invite as accepted", async () => {
   const harness = createHarness();
-  harness.setClaimLookup({
+  harness.setInviteLookup({
     athleteFirstName: "Alex",
     athleteLastName: "Athlete",
-    claimLink: {
+    invite: {
       athleteId: "athlete-1",
       email: "athlete@club.com",
       expiresAt: new Date("2026-03-20T08:00:00.000Z"),
-      id: "claim-1",
+      id: "invite-1",
       tenantId: "tenant-1"
     },
     currentSquadId: "squad-1",
@@ -251,7 +251,7 @@ test("acceptClaim creates the athlete account and marks the claim as claimed", a
     tenantSlug: "example-fc"
   });
 
-  const result = await harness.service.acceptClaim({
+  const result = await harness.service.acceptInvite({
     token: "token-1",
     userId: "user-1",
     userEmail: "athlete@club.com",
@@ -262,8 +262,8 @@ test("acceptClaim creates the athlete account and marks the claim as claimed", a
 
   assert.deepEqual(result, { accepted: true });
   assert.equal(harness.calls.createAccount.length, 1);
-  assert.equal(harness.calls.markClaimed.length, 1);
-  assert.equal(harness.calls.markClaimed[0]?.claimLinkId, "claim-1");
+  assert.equal(harness.calls.markAccepted.length, 1);
+  assert.equal(harness.calls.markAccepted[0]?.inviteId, "invite-1");
 });
 
 test("getAthletePortal returns trend and sync details for the athlete dashboard", async () => {

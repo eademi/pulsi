@@ -20,7 +20,7 @@ export const resolveAuthenticatedActor = ({
   athleteProfile
 }: ResolveAuthenticatedActorInput): AuthenticatedActor => {
   // A Pulsi account should resolve to exactly one actor mode. If a user ends up
-  // both as staff and as a claimed athlete account, fail fast rather than
+  // both as staff and as a linked athlete account, fail fast rather than
   // silently picking one access model and leaking the other.
   if (memberships.length > 0 && athleteProfile) {
     throw new AppError(

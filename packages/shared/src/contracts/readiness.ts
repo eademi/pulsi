@@ -2,12 +2,12 @@ import { z } from "zod";
 import { squadSummarySchema } from "./squads";
 
 export const athleteStatusSchema = z.enum(["active", "inactive", "rehab"]);
-export const athleteAccountStateSchema = z.enum(["unclaimed", "invited", "claimed"]);
+export const athleteAccountStateSchema = z.enum(["unlinked", "invited", "linked"]);
 export const athleteAccountDetailsSchema = z.object({
   userId: z.string().nullable(),
   name: z.string().nullable(),
   email: z.string().email().nullable(),
-  claimedAt: z.string().datetime().nullable(),
+  linkedAt: z.string().datetime().nullable(),
   pendingEmail: z.string().email().nullable(),
   pendingExpiresAt: z.string().datetime().nullable()
 });

@@ -47,6 +47,7 @@ export const athleteActorProfileSchema = z.object({
 });
 
 const baseActorSessionSchema = z.object({
+  platformAdmin: z.boolean(),
   user: authUserSchema,
   session: sessionSchema
 });

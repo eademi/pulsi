@@ -1,5 +1,5 @@
 {
-  "id": "2bde4c03-b909-41f0-b429-a610d3b56d5c",
+  "id": "a0560128-1974-4235-95d5-31586d82bb1d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -148,8 +148,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.athlete_claim_links": {
-      "name": "athlete_claim_links",
+    "public.athlete_accounts": {
+      "name": "athlete_accounts",
       "schema": "",
       "columns": {
         "id": {
@@ -159,61 +159,32 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "athlete_id": {
           "name": "athlete_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token_hash": {
-          "name": "token_hash",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "status": {
           "name": "status",
-          "type": "athlete_claim_link_status",
+          "type": "athlete_user_account_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'pending'"
+          "default": "'active'"
         },
-        "expires_at": {
-          "name": "expires_at",
+        "linked_at": {
+          "name": "linked_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
-        },
-        "created_by_user_id": {
-          "name": "created_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "claimed_by_user_id": {
-          "name": "claimed_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "claimed_at": {
-          "name": "claimed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "now()"
         },
         "created_at": {
           "name": "created_at",
@@ -231,29 +202,8 @@
         }
       },
       "indexes": {
-        "athlete_claim_links_tenant_idx": {
-          "name": "athlete_claim_links_tenant_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "athlete_claim_links_athlete_idx": {
-          "name": "athlete_claim_links_athlete_idx",
+        "athlete_accounts_athlete_idx": {
+          "name": "athlete_accounts_athlete_idx",
           "columns": [
             {
               "expression": "athlete_id",
@@ -273,23 +223,17 @@
           "method": "btree",
           "with": {}
         },
-        "athlete_claim_links_email_idx": {
-          "name": "athlete_claim_links_email_idx",
+        "athlete_accounts_user_idx": {
+          "name": "athlete_accounts_user_idx",
           "columns": [
             {
-              "expression": "email",
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
               "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "expires_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -300,8 +244,8 @@
           "method": "btree",
           "with": {}
         },
-        "athlete_claim_links_pending_athlete_key": {
-          "name": "athlete_claim_links_pending_athlete_key",
+        "athlete_accounts_athlete_key": {
+          "name": "athlete_accounts_athlete_key",
           "columns": [
             {
               "expression": "athlete_id",
@@ -311,16 +255,15 @@
             }
           ],
           "isUnique": true,
-          "where": "\"athlete_claim_links\".\"status\" = 'pending'",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "athlete_claim_links_token_hash_key": {
-          "name": "athlete_claim_links_token_hash_key",
+        "athlete_accounts_user_key": {
+          "name": "athlete_accounts_user_key",
           "columns": [
             {
-              "expression": "token_hash",
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -333,22 +276,9 @@
         }
       },
       "foreignKeys": {
-        "athlete_claim_links_tenant_id_tenants_id_fk": {
-          "name": "athlete_claim_links_tenant_id_tenants_id_fk",
-          "tableFrom": "athlete_claim_links",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "athlete_claim_links_athlete_id_athletes_id_fk": {
-          "name": "athlete_claim_links_athlete_id_athletes_id_fk",
-          "tableFrom": "athlete_claim_links",
+        "athlete_accounts_athlete_id_athletes_id_fk": {
+          "name": "athlete_accounts_athlete_id_athletes_id_fk",
+          "tableFrom": "athlete_accounts",
           "tableTo": "athletes",
           "columnsFrom": [
             "athlete_id"
@@ -359,30 +289,17 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "athlete_claim_links_created_by_user_id_user_id_fk": {
-          "name": "athlete_claim_links_created_by_user_id_user_id_fk",
-          "tableFrom": "athlete_claim_links",
+        "athlete_accounts_user_id_user_id_fk": {
+          "name": "athlete_accounts_user_id_user_id_fk",
+          "tableFrom": "athlete_accounts",
           "tableTo": "user",
           "columnsFrom": [
-            "created_by_user_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "athlete_claim_links_claimed_by_user_id_user_id_fk": {
-          "name": "athlete_claim_links_claimed_by_user_id_user_id_fk",
-          "tableFrom": "athlete_claim_links",
-          "tableTo": "user",
-          "columnsFrom": [
-            "claimed_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -392,8 +309,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.athlete_device_connections": {
-      "name": "athlete_device_connections",
+    "public.athlete_integrations": {
+      "name": "athlete_integrations",
       "schema": "",
       "columns": {
         "id": {
@@ -503,8 +420,8 @@
         }
       },
       "indexes": {
-        "athlete_device_connections_tenant_idx": {
-          "name": "athlete_device_connections_tenant_idx",
+        "athlete_integrations_tenant_idx": {
+          "name": "athlete_integrations_tenant_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -524,8 +441,8 @@
           "method": "btree",
           "with": {}
         },
-        "athlete_device_connections_provider_user_idx": {
-          "name": "athlete_device_connections_provider_user_idx",
+        "athlete_integrations_provider_user_idx": {
+          "name": "athlete_integrations_provider_user_idx",
           "columns": [
             {
               "expression": "provider",
@@ -545,8 +462,8 @@
           "method": "btree",
           "with": {}
         },
-        "athlete_device_connections_athlete_provider_key": {
-          "name": "athlete_device_connections_athlete_provider_key",
+        "athlete_integrations_athlete_provider_key": {
+          "name": "athlete_integrations_athlete_provider_key",
           "columns": [
             {
               "expression": "athlete_id",
@@ -568,9 +485,9 @@
         }
       },
       "foreignKeys": {
-        "athlete_device_connections_tenant_id_tenants_id_fk": {
-          "name": "athlete_device_connections_tenant_id_tenants_id_fk",
-          "tableFrom": "athlete_device_connections",
+        "athlete_integrations_tenant_id_tenants_id_fk": {
+          "name": "athlete_integrations_tenant_id_tenants_id_fk",
+          "tableFrom": "athlete_integrations",
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
@@ -581,9 +498,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "athlete_device_connections_athlete_id_athletes_id_fk": {
-          "name": "athlete_device_connections_athlete_id_athletes_id_fk",
-          "tableFrom": "athlete_device_connections",
+        "athlete_integrations_athlete_id_athletes_id_fk": {
+          "name": "athlete_integrations_athlete_id_athletes_id_fk",
+          "tableFrom": "athlete_integrations",
           "tableTo": "athletes",
           "columnsFrom": [
             "athlete_id"
@@ -592,6 +509,250 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.athlete_invites": {
+      "name": "athlete_invites",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "athlete_id": {
+          "name": "athlete_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "athlete_invite_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accepted_by_user_id": {
+          "name": "accepted_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "athlete_invites_tenant_idx": {
+          "name": "athlete_invites_tenant_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "athlete_invites_athlete_idx": {
+          "name": "athlete_invites_athlete_idx",
+          "columns": [
+            {
+              "expression": "athlete_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "athlete_invites_email_idx": {
+          "name": "athlete_invites_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "athlete_invites_pending_athlete_key": {
+          "name": "athlete_invites_pending_athlete_key",
+          "columns": [
+            {
+              "expression": "athlete_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"athlete_invites\".\"status\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "athlete_invites_token_hash_key": {
+          "name": "athlete_invites_token_hash_key",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "athlete_invites_tenant_id_tenants_id_fk": {
+          "name": "athlete_invites_tenant_id_tenants_id_fk",
+          "tableFrom": "athlete_invites",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "athlete_invites_athlete_id_athletes_id_fk": {
+          "name": "athlete_invites_athlete_id_athletes_id_fk",
+          "tableFrom": "athlete_invites",
+          "tableTo": "athletes",
+          "columnsFrom": [
+            "athlete_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "athlete_invites_created_by_user_id_user_id_fk": {
+          "name": "athlete_invites_created_by_user_id_user_id_fk",
+          "tableFrom": "athlete_invites",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "athlete_invites_accepted_by_user_id_user_id_fk": {
+          "name": "athlete_invites_accepted_by_user_id_user_id_fk",
+          "tableFrom": "athlete_invites",
+          "tableTo": "user",
+          "columnsFrom": [
+            "accepted_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -772,167 +933,6 @@
           "tableTo": "squads",
           "columnsFrom": [
             "squad_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.athlete_user_accounts": {
-      "name": "athlete_user_accounts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "athlete_id": {
-          "name": "athlete_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "athlete_user_account_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "claimed_at": {
-          "name": "claimed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "athlete_user_accounts_athlete_idx": {
-          "name": "athlete_user_accounts_athlete_idx",
-          "columns": [
-            {
-              "expression": "athlete_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "athlete_user_accounts_user_idx": {
-          "name": "athlete_user_accounts_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "athlete_user_accounts_athlete_key": {
-          "name": "athlete_user_accounts_athlete_key",
-          "columns": [
-            {
-              "expression": "athlete_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "athlete_user_accounts_user_key": {
-          "name": "athlete_user_accounts_user_key",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "athlete_user_accounts_athlete_id_athletes_id_fk": {
-          "name": "athlete_user_accounts_athlete_id_athletes_id_fk",
-          "tableFrom": "athlete_user_accounts",
-          "tableTo": "athletes",
-          "columnsFrom": [
-            "athlete_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "athlete_user_accounts_user_id_user_id_fk": {
-          "name": "athlete_user_accounts_user_id_user_id_fk",
-          "tableFrom": "athlete_user_accounts",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -1356,210 +1356,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.integration_sync_jobs": {
-      "name": "integration_sync_jobs",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "athlete_id": {
-          "name": "athlete_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "connection_id": {
-          "name": "connection_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider": {
-          "name": "provider",
-          "type": "integration_provider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'garmin'"
-        },
-        "status": {
-          "name": "status",
-          "type": "sync_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "scheduled_for": {
-          "name": "scheduled_for",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "last_error": {
-          "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cursor_start": {
-          "name": "cursor_start",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cursor_end": {
-          "name": "cursor_end",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by_user_id": {
-          "name": "created_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "integration_sync_jobs_tenant_status_idx": {
-          "name": "integration_sync_jobs_tenant_status_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "integration_sync_jobs_due_idx": {
-          "name": "integration_sync_jobs_due_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "scheduled_for",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "integration_sync_jobs_tenant_id_tenants_id_fk": {
-          "name": "integration_sync_jobs_tenant_id_tenants_id_fk",
-          "tableFrom": "integration_sync_jobs",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "integration_sync_jobs_athlete_id_athletes_id_fk": {
-          "name": "integration_sync_jobs_athlete_id_athletes_id_fk",
-          "tableFrom": "integration_sync_jobs",
-          "tableTo": "athletes",
-          "columnsFrom": [
-            "athlete_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "integration_sync_jobs_connection_id_athlete_device_connections_id_fk": {
-          "name": "integration_sync_jobs_connection_id_athlete_device_connections_id_fk",
-          "tableFrom": "integration_sync_jobs",
-          "tableTo": "athlete_device_connections",
-          "columnsFrom": [
-            "connection_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "integration_sync_jobs_created_by_user_id_user_id_fk": {
-          "name": "integration_sync_jobs_created_by_user_id_user_id_fk",
-          "tableFrom": "integration_sync_jobs",
-          "tableTo": "user",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.provider_activity_summaries": {
-      "name": "provider_activity_summaries",
+    "public.integration_activity_summaries": {
+      "name": "integration_activity_summaries",
       "schema": "",
       "columns": {
         "id": {
@@ -1745,8 +1543,8 @@
         }
       },
       "indexes": {
-        "provider_activity_summaries_tenant_idx": {
-          "name": "provider_activity_summaries_tenant_idx",
+        "integration_activity_summaries_tenant_idx": {
+          "name": "integration_activity_summaries_tenant_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -1772,8 +1570,8 @@
           "method": "btree",
           "with": {}
         },
-        "provider_activity_summaries_athlete_idx": {
-          "name": "provider_activity_summaries_athlete_idx",
+        "integration_activity_summaries_athlete_idx": {
+          "name": "integration_activity_summaries_athlete_idx",
           "columns": [
             {
               "expression": "athlete_id",
@@ -1799,8 +1597,8 @@
           "method": "btree",
           "with": {}
         },
-        "provider_activity_summaries_provider_user_idx": {
-          "name": "provider_activity_summaries_provider_user_idx",
+        "integration_activity_summaries_provider_user_idx": {
+          "name": "integration_activity_summaries_provider_user_idx",
           "columns": [
             {
               "expression": "provider",
@@ -1826,8 +1624,8 @@
           "method": "btree",
           "with": {}
         },
-        "provider_activity_summaries_summary_key": {
-          "name": "provider_activity_summaries_summary_key",
+        "integration_activity_summaries_summary_key": {
+          "name": "integration_activity_summaries_summary_key",
           "columns": [
             {
               "expression": "provider",
@@ -1861,9 +1659,9 @@
         }
       },
       "foreignKeys": {
-        "provider_activity_summaries_tenant_id_tenants_id_fk": {
-          "name": "provider_activity_summaries_tenant_id_tenants_id_fk",
-          "tableFrom": "provider_activity_summaries",
+        "integration_activity_summaries_tenant_id_tenants_id_fk": {
+          "name": "integration_activity_summaries_tenant_id_tenants_id_fk",
+          "tableFrom": "integration_activity_summaries",
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
@@ -1874,9 +1672,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "provider_activity_summaries_athlete_id_athletes_id_fk": {
-          "name": "provider_activity_summaries_athlete_id_athletes_id_fk",
-          "tableFrom": "provider_activity_summaries",
+        "integration_activity_summaries_athlete_id_athletes_id_fk": {
+          "name": "integration_activity_summaries_athlete_id_athletes_id_fk",
+          "tableFrom": "integration_activity_summaries",
           "tableTo": "athletes",
           "columnsFrom": [
             "athlete_id"
@@ -1887,10 +1685,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "provider_activity_summaries_connection_id_athlete_device_connections_id_fk": {
-          "name": "provider_activity_summaries_connection_id_athlete_device_connections_id_fk",
-          "tableFrom": "provider_activity_summaries",
-          "tableTo": "athlete_device_connections",
+        "integration_activity_summaries_connection_id_athlete_integrations_id_fk": {
+          "name": "integration_activity_summaries_connection_id_athlete_integrations_id_fk",
+          "tableFrom": "integration_activity_summaries",
+          "tableTo": "athlete_integrations",
           "columnsFrom": [
             "connection_id"
           ],
@@ -1907,8 +1705,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_credentials": {
-      "name": "provider_credentials",
+    "public.integration_credentials": {
+      "name": "integration_credentials",
       "schema": "",
       "columns": {
         "id": {
@@ -2004,8 +1802,8 @@
         }
       },
       "indexes": {
-        "provider_credentials_subject_key": {
-          "name": "provider_credentials_subject_key",
+        "integration_credentials_subject_key": {
+          "name": "integration_credentials_subject_key",
           "columns": [
             {
               "expression": "provider",
@@ -2031,8 +1829,8 @@
           "method": "btree",
           "with": {}
         },
-        "provider_credentials_tenant_idx": {
-          "name": "provider_credentials_tenant_idx",
+        "integration_credentials_tenant_idx": {
+          "name": "integration_credentials_tenant_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -2054,9 +1852,9 @@
         }
       },
       "foreignKeys": {
-        "provider_credentials_tenant_id_tenants_id_fk": {
-          "name": "provider_credentials_tenant_id_tenants_id_fk",
-          "tableFrom": "provider_credentials",
+        "integration_credentials_tenant_id_tenants_id_fk": {
+          "name": "integration_credentials_tenant_id_tenants_id_fk",
+          "tableFrom": "integration_credentials",
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
@@ -2067,10 +1865,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "provider_credentials_subject_id_athlete_device_connections_id_fk": {
-          "name": "provider_credentials_subject_id_athlete_device_connections_id_fk",
-          "tableFrom": "provider_credentials",
-          "tableTo": "athlete_device_connections",
+        "integration_credentials_subject_id_athlete_integrations_id_fk": {
+          "name": "integration_credentials_subject_id_athlete_integrations_id_fk",
+          "tableFrom": "integration_credentials",
+          "tableTo": "athlete_integrations",
           "columnsFrom": [
             "subject_id"
           ],
@@ -2087,8 +1885,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_health_summaries": {
-      "name": "provider_health_summaries",
+    "public.integration_health_summaries": {
+      "name": "integration_health_summaries",
       "schema": "",
       "columns": {
         "id": {
@@ -2182,8 +1980,8 @@
         }
       },
       "indexes": {
-        "provider_health_summaries_tenant_idx": {
-          "name": "provider_health_summaries_tenant_idx",
+        "integration_health_summaries_tenant_idx": {
+          "name": "integration_health_summaries_tenant_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -2209,8 +2007,8 @@
           "method": "btree",
           "with": {}
         },
-        "provider_health_summaries_provider_user_idx": {
-          "name": "provider_health_summaries_provider_user_idx",
+        "integration_health_summaries_provider_user_idx": {
+          "name": "integration_health_summaries_provider_user_idx",
           "columns": [
             {
               "expression": "provider",
@@ -2236,8 +2034,8 @@
           "method": "btree",
           "with": {}
         },
-        "provider_health_summaries_summary_key": {
-          "name": "provider_health_summaries_summary_key",
+        "integration_health_summaries_summary_key": {
+          "name": "integration_health_summaries_summary_key",
           "columns": [
             {
               "expression": "provider",
@@ -2271,9 +2069,9 @@
         }
       },
       "foreignKeys": {
-        "provider_health_summaries_tenant_id_tenants_id_fk": {
-          "name": "provider_health_summaries_tenant_id_tenants_id_fk",
-          "tableFrom": "provider_health_summaries",
+        "integration_health_summaries_tenant_id_tenants_id_fk": {
+          "name": "integration_health_summaries_tenant_id_tenants_id_fk",
+          "tableFrom": "integration_health_summaries",
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
@@ -2284,9 +2082,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "provider_health_summaries_athlete_id_athletes_id_fk": {
-          "name": "provider_health_summaries_athlete_id_athletes_id_fk",
-          "tableFrom": "provider_health_summaries",
+        "integration_health_summaries_athlete_id_athletes_id_fk": {
+          "name": "integration_health_summaries_athlete_id_athletes_id_fk",
+          "tableFrom": "integration_health_summaries",
           "tableTo": "athletes",
           "columnsFrom": [
             "athlete_id"
@@ -2297,10 +2095,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "provider_health_summaries_connection_id_athlete_device_connections_id_fk": {
-          "name": "provider_health_summaries_connection_id_athlete_device_connections_id_fk",
-          "tableFrom": "provider_health_summaries",
-          "tableTo": "athlete_device_connections",
+        "integration_health_summaries_connection_id_athlete_integrations_id_fk": {
+          "name": "integration_health_summaries_connection_id_athlete_integrations_id_fk",
+          "tableFrom": "integration_health_summaries",
+          "tableTo": "athlete_integrations",
           "columnsFrom": [
             "connection_id"
           ],
@@ -2317,8 +2115,210 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_webhook_events": {
-      "name": "provider_webhook_events",
+    "public.integration_sync_jobs": {
+      "name": "integration_sync_jobs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "athlete_id": {
+          "name": "athlete_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "connection_id": {
+          "name": "connection_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "integration_provider",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'garmin'"
+        },
+        "status": {
+          "name": "status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "scheduled_for": {
+          "name": "scheduled_for",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cursor_start": {
+          "name": "cursor_start",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cursor_end": {
+          "name": "cursor_end",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "integration_sync_jobs_tenant_status_idx": {
+          "name": "integration_sync_jobs_tenant_status_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "integration_sync_jobs_due_idx": {
+          "name": "integration_sync_jobs_due_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_for",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "integration_sync_jobs_tenant_id_tenants_id_fk": {
+          "name": "integration_sync_jobs_tenant_id_tenants_id_fk",
+          "tableFrom": "integration_sync_jobs",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "integration_sync_jobs_athlete_id_athletes_id_fk": {
+          "name": "integration_sync_jobs_athlete_id_athletes_id_fk",
+          "tableFrom": "integration_sync_jobs",
+          "tableTo": "athletes",
+          "columnsFrom": [
+            "athlete_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "integration_sync_jobs_connection_id_athlete_integrations_id_fk": {
+          "name": "integration_sync_jobs_connection_id_athlete_integrations_id_fk",
+          "tableFrom": "integration_sync_jobs",
+          "tableTo": "athlete_integrations",
+          "columnsFrom": [
+            "connection_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "integration_sync_jobs_created_by_user_id_user_id_fk": {
+          "name": "integration_sync_jobs_created_by_user_id_user_id_fk",
+          "tableFrom": "integration_sync_jobs",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.integration_webhook_events": {
+      "name": "integration_webhook_events",
       "schema": "",
       "columns": {
         "id": {
@@ -2408,8 +2408,8 @@
         }
       },
       "indexes": {
-        "provider_webhook_events_provider_idx": {
-          "name": "provider_webhook_events_provider_idx",
+        "integration_webhook_events_provider_idx": {
+          "name": "integration_webhook_events_provider_idx",
           "columns": [
             {
               "expression": "provider",
@@ -2435,8 +2435,8 @@
           "method": "btree",
           "with": {}
         },
-        "provider_webhook_events_tenant_idx": {
-          "name": "provider_webhook_events_tenant_idx",
+        "integration_webhook_events_tenant_idx": {
+          "name": "integration_webhook_events_tenant_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -2458,9 +2458,9 @@
         }
       },
       "foreignKeys": {
-        "provider_webhook_events_tenant_id_tenants_id_fk": {
-          "name": "provider_webhook_events_tenant_id_tenants_id_fk",
-          "tableFrom": "provider_webhook_events",
+        "integration_webhook_events_tenant_id_tenants_id_fk": {
+          "name": "integration_webhook_events_tenant_id_tenants_id_fk",
+          "tableFrom": "integration_webhook_events",
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
@@ -2471,10 +2471,10 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "provider_webhook_events_connection_id_athlete_device_connections_id_fk": {
-          "name": "provider_webhook_events_connection_id_athlete_device_connections_id_fk",
-          "tableFrom": "provider_webhook_events",
-          "tableTo": "athlete_device_connections",
+        "integration_webhook_events_connection_id_athlete_integrations_id_fk": {
+          "name": "integration_webhook_events_connection_id_athlete_integrations_id_fk",
+          "tableFrom": "integration_webhook_events",
+          "tableTo": "athlete_integrations",
           "columnsFrom": [
             "connection_id"
           ],
@@ -2889,8 +2889,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.tenant_invitations": {
-      "name": "tenant_invitations",
+    "public.staff_invitations": {
+      "name": "staff_invitations",
       "schema": "",
       "columns": {
         "id": {
@@ -2967,8 +2967,8 @@
         }
       },
       "indexes": {
-        "tenant_invitations_tenant_idx": {
-          "name": "tenant_invitations_tenant_idx",
+        "staff_invitations_tenant_idx": {
+          "name": "staff_invitations_tenant_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -2994,8 +2994,8 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_invitations_email_idx": {
-          "name": "tenant_invitations_email_idx",
+        "staff_invitations_email_idx": {
+          "name": "staff_invitations_email_idx",
           "columns": [
             {
               "expression": "email",
@@ -3021,8 +3021,8 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_invitations_pending_key": {
-          "name": "tenant_invitations_pending_key",
+        "staff_invitations_pending_key": {
+          "name": "staff_invitations_pending_key",
           "columns": [
             {
               "expression": "tenant_id",
@@ -3038,16 +3038,16 @@
             }
           ],
           "isUnique": true,
-          "where": "\"tenant_invitations\".\"status\" = 'pending'",
+          "where": "\"staff_invitations\".\"status\" = 'pending'",
           "concurrently": false,
           "method": "btree",
           "with": {}
         }
       },
       "foreignKeys": {
-        "tenant_invitations_tenant_id_tenants_id_fk": {
-          "name": "tenant_invitations_tenant_id_tenants_id_fk",
-          "tableFrom": "tenant_invitations",
+        "staff_invitations_tenant_id_tenants_id_fk": {
+          "name": "staff_invitations_tenant_id_tenants_id_fk",
+          "tableFrom": "staff_invitations",
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
@@ -3058,9 +3058,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tenant_invitations_invited_by_user_id_user_id_fk": {
-          "name": "tenant_invitations_invited_by_user_id_user_id_fk",
-          "tableFrom": "tenant_invitations",
+        "staff_invitations_invited_by_user_id_user_id_fk": {
+          "name": "staff_invitations_invited_by_user_id_user_id_fk",
+          "tableFrom": "staff_invitations",
           "tableTo": "user",
           "columnsFrom": [
             "invited_by_user_id"
@@ -3071,9 +3071,9 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "tenant_invitations_accepted_by_user_id_user_id_fk": {
-          "name": "tenant_invitations_accepted_by_user_id_user_id_fk",
-          "tableFrom": "tenant_invitations",
+        "staff_invitations_accepted_by_user_id_user_id_fk": {
+          "name": "staff_invitations_accepted_by_user_id_user_id_fk",
+          "tableFrom": "staff_invitations",
           "tableTo": "user",
           "columnsFrom": [
             "accepted_by_user_id"
@@ -3091,8 +3091,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.tenant_memberships": {
-      "name": "tenant_memberships",
+    "public.staff_memberships": {
+      "name": "staff_memberships",
       "schema": "",
       "columns": {
         "tenant_id": {
@@ -3159,8 +3159,8 @@
         }
       },
       "indexes": {
-        "tenant_memberships_user_idx": {
-          "name": "tenant_memberships_user_idx",
+        "staff_memberships_user_idx": {
+          "name": "staff_memberships_user_idx",
           "columns": [
             {
               "expression": "user_id",
@@ -3174,8 +3174,8 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_memberships_tenant_idx": {
-          "name": "tenant_memberships_tenant_idx",
+        "staff_memberships_tenant_idx": {
+          "name": "staff_memberships_tenant_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -3189,8 +3189,8 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_memberships_active_user_key": {
-          "name": "tenant_memberships_active_user_key",
+        "staff_memberships_active_user_key": {
+          "name": "staff_memberships_active_user_key",
           "columns": [
             {
               "expression": "user_id",
@@ -3200,16 +3200,16 @@
             }
           ],
           "isUnique": true,
-          "where": "\"tenant_memberships\".\"status\" = 'active'",
+          "where": "\"staff_memberships\".\"status\" = 'active'",
           "concurrently": false,
           "method": "btree",
           "with": {}
         }
       },
       "foreignKeys": {
-        "tenant_memberships_tenant_id_tenants_id_fk": {
-          "name": "tenant_memberships_tenant_id_tenants_id_fk",
-          "tableFrom": "tenant_memberships",
+        "staff_memberships_tenant_id_tenants_id_fk": {
+          "name": "staff_memberships_tenant_id_tenants_id_fk",
+          "tableFrom": "staff_memberships",
           "tableTo": "tenants",
           "columnsFrom": [
             "tenant_id"
@@ -3220,9 +3220,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tenant_memberships_user_id_user_id_fk": {
-          "name": "tenant_memberships_user_id_user_id_fk",
-          "tableFrom": "tenant_memberships",
+        "staff_memberships_user_id_user_id_fk": {
+          "name": "staff_memberships_user_id_user_id_fk",
+          "tableFrom": "staff_memberships",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -3233,9 +3233,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tenant_memberships_invited_by_user_id_user_id_fk": {
-          "name": "tenant_memberships_invited_by_user_id_user_id_fk",
-          "tableFrom": "tenant_memberships",
+        "staff_memberships_invited_by_user_id_user_id_fk": {
+          "name": "staff_memberships_invited_by_user_id_user_id_fk",
+          "tableFrom": "staff_memberships",
           "tableTo": "user",
           "columnsFrom": [
             "invited_by_user_id"
@@ -3248,8 +3248,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "tenant_memberships_tenant_id_user_id_pk": {
-          "name": "tenant_memberships_tenant_id_user_id_pk",
+        "staff_memberships_tenant_id_user_id_pk": {
+          "name": "staff_memberships_tenant_id_user_id_pk",
           "columns": [
             "tenant_id",
             "user_id"
@@ -3776,10 +3776,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "wearable_daily_metrics_source_connection_id_athlete_device_connections_id_fk": {
-          "name": "wearable_daily_metrics_source_connection_id_athlete_device_connections_id_fk",
+        "wearable_daily_metrics_source_connection_id_athlete_integrations_id_fk": {
+          "name": "wearable_daily_metrics_source_connection_id_athlete_integrations_id_fk",
           "tableFrom": "wearable_daily_metrics",
-          "tableTo": "athlete_device_connections",
+          "tableTo": "athlete_integrations",
           "columnsFrom": [
             "source_connection_id"
           ],
@@ -3798,12 +3798,12 @@
     }
   },
   "enums": {
-    "public.athlete_claim_link_status": {
-      "name": "athlete_claim_link_status",
+    "public.athlete_invite_status": {
+      "name": "athlete_invite_status",
       "schema": "public",
       "values": [
         "pending",
-        "claimed",
+        "accepted",
         "revoked",
         "expired"
       ]

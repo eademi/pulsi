@@ -11,7 +11,7 @@ import {
 } from "../db/schema";
 import { AppError } from "../http/errors";
 import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
-import type { AthleteClaimRepository } from "../repositories/athlete-claim-repository";
+import type { AthleteInviteRepository } from "../repositories/athlete-invite-repository";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { GarminRepository } from "../repositories/garmin-repository";
 import type { SquadRepository } from "../repositories/squad-repository";
@@ -22,7 +22,7 @@ export class AthleteManagementService {
     private readonly athleteRepository: AthleteRepository,
     private readonly squadRepository: SquadRepository,
     private readonly athleteAccountRepository: AthleteAccountRepository,
-    private readonly athleteClaimRepository: AthleteClaimRepository,
+    private readonly athleteInviteRepository: AthleteInviteRepository,
     private readonly garminRepository: GarminRepository
   ) {}
 
@@ -144,7 +144,7 @@ export class AthleteManagementService {
         tx
       );
 
-      await this.athleteClaimRepository.revokePendingForAthlete(input.athleteId, tx);
+      await this.athleteInviteRepository.revokePendingForAthlete(input.athleteId, tx);
       await this.athleteAccountRepository.updateStatusByAthleteId(input.athleteId, "revoked", tx);
 
       const garminConnections = await this.garminRepository.listConnectionsByAthlete(input.tenantId, input.athleteId);
@@ -277,7 +277,7 @@ export class AthleteManagementService {
     }
 
     await this.db.transaction(async (tx) => {
-      await this.athleteClaimRepository.revokePendingForAthlete(input.athleteId, tx);
+      await this.athleteInviteRepository.revokePendingForAthlete(input.athleteId, tx);
       await this.athleteRepository.deleteById(input.tenantId, input.athleteId, tx);
     });
 

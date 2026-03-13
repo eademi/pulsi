@@ -13,16 +13,20 @@ export const getPlayersPath = (tenantSlug: string) => `/${tenantSlug}/players`;
 export const getSquadsPath = (tenantSlug: string) => `/${tenantSlug}/squads`;
 export const getOrganizationSettingsPath = (tenantSlug: string) => `/${tenantSlug}/settings`;
 export const getGarminIntegrationPath = (tenantSlug: string) => `/${tenantSlug}/integrations/garmin`;
+export const getAdminGarminPath = () => "/admin/garmin";
 export const getSessionPlannerPath = (tenantSlug: string) => `/${tenantSlug}/session-planner`;
 export const getReportsPath = (tenantSlug: string) => `/${tenantSlug}/reports`;
 export const getAthleteHomePath = () => "/athlete";
 export const getAthleteSetupPath = (token: string) => `/athlete/setup/${token}`;
-export const getAthleteClaimPath = getAthleteSetupPath;
 export const getNoAccessPath = () => "/welcome";
 
 export const getDefaultAppPath = (session: ActorSession) => {
   if (session.actorType === "athlete") {
     return getAthleteHomePath();
+  }
+
+  if (session.platformAdmin && session.memberships.length === 0) {
+    return getAdminGarminPath();
   }
 
   const membership = getDefaultMembership(session);

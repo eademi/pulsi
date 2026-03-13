@@ -23,6 +23,7 @@ const envSchema = z.object({
   GARMIN_OAUTH_REDIRECT_URI: z.string().url(),
   GARMIN_TOKEN_ENCRYPTION_KEY: z.string().min(32),
   GARMIN_WEBHOOK_SECRET: z.string().min(16),
+  PULSI_ADMIN_EMAILS: z.string().default(""),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info")
 });
 

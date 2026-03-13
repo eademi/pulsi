@@ -235,6 +235,16 @@ export class GarminRepository {
     return connection ?? null;
   }
 
+  public async findConnectionById(connectionId: string) {
+    const [connection] = await this.db
+      .select()
+      .from(athleteIntegrations)
+      .where(and(eq(athleteIntegrations.id, connectionId), eq(athleteIntegrations.provider, "garmin")))
+      .limit(1);
+
+    return connection ?? null;
+  }
+
   public async listConnectionsForTenant(tenantId: string) {
     return this.db
       .select()
