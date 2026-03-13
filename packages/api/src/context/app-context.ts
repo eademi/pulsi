@@ -41,6 +41,15 @@ export interface AthleteAuthenticatedActor extends BaseAuthenticatedActor {
 
 export type AuthenticatedActor = StaffAuthenticatedActor | AthleteAuthenticatedActor;
 
+export interface AuthenticatedIdentity {
+  userId: string;
+  email: string;
+  name: string;
+  image?: string | null;
+  sessionId: string;
+  sessionExpiresAt: string;
+}
+
 export interface TenantContext {
   id: string;
   slug: string;
@@ -56,7 +65,9 @@ export interface RequestContext {
   requestId: string;
   logger: Logger;
   now: Date;
+  identity: AuthenticatedIdentity | null;
   actor: AuthenticatedActor | null;
+  actorResolutionError: Error | null;
   tenant: TenantContext | null;
 }
 

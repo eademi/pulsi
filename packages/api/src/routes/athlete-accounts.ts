@@ -13,7 +13,7 @@ import { requireCapability } from "../auth/authorization";
 import type { AthleteAccountService } from "../services/athlete-account-service";
 import { AppError } from "../http/errors";
 import { created, ok, parseOrThrow } from "../http/responses";
-import { requireAuth } from "../http/middleware";
+import { requireActorAuth } from "../http/middleware";
 
 const requireUnassignedAccount = (actor: NonNullable<AppBindings["Variables"]["requestContext"]["actor"]>) => {
   if (actor.actorType === "athlete" || actor.memberships.length > 0) {
@@ -27,9 +27,9 @@ const requireUnassignedAccount = (actor: NonNullable<AppBindings["Variables"]["r
 
 export const buildAthleteAccountRoutes = (athleteAccountService: AthleteAccountService) =>
   new Hono<AppBindings>()
-    .use("/athlete-invites/:token", requireAuth)
-    .use("/athlete-invites/:token/accept", requireAuth)
-    .use("/me/athlete", requireAuth)
+    .use("/athlete-invites/:token", requireActorAuth)
+    .use("/athlete-invites/:token/accept", requireActorAuth)
+    .use("/me/athlete", requireActorAuth)
     .get("/athlete-invites/:token", async (c) => {
       const actor = c.get("requestContext").actor!;
       requireUnassignedAccount(actor);

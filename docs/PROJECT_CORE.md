@@ -16,20 +16,23 @@ Pulsi is a multi-tenant sports readiness platform for football clubs. Clubs use 
 
 ## 2. Monorepo Shape
 
-Pulsi is a pnpm monorepo with three packages:
+Pulsi is a pnpm monorepo with four packages:
 
 - `packages/shared`
   - shared Zod schemas and TypeScript contracts
 - `packages/api`
   - Hono API, Better Auth, Drizzle/Postgres, Garmin integration, business logic
 - `packages/client`
-  - React Router frontend, Base UI, Tailwind v4
+  - staff + athlete product frontend
+- `packages/admin`
+  - internal operator frontend, currently focused on Garmin diagnostics
 
 The simplest mental model:
 
 1. `shared` defines data contracts
 2. `api` validates, processes, and stores data
-3. `client` fetches and renders data
+3. `client` fetches and renders the product UI
+4. `admin` fetches and renders the internal operator UI
 
 Typical dependency direction:
 
@@ -66,6 +69,12 @@ Pulsi has two actor types:
 - `athlete`
 
 They are intentionally separate.
+
+Internal admin access is separate from product actors:
+
+- admin uses Better Auth identity
+- admin does not depend on `staff` or `athlete` actor resolution
+- normal product session payloads should not expose admin capability hints
 
 Staff auth path:
 
@@ -252,8 +261,9 @@ High-level route groups:
   - `/athlete`
   - `/athlete/setup/:token`
   - `/v1/me/athlete/...`
-- internal admin routes
-  - `/admin/garmin`
+- internal admin app routes
+  - admin frontend package handles `/`, `/sign-in`, `/garmin`
+- internal admin API routes
   - `/v1/admin/...`
 - auth routes
   - `/api/auth/*`
@@ -264,7 +274,8 @@ High-level route groups:
 Important separation:
 
 - tenant routes are club product routes
-- admin routes are Pulsi operator routes
+- admin frontend is a separate app and separate bundle
+- admin API routes are Pulsi operator routes
 
 ## 13. UI Surfaces
 
@@ -295,6 +306,11 @@ The first internal admin surface is:
 - `/admin/garmin`
 
 It is for Pulsi operator/debug use, not tenant use.
+
+Important rule:
+
+- admin authorization uses authenticated identity plus platform-admin checks
+- it should not be modeled as a normal product actor
 
 Current purpose:
 
@@ -357,7 +373,7 @@ If you are lost, start here:
 - `packages/api/src/services/garmin-oauth-service.ts`
 - `packages/client/src/routes/players.tsx`
 - `packages/client/src/routes/garmin-integration.tsx`
-- `packages/client/src/routes/admin-garmin.tsx`
+- `packages/admin/src/routes/garmin.tsx`
 
 ## 19. Closest Companion Docs
 

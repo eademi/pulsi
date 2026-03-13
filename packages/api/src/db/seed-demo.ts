@@ -11,6 +11,7 @@ import {
   athleteInvites,
   athleteSquadAssignments,
   athletes,
+  platformAdmins,
   readinessSnapshots,
   squads,
   staffMemberships,
@@ -98,6 +99,7 @@ const main = async () => {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const tenant = await upsertTenant();
   const staffUsers = await upsertStaffUsers(passwordHash);
+  await upsertPlatformAdmins(staffUsers);
   const squadRecords = await upsertSquads(tenant.id);
   const squadBySlug = new Map(squadRecords.map((squad) => [squad.slug, squad]));
 
@@ -264,6 +266,23 @@ const upsertStaffUsers = async (passwordHash: string) => {
   }
 
   return users;
+};
+
+const upsertPlatformAdmins = async (staffUsers: Map<string, typeof user.$inferSelect>) => {
+  const adminUser = staffUsers.get("admin");
+
+  if (!adminUser) {
+    throw new Error("Missing seeded platform admin user");
+  }
+
+  await db
+    .insert(platformAdmins)
+    .values({
+      userId: adminUser.id,
+      grantedByUserId: adminUser.id,
+      createdAt: TODAY
+    })
+    .onConflictDoNothing();
 };
 
 const upsertMemberships = async (input: {

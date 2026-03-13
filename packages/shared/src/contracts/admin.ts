@@ -2,6 +2,13 @@ import { z } from "zod";
 
 import { garminOauthSessionStatusSchema, syncStatusSchema, webhookEventStatusSchema } from "./integrations";
 
+export const adminViewerSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  image: z.string().url().nullable().optional()
+});
+
 export const garminAdminConfigSchema = z.object({
   configured: z.boolean(),
   oauthRedirectUri: z.string().url(),
@@ -73,6 +80,7 @@ export const garminAdminWebhookEventSchema = z.object({
 });
 
 export const garminAdminOverviewSchema = z.object({
+  viewer: adminViewerSchema,
   config: garminAdminConfigSchema,
   oauthSessions: z.array(garminAdminOauthSessionSchema),
   connections: z.array(garminAdminConnectionSchema),

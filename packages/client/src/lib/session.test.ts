@@ -30,7 +30,6 @@ const createStaffSession = (
   actorType: "staff",
   athleteProfile: null,
   memberships: [],
-  platformAdmin: false,
   session: {
     expiresAt: "2026-03-11T08:00:00.000Z",
     id: "session-1"
@@ -92,7 +91,6 @@ test("getDefaultAppPath returns the athlete home route for athlete actors", () =
       currentSquad: null
     },
     memberships: [],
-    platformAdmin: false,
     session: {
       expiresAt: "2026-03-11T08:00:00.000Z",
       id: "session-1"
@@ -105,12 +103,4 @@ test("getDefaultAppPath returns the athlete home route for athlete actors", () =
   };
 
   assert.equal(getDefaultAppPath(session), getAthleteHomePath());
-});
-
-test("getDefaultAppPath returns the admin surface for platform admins without memberships", () => {
-  const session = createStaffSession({
-    platformAdmin: true
-  });
-
-  assert.equal(getDefaultAppPath(session), "/admin/garmin");
 });

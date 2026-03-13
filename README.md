@@ -16,6 +16,8 @@ Quick start:
 3. start Postgres with `pnpm db:up`
 4. apply schema with `pnpm db:migrate:api`
 5. start the API with `pnpm dev:api`
+6. start the product client with `pnpm dev:client`
+7. start the internal admin app with `pnpm dev:admin`
 
 Useful commands:
 

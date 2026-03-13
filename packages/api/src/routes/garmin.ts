@@ -27,7 +27,7 @@ import {
 } from "../integrations/garmin/health-api.contracts";
 import { env } from "../env";
 import { AppError } from "../http/errors";
-import { requireAuth } from "../http/middleware";
+import { requireActorAuth } from "../http/middleware";
 import { created, ok, parseOrThrow } from "../http/responses";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { GarminBackfillService } from "../services/garmin-backfill-service";
@@ -183,8 +183,8 @@ export const buildGarminAthleteRoutes = (
   }
 ) =>
   new Hono<AppBindings>()
-    .use("/me/athlete/garmin", requireAuth)
-    .use("/me/athlete/garmin/connection-sessions", requireAuth)
+    .use("/me/athlete/garmin", requireActorAuth)
+    .use("/me/athlete/garmin/connection-sessions", requireActorAuth)
     // Athlete-facing Garmin status for the signed-in linked athlete profile only.
     .get("/me/athlete/garmin", async (c) => {
       const actor = c.get("requestContext").actor!;

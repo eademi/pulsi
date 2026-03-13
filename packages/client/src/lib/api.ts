@@ -6,8 +6,6 @@ import {
   athleteInviteDetailsSchema,
   athleteInviteSchema,
   athletePortalSchema,
-  garminAdminBackfillRerunSchema,
-  garminAdminOverviewSchema,
   athleteSchema,
   createAthleteInviteInputSchema,
   actorSessionSchema,
@@ -42,7 +40,6 @@ const athletesResponseSchema = createApiSuccessSchema(athleteSchema.array());
 const athleteInviteResponseSchema = createApiSuccessSchema(athleteInviteSchema);
 const athleteInviteDetailsResponseSchema = createApiSuccessSchema(athleteInviteDetailsSchema);
 const athletePortalResponseSchema = createApiSuccessSchema(athletePortalSchema);
-const garminAdminOverviewResponseSchema = createApiSuccessSchema(garminAdminOverviewSchema);
 const athleteGarminConnectionResponseSchema = createApiSuccessSchema(athleteGarminConnectionSchema);
 const tenantsResponseSchema = createApiSuccessSchema(tenantSchema.array());
 const createTenantResponseSchema = createApiSuccessSchema(tenantSchema);
@@ -328,26 +325,6 @@ export const apiClient = {
       athleteGarminConnectionResponseSchema,
       {
         method: "GET"
-      }
-    );
-
-    return parsed.data;
-  },
-
-  async getAdminGarminOverview() {
-    const parsed = await request(`${API_BASE_URL}/v1/admin/garmin`, garminAdminOverviewResponseSchema, {
-      method: "GET"
-    });
-
-    return parsed.data;
-  },
-
-  async rerunAdminGarminBackfill(connectionId: string) {
-    const parsed = await request(
-      `${API_BASE_URL}/v1/admin/garmin/connections/${connectionId}/backfill`,
-      createApiSuccessSchema(garminAdminBackfillRerunSchema),
-      {
-        method: "POST"
       }
     );
 

@@ -5,7 +5,6 @@ import type { ActorSession, TenantMembership } from "@pulsi/shared";
 
 import { CommandPalette } from "./ui/command-palette";
 import {
-  getAdminGarminPath,
   getDashboardPath,
   getGarminIntegrationPath,
   getOrganizationSettingsPath,
@@ -106,18 +105,8 @@ export function AppShell({
       });
     }
 
-    if (session.platformAdmin) {
-      items.push({
-        href: getAdminGarminPath(),
-        label: "Pulsi Admin",
-        description: "Internal Garmin diagnostics and controls",
-        icon: ShieldIcon,
-        section: "management",
-      });
-    }
-
     return items;
-  }, [activeMembership.role, activeMembership.tenantSlug, session.platformAdmin]);
+  }, [activeMembership.role, activeMembership.tenantSlug]);
 
   const navigationSections = useMemo<NavigationSection[]>(
     () =>
@@ -361,18 +350,6 @@ function CogIcon({ className }: { className?: string }) {
   );
 }
 
-function ShieldIcon({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
-      <path
-        d="M12 3.5 18.5 6v5.75c0 4.06-2.3 7.14-6.5 8.75-4.2-1.61-6.5-4.69-6.5-8.75V6z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path d="M9.75 12.25 11.25 13.75 14.75 10.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-    </svg>
-  );
-}
 function BellIcon({ className }: { className?: string }) {
   return iconPath(className, "M15 17H5l1.4-1.4A2 2 0 0 0 7 14.2V10a5 5 0 0 1 10 0v4.2a2 2 0 0 0 .6 1.4L19 17h-4m0 0a3 3 0 1 1-6 0");
 }

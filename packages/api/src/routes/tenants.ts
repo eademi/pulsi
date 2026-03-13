@@ -13,16 +13,16 @@ import {
 
 import type { AppBindings } from "../context/app-context";
 import { AppError } from "../http/errors";
-import { requireAuth } from "../http/middleware";
+import { requireActorAuth } from "../http/middleware";
 import { created, ok, parseOrThrow } from "../http/responses";
 import { requireCapability } from "../auth/authorization";
 import type { TenantService } from "../services/tenant-service";
 
 export const buildTenantRoutes = (tenantService: TenantService) =>
   new Hono<AppBindings>()
-    .use("/tenants", requireAuth)
-    .use("/invitations", requireAuth)
-    .use("/invitations/:invitationId/accept", requireAuth)
+    .use("/tenants", requireActorAuth)
+    .use("/invitations", requireActorAuth)
+    .use("/invitations/:invitationId/accept", requireActorAuth)
     .get("/tenants", async (c) => {
       const requestContext = c.get("requestContext");
       const memberships = await tenantService.listMemberships(requestContext.actor!.userId);
@@ -90,9 +90,9 @@ export const buildTenantRoutes = (tenantService: TenantService) =>
 
 export const buildTenantAccessRoutes = (tenantService: TenantService) =>
   new Hono<AppBindings>()
-    .use("/memberships", requireAuth)
-    .use("/invitations", requireAuth)
-    .use("/memberships/:userId/access", requireAuth)
+    .use("/memberships", requireActorAuth)
+    .use("/invitations", requireActorAuth)
+    .use("/memberships/:userId/access", requireActorAuth)
     .get("/memberships", async (c) => {
       const requestContext = c.get("requestContext");
       requireCapability(requestContext.tenant!.role, "staff:manage");

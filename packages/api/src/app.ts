@@ -13,6 +13,7 @@ import { AthleteRepository } from "./repositories/athlete-repository";
 import { IntegrationRepository } from "./repositories/integration-repository";
 import { InvitationRepository } from "./repositories/invitation-repository";
 import { MembershipRepository } from "./repositories/membership-repository";
+import { PlatformAdminRepository } from "./repositories/platform-admin-repository";
 import { ReadinessRepository } from "./repositories/readiness-repository";
 import { TenantRepository } from "./repositories/tenant-repository";
 import { buildActivityRoutes } from "./routes/activities";
@@ -55,6 +56,7 @@ import { TenantService } from "./services/tenant-service";
 import { AdminGarminService } from "./services/admin-garmin-service";
 
 const membershipRepository = new MembershipRepository(db);
+const platformAdminRepository = new PlatformAdminRepository(db);
 const athleteAccountRepository = new AthleteAccountRepository(db);
 const athleteInviteRepository = new AthleteInviteRepository(db);
 const invitationRepository = new InvitationRepository(db);
@@ -133,7 +135,15 @@ export const app = new Hono<AppBindings>();
 app.use(
   "*",
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin) => {
+      const allowedOrigins = new Set([env.CLIENT_URL, env.ADMIN_URL]);
+
+      if (!origin) {
+        return env.CLIENT_URL;
+      }
+
+      return allowedOrigins.has(origin) ? origin : env.CLIENT_URL;
+    },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
     credentials: true,
@@ -159,7 +169,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 app.route("/v1", healthRoutes);
 app.route("/v1", sessionRoutes);
 app.route("/v1", buildTenantRoutes(tenantService));
-app.route("/v1", buildAdminRoutes(adminGarminService));
+app.route("/v1", buildAdminRoutes(adminGarminService, platformAdminRepository));
 app.route("/v1", buildAthleteAccountRoutes(athleteAccountService));
 app.route("/v1", buildGarminAthleteRoutes(garminOAuthService, garminConnectionService, garminRepository));
 app.route(

@@ -157,6 +157,20 @@ export const verification = pgTable(
   })
 );
 
+export const platformAdmins = pgTable(
+  "platform_admins",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    grantedByUserId: text("granted_by_user_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    grantedByLookup: index("platform_admins_granted_by_idx").on(table.grantedByUserId)
+  })
+);
+
 export const tenants = pgTable(
   "tenants",
   {

@@ -6,7 +6,11 @@ import { getDefaultAppPath } from "../lib/session";
 export const clientLoader = async () => {
   const session = await apiClient.getSessionOptional();
 
-  throw redirect(session ? getDefaultAppPath(session) : "/auth/sign-in");
+  if (!session) {
+    throw redirect("/auth/sign-in");
+  }
+
+  throw redirect(getDefaultAppPath(session));
 };
 
 export default function IndexRoute() {

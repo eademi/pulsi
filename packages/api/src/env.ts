@@ -15,6 +15,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   APP_URL: z.string().url().default("http://localhost:3001"),
   CLIENT_URL: z.string().url().default("http://localhost:3000"),
+  ADMIN_URL: z.string().url().default("http://localhost:3002"),
   DATABASE_URL: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(32),
   GARMIN_API_BASE_URL: z.string().url(),
@@ -23,7 +24,6 @@ const envSchema = z.object({
   GARMIN_OAUTH_REDIRECT_URI: z.string().url(),
   GARMIN_TOKEN_ENCRYPTION_KEY: z.string().min(32),
   GARMIN_WEBHOOK_SECRET: z.string().min(16),
-  PULSI_ADMIN_EMAILS: z.string().default(""),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info")
 });
 

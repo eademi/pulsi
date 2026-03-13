@@ -4,7 +4,7 @@ import type { Context, Next } from "hono";
 
 import { resolveAuthenticatedActor } from "../auth/actor-resolution";
 import { getAuthSession } from "../auth/auth";
-import type { AppBindings, AuthenticatedActor } from "../context/app-context";
+import type { AppBindings, AuthenticatedActor, AuthenticatedIdentity } from "../context/app-context";
 import { logger } from "../telemetry/logger";
 import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
 import type { MembershipRepository } from "../repositories/membership-repository";
@@ -25,30 +25,49 @@ export const requestContextMiddleware =
     });
 
     let actor: AuthenticatedActor | null = null;
+    let identity: AuthenticatedIdentity | null = null;
+    let actorResolutionError: Error | null = null;
     const session = await getAuthSession(c.req.raw.headers);
 
     if (session) {
-      const [memberships, athleteProfile] = await Promise.all([
-        membershipRepository.listForUser(session.user.id),
-        athleteAccountRepository.findActiveProfileByUserId(session.user.id)
-      ]);
-
-      actor = resolveAuthenticatedActor({
-        session,
-        memberships,
-        athleteProfile
-      });
+      identity = {
+        userId: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        image: session.user.image,
+        sessionId: session.session.id,
+        sessionExpiresAt: session.session.expiresAt
+      };
       requestLogger.setBindings({
-        userId: actor.userId,
-        actorType: actor.actorType
+        userId: identity.userId
       });
+
+      try {
+        const [memberships, athleteProfile] = await Promise.all([
+          membershipRepository.listForUser(session.user.id),
+          athleteAccountRepository.findActiveProfileByUserId(session.user.id)
+        ]);
+
+        actor = resolveAuthenticatedActor({
+          session,
+          memberships,
+          athleteProfile
+        });
+        requestLogger.setBindings({
+          actorType: actor.actorType
+        });
+      } catch (error) {
+        actorResolutionError = error instanceof Error ? error : new Error("Actor resolution failed");
+      }
     }
 
     c.set("requestContext", {
       requestId,
       logger: requestLogger,
       now: new Date(),
+      identity,
       actor,
+      actorResolutionError,
       tenant: null
     });
 
@@ -60,8 +79,26 @@ export const requestContextMiddleware =
 export const requireAuth = async (c: Context<AppBindings>, next: Next) => {
   const requestContext = c.get("requestContext");
 
-  if (!requestContext.actor) {
+  if (!requestContext.identity) {
     throw new AppError(401, "UNAUTHENTICATED", "Authentication required");
+  }
+
+  await next();
+};
+
+export const requireActorAuth = async (c: Context<AppBindings>, next: Next) => {
+  const requestContext = c.get("requestContext");
+
+  if (!requestContext.identity) {
+    throw new AppError(401, "UNAUTHENTICATED", "Authentication required");
+  }
+
+  if (requestContext.actorResolutionError) {
+    throw requestContext.actorResolutionError;
+  }
+
+  if (!requestContext.actor) {
+    throw new AppError(403, "FORBIDDEN", "This account cannot access product routes");
   }
 
   await next();
@@ -73,8 +110,16 @@ export const tenantScopeMiddleware =
     const requestContext = c.get("requestContext");
     const tenantSlug = c.req.param("tenantSlug");
 
-    if (!requestContext.actor) {
+    if (!requestContext.identity) {
       throw new AppError(401, "UNAUTHENTICATED", "Authentication required");
+    }
+
+    if (requestContext.actorResolutionError) {
+      throw requestContext.actorResolutionError;
+    }
+
+    if (!requestContext.actor) {
+      throw new AppError(403, "FORBIDDEN", "This account cannot access organization staff routes");
     }
 
     if (requestContext.actor.actorType !== "staff") {

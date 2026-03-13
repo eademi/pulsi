@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "jsx": "react-jsx",
+    "outDir": "dist/types",
+    "rootDirs": [".", "./.react-router/types"],
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", ".react-router/types/**/*", "react-router.config.ts", "vite.config.ts"],
+  "references": [{ "path": "../shared" }]
+}

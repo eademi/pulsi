@@ -19,6 +19,8 @@ import type { GarminBackfillService } from "./garmin-backfill-service";
 
 const DEFAULT_LIMIT = 20;
 
+type GarminAdminOverviewData = Omit<GarminAdminOverview, "viewer">;
+
 export class AdminGarminService {
   public constructor(
     private readonly db: Database,
@@ -26,7 +28,7 @@ export class AdminGarminService {
     private readonly garminBackfillService: GarminBackfillService
   ) {}
 
-  public async getOverview(): Promise<GarminAdminOverview> {
+  public async getOverview(): Promise<GarminAdminOverviewData> {
     const [oauthSessions, connections, syncJobs, webhookEvents] = await Promise.all([
       this.listOauthSessions(),
       this.listConnections(),
