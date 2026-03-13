@@ -7,13 +7,13 @@ This document defines the important state combinations in Pulsi so staff UI, ath
 - `athletes`
   - Domain player record inside a tenant
   - Status: `active`, `inactive`, `rehab`
-- `athlete_claim_links`
+- `athlete_invites`
   - Invitation/claim flow for athlete Pulsi accounts
   - Status: `pending`, `claimed`, `expired`, `revoked`
-- `athlete_user_accounts`
+- `athlete_accounts`
   - Durable link between a Better Auth user and an athlete profile
   - Status: `active`, `revoked`
-- `athlete_device_connections`
+- `athlete_integrations`
   - Garmin connection owned by the athlete profile
   - Status: `active`, `revoked`
 

@@ -172,8 +172,8 @@ export const tenants = pgTable(
   })
 );
 
-export const tenantMemberships = pgTable(
-  "tenant_memberships",
+export const staffMemberships = pgTable(
+  "staff_memberships",
   {
     tenantId: uuid("tenant_id")
       .notNull()
@@ -191,16 +191,16 @@ export const tenantMemberships = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.tenantId, table.userId] }),
-    userLookup: index("tenant_memberships_user_idx").on(table.userId),
-    tenantLookup: index("tenant_memberships_tenant_idx").on(table.tenantId),
-    activeUserKey: uniqueIndex("tenant_memberships_active_user_key")
+    userLookup: index("staff_memberships_user_idx").on(table.userId),
+    tenantLookup: index("staff_memberships_tenant_idx").on(table.tenantId),
+    activeUserKey: uniqueIndex("staff_memberships_active_user_key")
       .on(table.userId)
       .where(sql`${table.status} = 'active'`)
   })
 );
 
-export const tenantInvitations = pgTable(
-  "tenant_invitations",
+export const staffInvitations = pgTable(
+  "staff_invitations",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")
@@ -219,9 +219,9 @@ export const tenantInvitations = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    tenantLookup: index("tenant_invitations_tenant_idx").on(table.tenantId, table.status, table.createdAt),
-    emailLookup: index("tenant_invitations_email_idx").on(table.email, table.status, table.expiresAt),
-    pendingInviteKey: uniqueIndex("tenant_invitations_pending_key")
+    tenantLookup: index("staff_invitations_tenant_idx").on(table.tenantId, table.status, table.createdAt),
+    emailLookup: index("staff_invitations_email_idx").on(table.email, table.status, table.expiresAt),
+    pendingInviteKey: uniqueIndex("staff_invitations_pending_key")
       .on(table.tenantId, table.email)
       .where(sql`${table.status} = 'pending'`)
   })
@@ -248,8 +248,8 @@ export const athletes = pgTable(
   })
 );
 
-export const athleteUserAccounts = pgTable(
-  "athlete_user_accounts",
+export const athleteAccounts = pgTable(
+  "athlete_accounts",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     athleteId: uuid("athlete_id")
@@ -264,15 +264,15 @@ export const athleteUserAccounts = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    athleteLookup: index("athlete_user_accounts_athlete_idx").on(table.athleteId, table.status),
-    userLookup: index("athlete_user_accounts_user_idx").on(table.userId, table.status),
-    athleteKey: uniqueIndex("athlete_user_accounts_athlete_key").on(table.athleteId),
-    userKey: uniqueIndex("athlete_user_accounts_user_key").on(table.userId)
+    athleteLookup: index("athlete_accounts_athlete_idx").on(table.athleteId, table.status),
+    userLookup: index("athlete_accounts_user_idx").on(table.userId, table.status),
+    athleteKey: uniqueIndex("athlete_accounts_athlete_key").on(table.athleteId),
+    userKey: uniqueIndex("athlete_accounts_user_key").on(table.userId)
   })
 );
 
-export const athleteClaimLinks = pgTable(
-  "athlete_claim_links",
+export const athleteInvites = pgTable(
+  "athlete_invites",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")
@@ -294,13 +294,13 @@ export const athleteClaimLinks = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    tenantLookup: index("athlete_claim_links_tenant_idx").on(table.tenantId, table.status),
-    athleteLookup: index("athlete_claim_links_athlete_idx").on(table.athleteId, table.status),
-    emailLookup: index("athlete_claim_links_email_idx").on(table.email, table.status, table.expiresAt),
-    pendingAthleteKey: uniqueIndex("athlete_claim_links_pending_athlete_key")
+    tenantLookup: index("athlete_invites_tenant_idx").on(table.tenantId, table.status),
+    athleteLookup: index("athlete_invites_athlete_idx").on(table.athleteId, table.status),
+    emailLookup: index("athlete_invites_email_idx").on(table.email, table.status, table.expiresAt),
+    pendingAthleteKey: uniqueIndex("athlete_invites_pending_athlete_key")
       .on(table.athleteId)
       .where(sql`${table.status} = 'pending'`),
-    tokenHashKey: uniqueIndex("athlete_claim_links_token_hash_key").on(table.tokenHash)
+    tokenHashKey: uniqueIndex("athlete_invites_token_hash_key").on(table.tokenHash)
   })
 );
 
@@ -401,8 +401,8 @@ export const garminOauthSessions = pgTable(
   })
 );
 
-export const athleteDeviceConnections = pgTable(
-  "athlete_device_connections",
+export const athleteIntegrations = pgTable(
+  "athlete_integrations",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")
@@ -426,20 +426,20 @@ export const athleteDeviceConnections = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    tenantLookup: index("athlete_device_connections_tenant_idx").on(table.tenantId, table.provider),
-    providerUserLookup: index("athlete_device_connections_provider_user_idx").on(
+    tenantLookup: index("athlete_integrations_tenant_idx").on(table.tenantId, table.provider),
+    providerUserLookup: index("athlete_integrations_provider_user_idx").on(
       table.provider,
       table.providerUserId
     ),
-    athleteLookup: uniqueIndex("athlete_device_connections_athlete_provider_key").on(
+    athleteLookup: uniqueIndex("athlete_integrations_athlete_provider_key").on(
       table.athleteId,
       table.provider
     )
   })
 );
 
-export const providerCredentials = pgTable(
-  "provider_credentials",
+export const integrationCredentials = pgTable(
+  "integration_credentials",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")
@@ -449,7 +449,7 @@ export const providerCredentials = pgTable(
     subjectType: credentialSubjectTypeEnum("subject_type").default("athlete_connection").notNull(),
     subjectId: uuid("subject_id")
       .notNull()
-      .references(() => athleteDeviceConnections.id, { onDelete: "cascade" }),
+      .references(() => athleteIntegrations.id, { onDelete: "cascade" }),
     encryptedAccessToken: text("encrypted_access_token").notNull(),
     encryptedRefreshToken: text("encrypted_refresh_token").notNull(),
     accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }).notNull(),
@@ -461,12 +461,12 @@ export const providerCredentials = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    subjectKey: uniqueIndex("provider_credentials_subject_key").on(
+    subjectKey: uniqueIndex("integration_credentials_subject_key").on(
       table.provider,
       table.subjectType,
       table.subjectId
     ),
-    tenantLookup: index("provider_credentials_tenant_idx").on(table.tenantId, table.provider)
+    tenantLookup: index("integration_credentials_tenant_idx").on(table.tenantId, table.provider)
   })
 );
 
@@ -482,7 +482,7 @@ export const wearableDailyMetrics = pgTable(
       .references(() => athletes.id, { onDelete: "cascade" }),
     sourceConnectionId: uuid("source_connection_id")
       .notNull()
-      .references(() => athleteDeviceConnections.id, { onDelete: "cascade" }),
+      .references(() => athleteIntegrations.id, { onDelete: "cascade" }),
     provider: integrationProviderEnum("provider").default("garmin").notNull(),
     metricDate: date("metric_date").notNull(),
     restingHeartRate: integer("resting_heart_rate"),
@@ -506,8 +506,8 @@ export const wearableDailyMetrics = pgTable(
   })
 );
 
-export const providerHealthSummaries = pgTable(
-  "provider_health_summaries",
+export const integrationHealthSummaries = pgTable(
+  "integration_health_summaries",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")
@@ -518,7 +518,7 @@ export const providerHealthSummaries = pgTable(
       .references(() => athletes.id, { onDelete: "cascade" }),
     connectionId: uuid("connection_id")
       .notNull()
-      .references(() => athleteDeviceConnections.id, { onDelete: "cascade" }),
+      .references(() => athleteIntegrations.id, { onDelete: "cascade" }),
     provider: integrationProviderEnum("provider").default("garmin").notNull(),
     providerUserId: text("provider_user_id").notNull(),
     summaryType: text("summary_type").notNull(),
@@ -531,17 +531,17 @@ export const providerHealthSummaries = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    tenantLookup: index("provider_health_summaries_tenant_idx").on(
+    tenantLookup: index("integration_health_summaries_tenant_idx").on(
       table.tenantId,
       table.summaryType,
       table.summaryDate
     ),
-    providerUserLookup: index("provider_health_summaries_provider_user_idx").on(
+    providerUserLookup: index("integration_health_summaries_provider_user_idx").on(
       table.provider,
       table.providerUserId,
       table.summaryType
     ),
-    summaryKey: uniqueIndex("provider_health_summaries_summary_key").on(
+    summaryKey: uniqueIndex("integration_health_summaries_summary_key").on(
       table.provider,
       table.athleteId,
       table.summaryType,
@@ -550,8 +550,8 @@ export const providerHealthSummaries = pgTable(
   })
 );
 
-export const providerActivitySummaries = pgTable(
-  "provider_activity_summaries",
+export const integrationActivitySummaries = pgTable(
+  "integration_activity_summaries",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id")
@@ -562,7 +562,7 @@ export const providerActivitySummaries = pgTable(
       .references(() => athletes.id, { onDelete: "cascade" }),
     connectionId: uuid("connection_id")
       .notNull()
-      .references(() => athleteDeviceConnections.id, { onDelete: "cascade" }),
+      .references(() => athleteIntegrations.id, { onDelete: "cascade" }),
     provider: integrationProviderEnum("provider").default("garmin").notNull(),
     providerUserId: text("provider_user_id").notNull(),
     summaryType: text("summary_type").notNull(),
@@ -590,22 +590,22 @@ export const providerActivitySummaries = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
   },
   (table) => ({
-    tenantLookup: index("provider_activity_summaries_tenant_idx").on(
+    tenantLookup: index("integration_activity_summaries_tenant_idx").on(
       table.tenantId,
       table.summaryType,
       table.activityDate
     ),
-    athleteLookup: index("provider_activity_summaries_athlete_idx").on(
+    athleteLookup: index("integration_activity_summaries_athlete_idx").on(
       table.athleteId,
       table.activityDate,
       table.startTimeInSeconds
     ),
-    providerUserLookup: index("provider_activity_summaries_provider_user_idx").on(
+    providerUserLookup: index("integration_activity_summaries_provider_user_idx").on(
       table.provider,
       table.providerUserId,
       table.summaryType
     ),
-    summaryKey: uniqueIndex("provider_activity_summaries_summary_key").on(
+    summaryKey: uniqueIndex("integration_activity_summaries_summary_key").on(
       table.provider,
       table.athleteId,
       table.summaryType,
@@ -614,13 +614,13 @@ export const providerActivitySummaries = pgTable(
   })
 );
 
-export const providerWebhookEvents = pgTable(
-  "provider_webhook_events",
+export const integrationWebhookEvents = pgTable(
+  "integration_webhook_events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
     provider: integrationProviderEnum("provider").notNull(),
-    connectionId: uuid("connection_id").references(() => athleteDeviceConnections.id, {
+    connectionId: uuid("connection_id").references(() => athleteIntegrations.id, {
       onDelete: "set null"
     }),
     providerUserId: text("provider_user_id"),
@@ -634,12 +634,12 @@ export const providerWebhookEvents = pgTable(
     processedAt: timestamp("processed_at", { withTimezone: true })
   },
   (table) => ({
-    providerLookup: index("provider_webhook_events_provider_idx").on(
+    providerLookup: index("integration_webhook_events_provider_idx").on(
       table.provider,
       table.notificationType,
       table.status
     ),
-    tenantLookup: index("provider_webhook_events_tenant_idx").on(table.tenantId, table.receivedAt)
+    tenantLookup: index("integration_webhook_events_tenant_idx").on(table.tenantId, table.receivedAt)
   })
 );
 
@@ -684,7 +684,7 @@ export const integrationSyncJobs = pgTable(
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
     athleteId: uuid("athlete_id").references(() => athletes.id, { onDelete: "set null" }),
-    connectionId: uuid("connection_id").references(() => athleteDeviceConnections.id, {
+    connectionId: uuid("connection_id").references(() => athleteIntegrations.id, {
       onDelete: "set null"
     }),
     provider: integrationProviderEnum("provider").default("garmin").notNull(),

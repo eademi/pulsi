@@ -223,7 +223,7 @@ Pulsi encrypts access and refresh tokens with AES-256-GCM in:
 
 Encrypted values are stored in:
 
-- `provider_credentials`
+- `integration_credentials`
 
 Stored metadata includes:
 
@@ -293,7 +293,7 @@ This is necessary because Garmin permission changes can happen after the initial
 
 Pulsi persists raw webhook events in:
 
-- `provider_webhook_events`
+- `integration_webhook_events`
 
 Each record captures:
 
@@ -454,7 +454,7 @@ Purpose:
 
 - temporary PKCE bootstrap state between connection start and callback completion
 
-### `athlete_device_connections`
+### `athlete_integrations`
 
 Purpose:
 
@@ -469,13 +469,13 @@ Important fields:
 - last permission timestamps
 - credential key
 
-### `provider_credentials`
+### `integration_credentials`
 
 Purpose:
 
 - encrypted token material and token metadata for the connection
 
-### `provider_webhook_events`
+### `integration_webhook_events`
 
 Purpose:
 
@@ -487,7 +487,7 @@ Purpose:
 
 - normalized, provider-independent daily data
 
-### `provider_health_summaries`
+### `integration_health_summaries`
 
 Purpose:
 

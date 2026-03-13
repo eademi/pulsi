@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { TenantAccessScope } from "@pulsi/shared";
 
 import type { Database, DbExecutor } from "../db/client";
-import { athleteClaimLinks, athleteSquadAssignments, athleteUserAccounts, athletes, squads, user } from "../db/schema";
+import { athleteAccounts, athleteInvites, athleteSquadAssignments, athletes, squads, user } from "../db/schema";
 import { buildAthleteAccountDetails, deriveAthleteAccountState, type AthleteRosterStateRow } from "../domain/athlete-roster-state";
 import { canAccessSquad } from "../domain/squad-access";
 import { AppError } from "../http/errors";
@@ -31,13 +31,13 @@ export class AthleteRepository {
         squadId: squads.id,
         squadSlug: squads.slug,
         squadName: squads.name,
-        athleteAccountUserId: athleteUserAccounts.userId,
+        athleteAccountUserId: athleteAccounts.userId,
         athleteAccountName: user.name,
         athleteAccountEmail: user.email,
-        athleteAccountClaimedAt: athleteUserAccounts.claimedAt,
-        pendingClaimLinkId: athleteClaimLinks.id,
-        pendingClaimEmail: athleteClaimLinks.email,
-        pendingClaimExpiresAt: athleteClaimLinks.expiresAt
+        athleteAccountClaimedAt: athleteAccounts.claimedAt,
+        pendingClaimLinkId: athleteInvites.id,
+        pendingClaimEmail: athleteInvites.email,
+        pendingClaimExpiresAt: athleteInvites.expiresAt
       })
       .from(athletes)
       .leftJoin(
@@ -46,16 +46,16 @@ export class AthleteRepository {
       )
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
       .leftJoin(
-        athleteUserAccounts,
+        athleteAccounts,
         // Roster views should preserve historical athlete-account linkage even
         // after archive revokes login access, so staff can still see that the
         // athlete had already claimed a Pulsi account.
-        eq(athleteUserAccounts.athleteId, athletes.id)
+        eq(athleteAccounts.athleteId, athletes.id)
       )
-      .leftJoin(user, eq(athleteUserAccounts.userId, user.id))
+      .leftJoin(user, eq(athleteAccounts.userId, user.id))
       .leftJoin(
-        athleteClaimLinks,
-        and(eq(athleteClaimLinks.athleteId, athletes.id), eq(athleteClaimLinks.status, "pending"))
+        athleteInvites,
+        and(eq(athleteInvites.athleteId, athletes.id), eq(athleteInvites.status, "pending"))
       )
       .where(and(eq(athletes.tenantId, tenantId), eq(athletes.id, athleteId)))
       .limit(1);
@@ -80,13 +80,13 @@ export class AthleteRepository {
         squadId: squads.id,
         squadSlug: squads.slug,
         squadName: squads.name,
-        athleteAccountUserId: athleteUserAccounts.userId,
+        athleteAccountUserId: athleteAccounts.userId,
         athleteAccountName: user.name,
         athleteAccountEmail: user.email,
-        athleteAccountClaimedAt: athleteUserAccounts.claimedAt,
-        pendingClaimLinkId: athleteClaimLinks.id,
-        pendingClaimEmail: athleteClaimLinks.email,
-        pendingClaimExpiresAt: athleteClaimLinks.expiresAt
+        athleteAccountClaimedAt: athleteAccounts.claimedAt,
+        pendingClaimLinkId: athleteInvites.id,
+        pendingClaimEmail: athleteInvites.email,
+        pendingClaimExpiresAt: athleteInvites.expiresAt
       })
       .from(athletes)
       .leftJoin(
@@ -95,16 +95,16 @@ export class AthleteRepository {
       )
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
       .leftJoin(
-        athleteUserAccounts,
+        athleteAccounts,
         // Roster views should preserve historical athlete-account linkage even
         // after archive revokes login access, so staff can still see that the
         // athlete had already claimed a Pulsi account.
-        eq(athleteUserAccounts.athleteId, athletes.id)
+        eq(athleteAccounts.athleteId, athletes.id)
       )
-      .leftJoin(user, eq(athleteUserAccounts.userId, user.id))
+      .leftJoin(user, eq(athleteAccounts.userId, user.id))
       .leftJoin(
-        athleteClaimLinks,
-        and(eq(athleteClaimLinks.athleteId, athletes.id), eq(athleteClaimLinks.status, "pending"))
+        athleteInvites,
+        and(eq(athleteInvites.athleteId, athletes.id), eq(athleteInvites.status, "pending"))
       )
       .where(
         and(

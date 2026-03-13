@@ -1,7 +1,7 @@
 import { and, eq, isNull, lt } from "drizzle-orm";
 
 import type { Database, DbExecutor } from "../db/client";
-import { athleteClaimLinks, athletes, squads, tenants } from "../db/schema";
+import { athleteInvites, athletes, squads, tenants } from "../db/schema";
 import { AppError } from "../http/errors";
 import { athleteSquadAssignments } from "../db/schema";
 
@@ -20,7 +20,7 @@ export class AthleteClaimRepository {
     executor: DbExecutor = this.db
   ) {
     const [claimLink] = await executor
-      .insert(athleteClaimLinks)
+      .insert(athleteInvites)
       .values({
         tenantId: input.tenantId,
         athleteId: input.athleteId,
@@ -40,26 +40,26 @@ export class AthleteClaimRepository {
 
   public async revokePendingForAthlete(athleteId: string, executor: DbExecutor = this.db) {
     return executor
-      .update(athleteClaimLinks)
+      .update(athleteInvites)
       .set({
         status: "revoked",
         updatedAt: new Date()
       })
-      .where(and(eq(athleteClaimLinks.athleteId, athleteId), eq(athleteClaimLinks.status, "pending")))
+      .where(and(eq(athleteInvites.athleteId, athleteId), eq(athleteInvites.status, "pending")))
       .returning();
   }
 
   public async markExpiredPendingLinks(now: Date, executor: DbExecutor = this.db) {
     return executor
-      .update(athleteClaimLinks)
+      .update(athleteInvites)
       .set({
         status: "expired",
         updatedAt: now
       })
       .where(
         and(
-          eq(athleteClaimLinks.status, "pending"),
-          lt(athleteClaimLinks.expiresAt, now)
+          eq(athleteInvites.status, "pending"),
+          lt(athleteInvites.expiresAt, now)
         )
       )
       .returning();
@@ -68,7 +68,7 @@ export class AthleteClaimRepository {
   public async findPendingByTokenHash(tokenHash: string) {
     const [claimLink] = await this.db
       .select({
-        claimLink: athleteClaimLinks,
+        claimLink: athleteInvites,
         athleteFirstName: athletes.firstName,
         athleteLastName: athletes.lastName,
         tenantName: tenants.name,
@@ -77,9 +77,9 @@ export class AthleteClaimRepository {
         currentSquadSlug: squads.slug,
         currentSquadName: squads.name
       })
-      .from(athleteClaimLinks)
-      .innerJoin(athletes, eq(athleteClaimLinks.athleteId, athletes.id))
-      .innerJoin(tenants, eq(athleteClaimLinks.tenantId, tenants.id))
+      .from(athleteInvites)
+      .innerJoin(athletes, eq(athleteInvites.athleteId, athletes.id))
+      .innerJoin(tenants, eq(athleteInvites.tenantId, tenants.id))
       .leftJoin(
         athleteSquadAssignments,
         and(
@@ -88,7 +88,7 @@ export class AthleteClaimRepository {
         )
       )
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
-      .where(and(eq(athleteClaimLinks.tokenHash, tokenHash), eq(athleteClaimLinks.status, "pending")))
+      .where(and(eq(athleteInvites.tokenHash, tokenHash), eq(athleteInvites.status, "pending")))
       .limit(1);
 
     return claimLink ?? null;
@@ -101,14 +101,14 @@ export class AthleteClaimRepository {
     executor: DbExecutor = this.db
   ) {
     const [claimLink] = await executor
-      .update(athleteClaimLinks)
+      .update(athleteInvites)
       .set({
         status: "claimed",
         claimedByUserId,
         claimedAt,
         updatedAt: claimedAt
       })
-      .where(eq(athleteClaimLinks.id, claimLinkId))
+      .where(eq(athleteInvites.id, claimLinkId))
       .returning();
 
     if (!claimLink) {

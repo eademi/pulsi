@@ -6,14 +6,14 @@ import { hashPassword } from "better-auth/crypto";
 import { closeDatabase, db } from "./client";
 import {
   account,
-  athleteClaimLinks,
-  athleteDeviceConnections,
+  athleteAccounts,
+  athleteIntegrations,
+  athleteInvites,
   athleteSquadAssignments,
-  athleteUserAccounts,
   athletes,
   readinessSnapshots,
   squads,
-  tenantMemberships,
+  staffMemberships,
   tenants,
   tenantUserSquadAccess,
   user,
@@ -140,7 +140,7 @@ const ensureDemoSchema = async () => {
       select 1
       from information_schema.columns
       where table_schema = 'public'
-        and table_name = 'tenant_memberships'
+        and table_name = 'staff_memberships'
         and column_name = 'access_scope'
     ) as has_access_scope
   `);
@@ -278,7 +278,7 @@ const upsertMemberships = async (input: {
     }
 
     await db
-      .insert(tenantMemberships)
+      .insert(staffMemberships)
       .values({
         tenantId: input.tenantId,
         userId: userRecord.id,
@@ -291,7 +291,7 @@ const upsertMemberships = async (input: {
         updatedAt: TODAY
       })
       .onConflictDoUpdate({
-        target: [tenantMemberships.tenantId, tenantMemberships.userId],
+        target: [staffMemberships.tenantId, staffMemberships.userId],
         set: {
           role: fixture.role,
           status: "active",
@@ -491,7 +491,7 @@ const upsertGarminConnections = async (
   athletesToSeed: Array<typeof athletes.$inferSelect & { currentSquadId: string }>,
   connectedAthleteIds: Set<string>
 ) => {
-  const connectionByAthleteId = new Map<string, typeof athleteDeviceConnections.$inferSelect>();
+  const connectionByAthleteId = new Map<string, typeof athleteIntegrations.$inferSelect>();
 
   for (const athleteRecord of athletesToSeed) {
     if (!connectedAthleteIds.has(athleteRecord.id)) {
@@ -503,7 +503,7 @@ const upsertGarminConnections = async (
     const providerUserId = `garmin-demo-${externalRef}`;
 
     const [connection] = await db
-      .insert(athleteDeviceConnections)
+      .insert(athleteIntegrations)
       .values({
         id: connectionId,
         tenantId,
@@ -522,7 +522,7 @@ const upsertGarminConnections = async (
         updatedAt: TODAY
       })
       .onConflictDoUpdate({
-        target: [athleteDeviceConnections.athleteId, athleteDeviceConnections.provider],
+        target: [athleteIntegrations.athleteId, athleteIntegrations.provider],
         set: {
           providerUserId,
           status: "active",
@@ -550,7 +550,7 @@ const upsertGarminConnections = async (
 const upsertReadinessFixtures = async (
   tenantId: string,
   athleteRecords: Array<typeof athletes.$inferSelect & { currentSquadId: string }>,
-  connectionByAthleteId: Map<string, typeof athleteDeviceConnections.$inferSelect>,
+  connectionByAthleteId: Map<string, typeof athleteIntegrations.$inferSelect>,
   connectedAthleteIds: Set<string>
 ) => {
   for (const [index, athleteRecord] of athleteRecords.entries()) {
@@ -661,7 +661,7 @@ const upsertClaimedAthleteUsers = async (input: {
     });
 
     await db
-      .insert(athleteUserAccounts)
+      .insert(athleteAccounts)
       .values({
         id: deterministicUuid(`athlete-user-account:${externalRef}`),
         athleteId: athleteRecord.id,
@@ -672,7 +672,7 @@ const upsertClaimedAthleteUsers = async (input: {
         updatedAt: TODAY
       })
       .onConflictDoUpdate({
-        target: athleteUserAccounts.userId,
+        target: athleteAccounts.userId,
         set: {
           athleteId: athleteRecord.id,
           status: "active",
@@ -706,7 +706,7 @@ const upsertPendingClaimLinks = async (input: {
     const expiresAt = daysFrom(TODAY, 14);
 
     await db
-      .insert(athleteClaimLinks)
+      .insert(athleteInvites)
       .values({
         id: claimId,
         tenantId: input.tenantId,
@@ -722,7 +722,7 @@ const upsertPendingClaimLinks = async (input: {
         updatedAt: TODAY
       })
       .onConflictDoUpdate({
-        target: athleteClaimLinks.tokenHash,
+        target: athleteInvites.tokenHash,
         set: {
           tenantId: input.tenantId,
           athleteId: athleteRecord.id,

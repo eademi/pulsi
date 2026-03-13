@@ -60,8 +60,8 @@ flowchart LR
 ```
 
 Key rule:
-- `tenant_memberships` are for staff only
-- `athlete_user_accounts` are for athlete logins only
+- `staff_memberships` are for staff only
+- `athlete_accounts` are for athlete logins only
 
 ## 4. Organization Structure
 
@@ -218,8 +218,8 @@ erDiagram
 ```
 
 Read this carefully:
-- a staff user belongs to one tenant through `tenant_memberships`
-- an athlete login links to one athlete through `athlete_user_accounts`
+- a staff user belongs to one tenant through `staff_memberships`
+- an athlete login links to one athlete through `athlete_accounts`
 - an athlete belongs to one tenant and one active squad at a time
 - Garmin links to the athlete, not directly to the user
 
@@ -228,9 +228,9 @@ Read this carefully:
 If you remember only six things, remember these:
 
 1. `user` is the authentication identity for both staff and athletes.
-2. `tenant_memberships` are only for staff.
+2. `staff_memberships` are only for staff.
 3. `athletes` are domain records, created independently of user accounts.
-4. `athlete_user_accounts` connect a Better Auth user to exactly one athlete profile.
+4. `athlete_accounts` connect a Better Auth user to exactly one athlete profile.
 5. Garmin connections are saved on the athlete profile.
 6. Staff see organization data; athlete users only see their own data.
 

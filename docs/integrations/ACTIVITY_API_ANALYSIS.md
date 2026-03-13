@@ -384,7 +384,7 @@ Pulsi now implements Garmin Activity Summaries end to end:
 - typed Garmin Activity Summary payload contracts
 - push ingestion
 - ping ingestion with callback fetching
-- structured summary storage in `provider_activity_summaries`
+- structured summary storage in `integration_activity_summaries`
 - tenant-safe coach API at `GET /v1/tenants/:tenantSlug/athletes/:athleteId/activities`
 
 Still pending:

@@ -196,10 +196,10 @@ Main tables involved:
 - `account` (Better Auth provider/password accounts)
 - `verification` (Better Auth verification tokens)
 - `tenants`
-- `tenant_memberships`
-- `tenant_invitations`
+- `staff_memberships`
+- `staff_invitations`
 - `athletes`
-- `athlete_device_connections`
+- `athlete_integrations`
 - `wearable_daily_metrics`
 - `readiness_snapshots`
 
@@ -212,15 +212,15 @@ How user-to-tenant linkage works:
 - Better Auth stores authenticated users in the `user` table
 - Pulsi links those identities to clubs through `tenant_memberships.user_id`
 - `tenant_memberships.user_id` now references `user.id`
-- when a request is authenticated, Pulsi takes `session.user.id` from Better Auth and resolves the active tenant membership from `tenant_memberships`
+- when a request is authenticated, Pulsi takes `session.user.id` from Better Auth and resolves the active tenant membership from `staff_memberships`
 - Pulsi now allows only one active tenant membership per user account at a time
 - that rule is enforced in both service logic and the database
 
 How pending access works:
 
-- club owners create email-based invitations in `tenant_invitations`
+- club owners create email-based invitations in `staff_invitations`
 - invited users see those invitations on `/welcome`
-- accepting an invitation creates or reactivates the `tenant_memberships` row
+- accepting an invitation creates or reactivates the `staff_memberships` row
 - only active memberships grant tenant-scoped access
 - invitations to users who already belong to another organization are rejected
 
@@ -583,7 +583,7 @@ Important tables:
 
 Temporary OAuth/PKCE state.
 
-### `athlete_device_connections`
+### `athlete_integrations`
 
 Provider connection for an athlete.
 
@@ -594,11 +594,11 @@ Important Garmin fields:
 - `last_permissions_sync_at`
 - `last_permission_change_at`
 
-### `provider_credentials`
+### `integration_credentials`
 
 Encrypted provider access and refresh tokens.
 
-### `provider_webhook_events`
+### `integration_webhook_events`
 
 Raw incoming Garmin events for:
 
@@ -607,7 +607,7 @@ Raw incoming Garmin events for:
 - deregistration
 - permission changes
 
-### `provider_activity_summaries`
+### `integration_activity_summaries`
 
 Structured Garmin Activity Summary records for coach-facing recent session views.
 

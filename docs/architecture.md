@@ -176,12 +176,12 @@ Implemented in [schema.ts](/Users/ea/Desktop/projects/pulsi-app/packages/api/src
 Main tables:
 
 - `tenants`
-- `tenant_memberships`
+- `staff_memberships`
 - `athletes`
 - `garmin_oauth_sessions`
-- `athlete_device_connections`
-- `provider_credentials`
-- `provider_webhook_events`
+- `athlete_integrations`
+- `integration_credentials`
+- `integration_webhook_events`
 - `wearable_daily_metrics`
 - `readiness_snapshots`
 - `integration_sync_jobs`
@@ -194,7 +194,7 @@ Important Garmin fields:
 - `athlete_device_connections.last_permissions_sync_at`: last successful permissions fetch
 - `athlete_device_connections.last_permission_change_at`: timestamp from Garmin permission webhooks
 - `provider_credentials.*`: encrypted token material and expiry metadata
-- `provider_webhook_events`: raw webhook payload archive plus processing status
+- `integration_webhook_events`: raw webhook payload archive plus processing status
 
 Schema principles:
 
@@ -355,7 +355,7 @@ Runtime flow:
 6. Pulsi upserts the athlete connection and encrypted provider credentials.
 7. Garmin later sends webhook notifications for health data, deregistration, or permission changes.
 8. Garmin can also send Ping notifications containing callback URLs for typed summary retrieval.
-9. Garmin webhook payloads are validated and archived in `provider_webhook_events`.
+9. Garmin webhook payloads are validated and archived in `integration_webhook_events`.
 10. Push payloads and Ping callback payloads are normalized by `GarminMapper` and ingested through `MetricIngestionService`.
 11. `ReadinessEngine` produces coach-facing readiness guidance from normalized metrics.
 

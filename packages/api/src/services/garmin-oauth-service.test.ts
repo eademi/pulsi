@@ -22,7 +22,7 @@ const createServiceHarness = () => {
         codeVerifier: "verifier-1",
         redirectUri: "http://localhost:3001/v1/integrations/garmin/callback",
         status: "pending" as const,
-        expiresAt: new Date("2026-03-11T10:15:00.000Z"),
+        expiresAt: new Date("2026-12-11T10:15:00.000Z"),
         createdByUserId: "user-1"
       },
       tenantSlug: "pulsi-demo-fc"

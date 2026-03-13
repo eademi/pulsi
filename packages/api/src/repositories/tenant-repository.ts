@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import type { Database } from "../db/client";
-import { tenantMemberships, tenants } from "../db/schema";
+import { staffMemberships, tenants } from "../db/schema";
 import { AppError } from "../http/errors";
 
 export class TenantRepository {
@@ -22,7 +22,7 @@ export class TenantRepository {
         throw new AppError(500, "INTERNAL_ERROR", "Failed to create tenant");
       }
 
-      await tx.insert(tenantMemberships).values({
+      await tx.insert(staffMemberships).values({
         tenantId: tenant.id,
         userId: input.ownerUserId,
         role: "club_owner",

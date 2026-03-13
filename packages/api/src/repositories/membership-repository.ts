@@ -3,7 +3,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Database, DbExecutor } from "../db/client";
 import {
   squads,
-  tenantMemberships,
+  staffMemberships,
   tenants,
   tenantUserSquadAccess,
   user
@@ -15,20 +15,20 @@ export class MembershipRepository {
   public async listForUser(userId: string) {
     const memberships = await this.db
       .select({
-        userId: tenantMemberships.userId,
+        userId: staffMemberships.userId,
         tenantId: tenants.id,
         tenantSlug: tenants.slug,
         tenantName: tenants.name,
         timezone: tenants.timezone,
         createdAt: tenants.createdAt,
-        role: tenantMemberships.role,
-        status: tenantMemberships.status,
-        accessScope: tenantMemberships.accessScope
+        role: staffMemberships.role,
+        status: staffMemberships.status,
+        accessScope: staffMemberships.accessScope
       })
-      .from(tenantMemberships)
-      .innerJoin(tenants, eq(tenantMemberships.tenantId, tenants.id))
-      .where(eq(tenantMemberships.userId, userId))
-      .orderBy(desc(tenantMemberships.isDefaultTenant), tenants.name);
+      .from(staffMemberships)
+      .innerJoin(tenants, eq(staffMemberships.tenantId, tenants.id))
+      .where(eq(staffMemberships.userId, userId))
+      .orderBy(desc(staffMemberships.isDefaultTenant), tenants.name);
 
     return this.attachAssignedSquads(memberships);
   }
@@ -36,22 +36,22 @@ export class MembershipRepository {
   public async findActiveMembership(userId: string, tenantSlug: string) {
     const [membership] = await this.db
       .select({
-        userId: tenantMemberships.userId,
+        userId: staffMemberships.userId,
         tenantId: tenants.id,
         tenantSlug: tenants.slug,
         tenantName: tenants.name,
         timezone: tenants.timezone,
         createdAt: tenants.createdAt,
-        role: tenantMemberships.role,
-        status: tenantMemberships.status,
-        accessScope: tenantMemberships.accessScope
+        role: staffMemberships.role,
+        status: staffMemberships.status,
+        accessScope: staffMemberships.accessScope
       })
-      .from(tenantMemberships)
-      .innerJoin(tenants, eq(tenantMemberships.tenantId, tenants.id))
+      .from(staffMemberships)
+      .innerJoin(tenants, eq(staffMemberships.tenantId, tenants.id))
       .where(
         and(
-          eq(tenantMemberships.userId, userId),
-          eq(tenantMemberships.status, "active"),
+          eq(staffMemberships.userId, userId),
+          eq(staffMemberships.status, "active"),
           eq(tenants.slug, tenantSlug)
         )
       )
@@ -74,12 +74,12 @@ export class MembershipRepository {
         tenantName: tenants.name,
         timezone: tenants.timezone,
         createdAt: tenants.createdAt,
-        role: tenantMemberships.role,
-        status: tenantMemberships.status
+        role: staffMemberships.role,
+        status: staffMemberships.status
       })
-      .from(tenantMemberships)
-      .innerJoin(tenants, eq(tenantMemberships.tenantId, tenants.id))
-      .where(and(eq(tenantMemberships.userId, userId), eq(tenantMemberships.status, "active")))
+      .from(staffMemberships)
+      .innerJoin(tenants, eq(staffMemberships.tenantId, tenants.id))
+      .where(and(eq(staffMemberships.userId, userId), eq(staffMemberships.status, "active")))
       .limit(1);
 
     return membership ?? null;
@@ -91,15 +91,15 @@ export class MembershipRepository {
         userId: user.id,
         email: user.email,
         name: user.name,
-        role: tenantMemberships.role,
-        status: tenantMemberships.status,
-        accessScope: tenantMemberships.accessScope,
-        isDefaultTenant: tenantMemberships.isDefaultTenant,
-        joinedAt: tenantMemberships.createdAt
+        role: staffMemberships.role,
+        status: staffMemberships.status,
+        accessScope: staffMemberships.accessScope,
+        isDefaultTenant: staffMemberships.isDefaultTenant,
+        joinedAt: staffMemberships.createdAt
       })
-      .from(tenantMemberships)
-      .innerJoin(user, eq(tenantMemberships.userId, user.id))
-      .where(eq(tenantMemberships.tenantId, tenantId));
+      .from(staffMemberships)
+      .innerJoin(user, eq(staffMemberships.userId, user.id))
+      .where(eq(staffMemberships.tenantId, tenantId));
 
     return this.attachAssignedSquads(memberships.map((membership) => ({ ...membership, tenantId })));
   }
@@ -110,16 +110,16 @@ export class MembershipRepository {
         userId: user.id,
         email: user.email,
         name: user.name,
-        role: tenantMemberships.role,
-        status: tenantMemberships.status,
-        isDefaultTenant: tenantMemberships.isDefaultTenant,
-        joinedAt: tenantMemberships.createdAt
+        role: staffMemberships.role,
+        status: staffMemberships.status,
+        isDefaultTenant: staffMemberships.isDefaultTenant,
+        joinedAt: staffMemberships.createdAt
       })
-      .from(tenantMemberships)
-      .innerJoin(user, eq(tenantMemberships.userId, user.id))
+      .from(staffMemberships)
+      .innerJoin(user, eq(staffMemberships.userId, user.id))
       .where(
         and(
-          eq(tenantMemberships.tenantId, tenantId),
+          eq(staffMemberships.tenantId, tenantId),
           sql`lower(${user.email}) = lower(${email})`
         )
       )
@@ -134,15 +134,15 @@ export class MembershipRepository {
         userId: user.id,
         email: user.email,
         name: user.name,
-        role: tenantMemberships.role,
-        status: tenantMemberships.status,
-        accessScope: tenantMemberships.accessScope,
-        isDefaultTenant: tenantMemberships.isDefaultTenant,
-        joinedAt: tenantMemberships.createdAt
+        role: staffMemberships.role,
+        status: staffMemberships.status,
+        accessScope: staffMemberships.accessScope,
+        isDefaultTenant: staffMemberships.isDefaultTenant,
+        joinedAt: staffMemberships.createdAt
       })
-      .from(tenantMemberships)
-      .innerJoin(user, eq(tenantMemberships.userId, user.id))
-      .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, userId)))
+      .from(staffMemberships)
+      .innerJoin(user, eq(staffMemberships.userId, user.id))
+      .where(and(eq(staffMemberships.tenantId, tenantId), eq(staffMemberships.userId, userId)))
       .limit(1);
 
     if (!membership) {
@@ -162,18 +162,18 @@ export class MembershipRepository {
         tenantName: tenants.name,
         timezone: tenants.timezone,
         createdAt: tenants.createdAt,
-        role: tenantMemberships.role,
-        status: tenantMemberships.status,
+        role: staffMemberships.role,
+        status: staffMemberships.status,
         userId: user.id,
         email: user.email,
         name: user.name
       })
-      .from(tenantMemberships)
-      .innerJoin(user, eq(tenantMemberships.userId, user.id))
-      .innerJoin(tenants, eq(tenantMemberships.tenantId, tenants.id))
+      .from(staffMemberships)
+      .innerJoin(user, eq(staffMemberships.userId, user.id))
+      .innerJoin(tenants, eq(staffMemberships.tenantId, tenants.id))
       .where(
         and(
-          eq(tenantMemberships.status, "active"),
+          eq(staffMemberships.status, "active"),
           sql`lower(${user.email}) = lower(${email})`
         )
       )
@@ -190,7 +190,7 @@ export class MembershipRepository {
     isDefaultTenant?: boolean;
   }, executor: DbExecutor = this.db) {
     const [membership] = await executor
-      .insert(tenantMemberships)
+      .insert(staffMemberships)
       .values({
         tenantId: input.tenantId,
         userId: input.userId,
@@ -201,7 +201,7 @@ export class MembershipRepository {
         isDefaultTenant: input.isDefaultTenant ?? false
       })
       .onConflictDoUpdate({
-        target: [tenantMemberships.tenantId, tenantMemberships.userId],
+        target: [staffMemberships.tenantId, staffMemberships.userId],
         set: {
           role: input.role,
           status: "active",
@@ -225,12 +225,12 @@ export class MembershipRepository {
     executor: DbExecutor = this.db
   ) {
     await executor
-      .update(tenantMemberships)
+      .update(staffMemberships)
       .set({
         accessScope: input.accessScope,
         updatedAt: new Date()
       })
-      .where(and(eq(tenantMemberships.tenantId, input.tenantId), eq(tenantMemberships.userId, input.userId)));
+      .where(and(eq(staffMemberships.tenantId, input.tenantId), eq(staffMemberships.userId, input.userId)));
 
     await executor
       .delete(tenantUserSquadAccess)

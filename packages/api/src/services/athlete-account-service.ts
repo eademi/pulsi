@@ -4,7 +4,7 @@ import { and, eq, ne, or, sql } from "drizzle-orm";
 import type { AthletePortal } from "@pulsi/shared";
 
 import type { Database } from "../db/client";
-import { athleteClaimLinks, athleteUserAccounts, athletes, user } from "../db/schema";
+import { athleteAccounts, athleteInvites, athletes, user } from "../db/schema";
 import { AppError } from "../http/errors";
 import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
 import type { AthleteClaimRepository } from "../repositories/athlete-claim-repository";
@@ -284,9 +284,9 @@ export class AthleteAccountService {
         athleteId: athletes.id,
         status: athletes.status
       })
-      .from(athleteUserAccounts)
-      .innerJoin(athletes, eq(athleteUserAccounts.athleteId, athletes.id))
-      .innerJoin(user, eq(athleteUserAccounts.userId, user.id))
+      .from(athleteAccounts)
+      .innerJoin(athletes, eq(athleteAccounts.athleteId, athletes.id))
+      .innerJoin(user, eq(athleteAccounts.userId, user.id))
       .where(
         and(
           eq(athletes.tenantId, tenantId),
@@ -305,14 +305,14 @@ export class AthleteAccountService {
         athleteId: athletes.id,
         status: athletes.status
       })
-      .from(athleteClaimLinks)
-      .innerJoin(athletes, eq(athleteClaimLinks.athleteId, athletes.id))
+      .from(athleteInvites)
+      .innerJoin(athletes, eq(athleteInvites.athleteId, athletes.id))
       .where(
         and(
-          eq(athleteClaimLinks.tenantId, tenantId),
-          ne(athleteClaimLinks.athleteId, athleteId),
-          eq(athleteClaimLinks.email, email),
-          or(eq(athleteClaimLinks.status, "pending"), eq(athleteClaimLinks.status, "claimed"))
+          eq(athleteInvites.tenantId, tenantId),
+          ne(athleteInvites.athleteId, athleteId),
+          eq(athleteInvites.email, email),
+          or(eq(athleteInvites.status, "pending"), eq(athleteInvites.status, "claimed"))
         )
       )
       .limit(1);

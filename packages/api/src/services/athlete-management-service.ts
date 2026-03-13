@@ -4,8 +4,8 @@ import type { CreateAthleteInput } from "@pulsi/shared";
 
 import type { Database } from "../db/client";
 import {
-  providerActivitySummaries,
-  providerHealthSummaries,
+  integrationActivitySummaries,
+  integrationHealthSummaries,
   readinessSnapshots,
   wearableDailyMetrics
 } from "../db/schema";
@@ -251,8 +251,8 @@ export class AthleteManagementService {
     const historyCounts = await this.db.execute(sql`
       select
         (select count(*) from ${wearableDailyMetrics} where ${wearableDailyMetrics.athleteId} = ${input.athleteId})::int as metrics_count,
-        (select count(*) from ${providerHealthSummaries} where ${providerHealthSummaries.athleteId} = ${input.athleteId})::int as health_count,
-        (select count(*) from ${providerActivitySummaries} where ${providerActivitySummaries.athleteId} = ${input.athleteId})::int as activity_count,
+        (select count(*) from ${integrationHealthSummaries} where ${integrationHealthSummaries.athleteId} = ${input.athleteId})::int as health_count,
+        (select count(*) from ${integrationActivitySummaries} where ${integrationActivitySummaries.athleteId} = ${input.athleteId})::int as activity_count,
         (select count(*) from ${readinessSnapshots} where ${readinessSnapshots.athleteId} = ${input.athleteId})::int as snapshot_count
     `);
 

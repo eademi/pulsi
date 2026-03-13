@@ -3,10 +3,10 @@ import type { IntegrationProvider } from "@pulsi/shared";
 
 import type { Database } from "../db/client";
 import {
-  athleteDeviceConnections,
+  athleteIntegrations,
   integrationSyncJobs,
-  providerActivitySummaries,
-  providerHealthSummaries,
+  integrationActivitySummaries,
+  integrationHealthSummaries,
   readinessSnapshots,
   wearableDailyMetrics
 } from "../db/schema";
@@ -22,13 +22,13 @@ export class IntegrationRepository {
   ) {
     const [connection] = await this.db
       .select()
-      .from(athleteDeviceConnections)
+      .from(athleteIntegrations)
       .where(
         and(
-          eq(athleteDeviceConnections.tenantId, tenantId),
-          eq(athleteDeviceConnections.athleteId, athleteId),
-          eq(athleteDeviceConnections.provider, provider),
-          eq(athleteDeviceConnections.status, "active")
+          eq(athleteIntegrations.tenantId, tenantId),
+          eq(athleteIntegrations.athleteId, athleteId),
+          eq(athleteIntegrations.provider, provider),
+          eq(athleteIntegrations.status, "active")
         )
       )
       .limit(1);
@@ -164,7 +164,7 @@ export class IntegrationRepository {
     rawPayload: Record<string, unknown>;
   }) {
     const [summary] = await this.db
-      .insert(providerHealthSummaries)
+      .insert(integrationHealthSummaries)
       .values({
         tenantId: input.tenantId,
         athleteId: input.athleteId,
@@ -180,10 +180,10 @@ export class IntegrationRepository {
       })
       .onConflictDoUpdate({
         target: [
-          providerHealthSummaries.provider,
-          providerHealthSummaries.athleteId,
-          providerHealthSummaries.summaryType,
-          providerHealthSummaries.providerSummaryId
+          integrationHealthSummaries.provider,
+          integrationHealthSummaries.athleteId,
+          integrationHealthSummaries.summaryType,
+          integrationHealthSummaries.providerSummaryId
         ],
         set: {
           summaryDate: input.summaryDate ?? null,
@@ -231,7 +231,7 @@ export class IntegrationRepository {
     rawPayload: Record<string, unknown>;
   }) {
     const [summary] = await this.db
-      .insert(providerActivitySummaries)
+      .insert(integrationActivitySummaries)
       .values({
         tenantId: input.tenantId,
         athleteId: input.athleteId,
@@ -262,10 +262,10 @@ export class IntegrationRepository {
       })
       .onConflictDoUpdate({
         target: [
-          providerActivitySummaries.provider,
-          providerActivitySummaries.athleteId,
-          providerActivitySummaries.summaryType,
-          providerActivitySummaries.providerSummaryId
+          integrationActivitySummaries.provider,
+          integrationActivitySummaries.athleteId,
+          integrationActivitySummaries.summaryType,
+          integrationActivitySummaries.providerSummaryId
         ],
         set: {
           activityDate: input.activityDate ?? null,
@@ -335,13 +335,13 @@ export class IntegrationRepository {
 
   public async markConnectionSync(connectionId: string, nextCursor: string | null) {
     const [connection] = await this.db
-      .update(athleteDeviceConnections)
+      .update(athleteIntegrations)
       .set({
         lastCursor: nextCursor,
         lastSuccessfulSyncAt: new Date(),
         updatedAt: new Date()
       })
-      .where(eq(athleteDeviceConnections.id, connectionId))
+      .where(eq(athleteIntegrations.id, connectionId))
       .returning();
 
     if (!connection) {

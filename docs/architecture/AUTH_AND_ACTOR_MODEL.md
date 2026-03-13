@@ -52,7 +52,7 @@ It answers:
 
 Stored in:
 
-- `tenant_memberships`
+- `staff_memberships`
 
 This links a Pulsi user to one organization.
 
@@ -81,8 +81,8 @@ It answers:
 
 Stored in:
 
-- `athlete_device_connections`
-- `provider_credentials`
+- `athlete_integrations`
+- `integration_credentials`
 
 This is the external wearable identity and token set attached to an athlete record.
 
@@ -125,7 +125,7 @@ There is no direct `user -> athlete` link yet.
 When a user creates a tenant:
 
 - a `tenants` row is created
-- a `tenant_memberships` row is created
+- a `staff_memberships` row is created
 - their role becomes `club_owner`
 
 ### Staff Invitations
@@ -141,10 +141,10 @@ Flow:
 
 1. staff admin opens `/:tenantSlug/settings`
 2. invites another person by email with a role
-3. a `tenant_invitations` row is created
+3. a `staff_invitations` row is created
 4. the invited person signs in or registers
 5. they accept the invitation
-6. `tenant_memberships` is created or reactivated
+6. `staff_memberships` is created or reactivated
 
 This means staff accounts are not directly “created by admins” as full auth accounts.
 They are:
@@ -231,8 +231,8 @@ Current athlete-related tables:
 
 - `athletes`
 - `athlete_squad_assignments`
-- `athlete_device_connections`
-- `provider_credentials`
+- `athlete_integrations`
+- `integration_credentials`
 
 Current Garmin flow:
 
@@ -257,7 +257,7 @@ That means athletes should eventually be able to:
 
 The mistake to avoid is treating athletes as normal tenant staff members.
 
-Athletes should **not** use `tenant_memberships`.
+Athletes should **not** use `staff_memberships`.
 
 Why:
 
@@ -278,7 +278,7 @@ Authentication:
 
 Authorization:
 
-- `tenant_memberships`
+- `staff_memberships`
 - role
 - squad scope
 
@@ -316,7 +316,7 @@ flowchart LR
 
 Before implementing athlete accounts, add a dedicated linking table:
 
-- `athlete_user_accounts`
+- `athlete_accounts`
 
 Recommended columns:
 
@@ -331,7 +331,7 @@ Rules:
 
 - one athlete user links to exactly one athlete record
 - one athlete record links to at most one active athlete user
-- this table is completely separate from `tenant_memberships`
+- this table is completely separate from `staff_memberships`
 
 This table answers:
 
@@ -369,7 +369,7 @@ They should only get:
 Resolve:
 
 1. Better Auth user session
-2. `tenant_memberships`
+2. `staff_memberships`
 3. role + squad scope
 
 ### Athlete Request
@@ -377,7 +377,7 @@ Resolve:
 Resolve:
 
 1. Better Auth user session
-2. `athlete_user_accounts`
+2. `athlete_accounts`
 3. linked athlete record
 4. actor type = athlete
 
@@ -464,7 +464,7 @@ To be ready for athlete accounts, do this in order:
    - staff
    - athlete
 
-3. Add `athlete_user_accounts`
+3. Add `athlete_accounts`
    - schema
    - repository
    - service
@@ -489,7 +489,7 @@ The cleanest first implementation is:
 - staff sends athlete claim link
 - athlete registers/signs in
 - athlete claims that athlete profile
-- `athlete_user_accounts` row is created
+- `athlete_accounts` row is created
 
 Why this is better than open self-signup:
 
@@ -503,7 +503,7 @@ Why this is better than open self-signup:
 These should stay true even after athlete accounts ship:
 
 - staff memberships and athlete accounts remain separate
-- `tenant_memberships` is staff-only
+- `staff_memberships` is staff-only
 - athlete users never gain tenant-wide visibility
 - Garmin belongs to athlete records
 - athlete comparison data must be anonymous and threshold-protected
@@ -530,9 +530,9 @@ Today athletes are domain records only.
 
 Through a dedicated table like:
 
-- `athlete_user_accounts`
+- `athlete_accounts`
 
-Not through `tenant_memberships`.
+Not through `staff_memberships`.
 
 ### “How should auth work between staff and athletes?”
 
@@ -546,7 +546,7 @@ Two separate actor paths:
 The next implementation step should be:
 
 - add `actorType` to request-context design
-- introduce `athlete_user_accounts`
+- introduce `athlete_accounts`
 - design the athlete claim flow
 
 That is the clean boundary where Pulsi moves from:

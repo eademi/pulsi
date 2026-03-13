@@ -5,7 +5,7 @@ import type { AthleteActorProfile } from "@pulsi/shared";
 import type { Database, DbExecutor } from "../db/client";
 import {
   athleteSquadAssignments,
-  athleteUserAccounts,
+  athleteAccounts,
   athletes,
   squads,
   tenants
@@ -24,7 +24,7 @@ export class AthleteAccountRepository {
     executor: DbExecutor = this.db
   ) {
     const [account] = await executor
-      .insert(athleteUserAccounts)
+      .insert(athleteAccounts)
       .values({
         athleteId: input.athleteId,
         userId: input.userId,
@@ -42,8 +42,8 @@ export class AthleteAccountRepository {
   public async findActiveByAthleteId(athleteId: string) {
     const [account] = await this.db
       .select()
-      .from(athleteUserAccounts)
-      .where(and(eq(athleteUserAccounts.athleteId, athleteId), eq(athleteUserAccounts.status, "active")))
+      .from(athleteAccounts)
+      .where(and(eq(athleteAccounts.athleteId, athleteId), eq(athleteAccounts.status, "active")))
       .limit(1);
 
     return account ?? null;
@@ -52,8 +52,8 @@ export class AthleteAccountRepository {
   public async findAnyByAthleteId(athleteId: string) {
     const [account] = await this.db
       .select()
-      .from(athleteUserAccounts)
-      .where(eq(athleteUserAccounts.athleteId, athleteId))
+      .from(athleteAccounts)
+      .where(eq(athleteAccounts.athleteId, athleteId))
       .limit(1);
 
     return account ?? null;
@@ -62,8 +62,8 @@ export class AthleteAccountRepository {
   public async findActiveByUserId(userId: string) {
     const [account] = await this.db
       .select()
-      .from(athleteUserAccounts)
-      .where(and(eq(athleteUserAccounts.userId, userId), eq(athleteUserAccounts.status, "active")))
+      .from(athleteAccounts)
+      .where(and(eq(athleteAccounts.userId, userId), eq(athleteAccounts.status, "active")))
       .limit(1);
 
     return account ?? null;
@@ -75,12 +75,12 @@ export class AthleteAccountRepository {
     executor: DbExecutor = this.db
   ) {
     return executor
-      .update(athleteUserAccounts)
+      .update(athleteAccounts)
       .set({
         status,
         updatedAt: new Date()
       })
-      .where(eq(athleteUserAccounts.athleteId, athleteId))
+      .where(eq(athleteAccounts.athleteId, athleteId))
       .returning();
   }
 
@@ -99,8 +99,8 @@ export class AthleteAccountRepository {
         squadSlug: squads.slug,
         squadName: squads.name
       })
-      .from(athleteUserAccounts)
-      .innerJoin(athletes, eq(athleteUserAccounts.athleteId, athletes.id))
+      .from(athleteAccounts)
+      .innerJoin(athletes, eq(athleteAccounts.athleteId, athletes.id))
       .innerJoin(tenants, eq(athletes.tenantId, tenants.id))
       .leftJoin(
         athleteSquadAssignments,
@@ -110,7 +110,7 @@ export class AthleteAccountRepository {
         )
       )
       .leftJoin(squads, eq(athleteSquadAssignments.squadId, squads.id))
-      .where(and(eq(athleteUserAccounts.userId, userId), eq(athleteUserAccounts.status, "active")))
+      .where(and(eq(athleteAccounts.userId, userId), eq(athleteAccounts.status, "active")))
       .limit(1);
 
     if (!record) {

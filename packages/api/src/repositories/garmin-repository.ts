@@ -3,10 +3,10 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import type { Database } from "../db/client";
 import {
-  athleteDeviceConnections,
+  athleteIntegrations,
   garminOauthSessions,
-  providerCredentials,
-  providerWebhookEvents,
+  integrationCredentials,
+  integrationWebhookEvents,
   tenants
 } from "../db/schema";
 import { AppError } from "../http/errors";
@@ -86,19 +86,19 @@ export class GarminRepository {
   }) {
     const [existing] = await this.db
       .select()
-      .from(athleteDeviceConnections)
+      .from(athleteIntegrations)
       .where(
         and(
-          eq(athleteDeviceConnections.tenantId, input.tenantId),
-          eq(athleteDeviceConnections.athleteId, input.athleteId),
-          eq(athleteDeviceConnections.provider, "garmin")
+          eq(athleteIntegrations.tenantId, input.tenantId),
+          eq(athleteIntegrations.athleteId, input.athleteId),
+          eq(athleteIntegrations.provider, "garmin")
         )
       )
       .limit(1);
 
     if (existing) {
       const [connection] = await this.db
-        .update(athleteDeviceConnections)
+        .update(athleteIntegrations)
         .set({
           providerUserId: input.providerUserId,
           status: "active",
@@ -107,7 +107,7 @@ export class GarminRepository {
           updatedAt: new Date(),
           disconnectedAt: null
         })
-        .where(eq(athleteDeviceConnections.id, existing.id))
+        .where(eq(athleteIntegrations.id, existing.id))
         .returning();
 
       if (!connection) {
@@ -119,7 +119,7 @@ export class GarminRepository {
 
     const credentialKey = randomUUID();
     const [connection] = await this.db
-      .insert(athleteDeviceConnections)
+      .insert(athleteIntegrations)
       .values({
         tenantId: input.tenantId,
         athleteId: input.athleteId,
@@ -151,7 +151,7 @@ export class GarminRepository {
     jti?: string | null;
   }) {
     const [credential] = await this.db
-      .insert(providerCredentials)
+      .insert(integrationCredentials)
       .values({
         id: input.credentialKey,
         tenantId: input.tenantId,
@@ -167,7 +167,7 @@ export class GarminRepository {
         jti: input.jti ?? null
       })
       .onConflictDoUpdate({
-        target: [providerCredentials.id],
+        target: [integrationCredentials.id],
         set: {
           encryptedAccessToken: input.encryptedAccessToken,
           encryptedRefreshToken: input.encryptedRefreshToken,
@@ -191,12 +191,12 @@ export class GarminRepository {
   public async findCredentialsByConnection(connectionId: string) {
     const [credential] = await this.db
       .select()
-      .from(providerCredentials)
+      .from(integrationCredentials)
       .where(
         and(
-          eq(providerCredentials.provider, "garmin"),
-          eq(providerCredentials.subjectType, "athlete_connection"),
-          eq(providerCredentials.subjectId, connectionId)
+          eq(integrationCredentials.provider, "garmin"),
+          eq(integrationCredentials.subjectType, "athlete_connection"),
+          eq(integrationCredentials.subjectId, connectionId)
         )
       )
       .limit(1);
@@ -207,13 +207,13 @@ export class GarminRepository {
   public async listActiveConnectionsByProviderUserId(providerUserId: string) {
     return this.db
       .select()
-      .from(athleteDeviceConnections)
+      .from(athleteIntegrations)
       .where(
         and(
-          eq(athleteDeviceConnections.provider, "garmin"),
-          eq(athleteDeviceConnections.providerUserId, providerUserId),
-          eq(athleteDeviceConnections.status, "active"),
-          isNull(athleteDeviceConnections.disconnectedAt)
+          eq(athleteIntegrations.provider, "garmin"),
+          eq(athleteIntegrations.providerUserId, providerUserId),
+          eq(athleteIntegrations.status, "active"),
+          isNull(athleteIntegrations.disconnectedAt)
         )
       );
   }
@@ -221,13 +221,13 @@ export class GarminRepository {
   public async findConnectionByAthlete(tenantId: string, athleteId: string) {
     const [connection] = await this.db
       .select()
-      .from(athleteDeviceConnections)
+      .from(athleteIntegrations)
       .where(
         and(
-          eq(athleteDeviceConnections.tenantId, tenantId),
-          eq(athleteDeviceConnections.athleteId, athleteId),
-          eq(athleteDeviceConnections.provider, "garmin"),
-          eq(athleteDeviceConnections.status, "active")
+          eq(athleteIntegrations.tenantId, tenantId),
+          eq(athleteIntegrations.athleteId, athleteId),
+          eq(athleteIntegrations.provider, "garmin"),
+          eq(athleteIntegrations.status, "active")
         )
       )
       .limit(1);
@@ -238,11 +238,11 @@ export class GarminRepository {
   public async listConnectionsForTenant(tenantId: string) {
     return this.db
       .select()
-      .from(athleteDeviceConnections)
+      .from(athleteIntegrations)
       .where(
         and(
-          eq(athleteDeviceConnections.tenantId, tenantId),
-          eq(athleteDeviceConnections.provider, "garmin")
+          eq(athleteIntegrations.tenantId, tenantId),
+          eq(athleteIntegrations.provider, "garmin")
         )
       );
   }
@@ -250,12 +250,12 @@ export class GarminRepository {
   public async listConnectionsByAthlete(tenantId: string, athleteId: string) {
     return this.db
       .select()
-      .from(athleteDeviceConnections)
+      .from(athleteIntegrations)
       .where(
         and(
-          eq(athleteDeviceConnections.tenantId, tenantId),
-          eq(athleteDeviceConnections.athleteId, athleteId),
-          eq(athleteDeviceConnections.provider, "garmin")
+          eq(athleteIntegrations.tenantId, tenantId),
+          eq(athleteIntegrations.athleteId, athleteId),
+          eq(athleteIntegrations.provider, "garmin")
         )
       );
   }
@@ -270,14 +270,14 @@ export class GarminRepository {
     }
 
     return this.db
-      .update(athleteDeviceConnections)
+      .update(athleteIntegrations)
       .set({
         grantedPermissions: permissions,
         lastPermissionsSyncAt: new Date(),
         lastPermissionChangeAt: changedAt ?? new Date(),
         updatedAt: new Date()
       })
-      .where(inArray(athleteDeviceConnections.id, connectionIds))
+      .where(inArray(athleteIntegrations.id, connectionIds))
       .returning();
   }
 
@@ -287,13 +287,13 @@ export class GarminRepository {
     }
 
     return this.db
-      .update(athleteDeviceConnections)
+      .update(athleteIntegrations)
       .set({
         status: "revoked",
         disconnectedAt: new Date(),
         updatedAt: new Date()
       })
-      .where(inArray(athleteDeviceConnections.id, connectionIds))
+      .where(inArray(athleteIntegrations.id, connectionIds))
       .returning();
   }
 
@@ -306,7 +306,7 @@ export class GarminRepository {
     payload: Record<string, unknown>;
   }) {
     const [event] = await this.db
-      .insert(providerWebhookEvents)
+      .insert(integrationWebhookEvents)
       .values({
         tenantId: input.tenantId ?? null,
         provider: "garmin",
@@ -331,14 +331,14 @@ export class GarminRepository {
     lastError?: string | null
   ) {
     const [event] = await this.db
-      .update(providerWebhookEvents)
+      .update(integrationWebhookEvents)
       .set({
         status,
         lastError: lastError ?? null,
         attempts: 1,
         processedAt: status === "failed" ? null : new Date()
       })
-      .where(eq(providerWebhookEvents.id, eventId))
+      .where(eq(integrationWebhookEvents.id, eventId))
       .returning();
 
     if (!event) {
