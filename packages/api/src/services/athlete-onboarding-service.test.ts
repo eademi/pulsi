@@ -12,8 +12,8 @@ test("createAthleteWithInvite creates the athlete and immediately issues the fir
       return {
         id: "athlete-1",
         tenantId,
-        firstName: "Egzon",
-        lastName: "Ademi",
+        firstName: "Lionel",
+        lastName: "Messi",
         status: "active",
         position: null,
         externalRef: null,
@@ -34,8 +34,8 @@ test("createAthleteWithInvite creates the athlete and immediately issues the fir
       return {
         id: "invite-1",
         athleteId: "athlete-1",
-        athleteName: "Egzon Ademi",
-        email: "egzon@pulsi.com",
+        athleteName: "Lionel Messi",
+        email: "lionel@pulsi.com",
         status: "pending",
         inviteUrl: "http://localhost:3000/athlete/setup/token-1",
         expiresAt: "2026-03-17T08:00:00.000Z",
@@ -52,9 +52,9 @@ test("createAthleteWithInvite creates the athlete and immediately issues the fir
   const result = await service.createAthleteWithInvite({
     tenantId: "tenant-1",
     athlete: {
-      firstName: "Egzon",
-      lastName: "Ademi",
-      email: "egzon@pulsi.com",
+      firstName: "Lionel",
+      lastName: "Messi",
+      email: "lionel@pulsi.com",
       squadId: "squad-1",
       status: "active"
     },

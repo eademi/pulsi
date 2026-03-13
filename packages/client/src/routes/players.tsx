@@ -278,7 +278,7 @@ export default function PlayersRoute() {
                   </DataCell>
                   <DataCell>
                     {canManage ? (
-      athlete.accountState === "linked" ? (
+                      athlete.accountState === "linked" ? (
                         <span className="pill pill-muted">Already linked</span>
                       ) : (
                         <Form className="flex gap-2" method="post">
@@ -431,11 +431,11 @@ export default function PlayersRoute() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-obsidian-300">First name</span>
-              <input className="input-field" name="firstName" placeholder="Egzon" />
+              <input className="input-field" name="firstName" placeholder="Lionel" />
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-obsidian-300">Last name</span>
-              <input className="input-field" name="lastName" placeholder="Ademi" />
+              <input className="input-field" name="lastName" placeholder="Messi" />
             </label>
           </div>
 
@@ -446,7 +446,7 @@ export default function PlayersRoute() {
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-obsidian-300">Athlete email</span>
-              <input className="input-field" name="email" placeholder="egzon@pulsi.com" type="email" />
+              <input className="input-field" name="email" placeholder="lionel@messi.com" type="email" />
             </label>
           </div>
 
@@ -563,9 +563,7 @@ export default function PlayersRoute() {
               <AccountDetail
                 label="Activated at"
                 value={
-                  accountDialogAthlete.accountDetails?.linkedAt
-                    ? new Date(accountDialogAthlete.accountDetails.linkedAt).toLocaleString()
-                    : "Unknown"
+                  accountDialogAthlete.accountDetails?.linkedAt ? new Date(accountDialogAthlete.accountDetails.linkedAt).toLocaleString() : "Unknown"
                 }
               />
               <AccountDetail label="Garmin status" value={garminConnectedAthleteIds.has(accountDialogAthlete.id) ? "Connected" : "Not connected"} />

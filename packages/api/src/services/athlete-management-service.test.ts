@@ -82,10 +82,10 @@ const createHarness = () => {
       calls.archived.push({ athleteId, status });
       athlete = athlete
         ? {
-            ...athlete,
-            status,
-            currentSquad: status === "inactive" ? null : athlete.currentSquad
-          }
+          ...athlete,
+          status,
+          currentSquad: status === "inactive" ? null : athlete.currentSquad
+        }
         : athlete;
       return athlete;
     }
@@ -146,17 +146,17 @@ test("createAthlete trims input and assigns the athlete to the selected squad", 
 
   const athlete = await harness.service.createAthlete("tenant-1", {
     externalRef: "  ext-10  ",
-    firstName: " Egzon ",
-    lastName: " Ademi ",
-    email: "egzon@pulsi.com",
+    firstName: " Lionel",
+    lastName: " Messi ",
+    email: "lionel@pulsi.com",
     position: " Winger ",
     squadId: "squad-1",
     status: "active"
   });
 
-  assert.equal(athlete?.firstName, "Egon");
-  assert.equal(harness.calls.athletes[0]?.firstName, "Egzon");
-  assert.equal(harness.calls.athletes[0]?.lastName, "Ademi");
+  assert.equal(athlete?.firstName, "Lionel");
+  assert.equal(harness.calls.athletes[0]?.firstName, "Lionel");
+  assert.equal(harness.calls.athletes[0]?.lastName, "Messi");
   assert.equal(harness.calls.athletes[0]?.position, "Winger");
   assert.equal(harness.calls.athletes[0]?.externalRef, "ext-10");
   assert.equal(harness.calls.assignments.length, 1);
