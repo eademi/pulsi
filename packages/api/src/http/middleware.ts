@@ -11,74 +11,88 @@ import type {
   AuthenticatedAdminIdentity,
   AuthenticatedIdentity
 } from "../context/app-context";
-import { logger } from "../telemetry/logger";
 import type { AdminProfileRepository } from "../repositories/admin-profile-repository";
 import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
 import type { MembershipRepository } from "../repositories/membership-repository";
 import type { TenantAccessService } from "../services/tenant-access-service";
+import { logger } from "../telemetry/logger";
 import { AppError } from "./errors";
 
-export const requestContextMiddleware =
+export const requestMetaMiddleware = async (c: Context<AppBindings>, next: Next) => {
+  const requestId = c.req.header("x-request-id") ?? randomUUID();
+  const requestLogger = logger.child({
+    requestId,
+    method: c.req.method,
+    path: c.req.path
+  });
+
+  c.set("requestContext", {
+    requestId,
+    logger: requestLogger,
+    now: new Date(),
+    identity: null,
+    actor: null,
+    actorResolutionError: null,
+    tenant: null
+  });
+  c.header("x-request-id", requestId);
+
+  await next();
+};
+
+export const productActorContextMiddleware =
   (
     membershipRepository: MembershipRepository,
     athleteAccountRepository: AthleteAccountRepository
   ) =>
   async (c: Context<AppBindings>, next: Next) => {
-    const requestId = c.req.header("x-request-id") ?? randomUUID();
-    const requestLogger = logger.child({
-      requestId,
-      method: c.req.method,
-      path: c.req.path
+    const requestContext = c.get("requestContext");
+    const session = await getAuthSession(c.req.raw.headers);
+
+    if (!session) {
+      await next();
+      return;
+    }
+
+    const identity: AuthenticatedIdentity = {
+      userId: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+      image: session.user.image,
+      sessionId: session.session.id,
+      sessionExpiresAt: session.session.expiresAt
+    };
+    requestContext.logger.setBindings({
+      userId: identity.userId
     });
 
     let actor: AuthenticatedActor | null = null;
-    let identity: AuthenticatedIdentity | null = null;
     let actorResolutionError: Error | null = null;
-    const session = await getAuthSession(c.req.raw.headers);
 
-    if (session) {
-      identity = {
-        userId: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        image: session.user.image,
-        sessionId: session.session.id,
-        sessionExpiresAt: session.session.expiresAt
-      };
-      requestLogger.setBindings({
-        userId: identity.userId
+    try {
+      const [memberships, athleteProfile] = await Promise.all([
+        membershipRepository.listForUser(session.user.id),
+        athleteAccountRepository.findActiveProfileByUserId(session.user.id)
+      ]);
+
+      actor = resolveAuthenticatedActor({
+        session,
+        memberships,
+        athleteProfile
       });
-
-      try {
-        const [memberships, athleteProfile] = await Promise.all([
-          membershipRepository.listForUser(session.user.id),
-          athleteAccountRepository.findActiveProfileByUserId(session.user.id)
-        ]);
-
-        actor = resolveAuthenticatedActor({
-          session,
-          memberships,
-          athleteProfile
-        });
-        requestLogger.setBindings({
-          actorType: actor.actorType
-        });
-      } catch (error) {
-        actorResolutionError = error instanceof Error ? error : new Error("Actor resolution failed");
-      }
+      requestContext.logger.setBindings({
+        actorType: actor.actorType
+      });
+    } catch (error) {
+      actorResolutionError = error instanceof Error ? error : new Error("Actor resolution failed");
     }
 
     c.set("requestContext", {
-      requestId,
-      logger: requestLogger,
-      now: new Date(),
+      ...requestContext,
       identity,
       actor,
-      actorResolutionError,
-      tenant: null
+      actorResolutionError
     });
-
-    c.header("x-request-id", requestId);
 
     await next();
   };

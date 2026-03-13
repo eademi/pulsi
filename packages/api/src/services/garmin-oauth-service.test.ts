@@ -70,7 +70,7 @@ const createServiceHarness = () => {
   };
 };
 
-test("completeAuthorization returns athlete redirect path for athlete-initiated Garmin sessions", async () => {
+test("completeAuthorization returns athlete redirect audience for athlete-initiated Garmin sessions", async () => {
   const harness = createServiceHarness();
   harness.setAthleteAccountByUserId({
     athleteId: "athlete-1"
@@ -81,10 +81,10 @@ test("completeAuthorization returns athlete redirect path for athlete-initiated 
     state: "state-1"
   });
 
-  assert.equal(result.redirectPath, "/athlete");
+  assert.equal(result.redirectAudience, "athlete");
 });
 
-test("completeAuthorization returns tenant dashboard path for staff-initiated Garmin sessions", async () => {
+test("completeAuthorization returns staff redirect audience for staff-initiated Garmin sessions", async () => {
   const harness = createServiceHarness();
   harness.setAthleteAccountByUserId(null);
 
@@ -93,5 +93,5 @@ test("completeAuthorization returns tenant dashboard path for staff-initiated Ga
     state: "state-1"
   });
 
-  assert.equal(result.redirectPath, "/pulsi-demo-fc/dashboard");
+  assert.equal(result.redirectAudience, "staff");
 });

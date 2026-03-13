@@ -31,7 +31,9 @@ import { requireActorAuth } from "../http/middleware";
 import { created, ok, parseOrThrow } from "../http/responses";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { GarminBackfillService } from "../services/garmin-backfill-service";
-import type { GarminConnectionService } from "../services/garmin-connection-service";
+import type { GarminActivityIngestionService } from "../services/garmin-activity-ingestion-service";
+import type { GarminHealthIngestionService } from "../services/garmin-health-ingestion-service";
+import type { GarminLifecycleService } from "../services/garmin-lifecycle-service";
 import type { GarminOAuthService } from "../services/garmin-oauth-service";
 
 const serializeConnection = (connection: {
@@ -55,7 +57,7 @@ const serializeConnection = (connection: {
 
 export const buildGarminTenantRoutes = (
   garminOAuthService: GarminOAuthService,
-  garminConnectionService: GarminConnectionService,
+  garminLifecycleService: GarminLifecycleService,
   athleteRepository: AthleteRepository,
   garminRepository: { listConnectionsForTenant: (tenantId: string) => Promise<Array<{
     id: string;
@@ -152,7 +154,7 @@ export const buildGarminTenantRoutes = (
         throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete not found in accessible squads");
       }
 
-      await garminConnectionService.disconnectAthleteConnection({
+      await garminLifecycleService.disconnectAthleteConnection({
         tenantId: requestContext.tenant!.id,
         athleteId: body.athleteId
       });
@@ -165,7 +167,7 @@ export const buildGarminTenantRoutes = (
 
 export const buildGarminAthleteRoutes = (
   garminOAuthService: GarminOAuthService,
-  garminConnectionService: GarminConnectionService,
+  garminLifecycleService: GarminLifecycleService,
   garminRepository: {
     findConnectionByAthlete: (tenantId: string, athleteId: string) => Promise<{
       id: string;
@@ -236,7 +238,7 @@ export const buildGarminAthleteRoutes = (
         throw new AppError(403, "FORBIDDEN", "Athlete access is required");
       }
 
-      await garminConnectionService.disconnectAthleteConnection({
+      await garminLifecycleService.disconnectAthleteConnection({
         tenantId: actor.athleteProfile.tenantId,
         athleteId: actor.athleteProfile.athleteId
       });
@@ -249,7 +251,9 @@ export const buildGarminAthleteRoutes = (
 
 export const buildGarminPublicRoutes = (
   garminOAuthService: GarminOAuthService,
-  garminConnectionService: GarminConnectionService,
+  garminLifecycleService: GarminLifecycleService,
+  garminHealthIngestionService: GarminHealthIngestionService,
+  garminActivityIngestionService: GarminActivityIngestionService,
   garminBackfillService: GarminBackfillService
 ) =>
   new Hono<AppBindings>()
@@ -285,7 +289,9 @@ export const buildGarminPublicRoutes = (
           );
         });
 
-      const redirectUrl = new URL(result.redirectPath, env.CLIENT_URL);
+      const redirectPath =
+        result.redirectAudience === "athlete" ? "/athlete" : `/${result.tenantSlug}/dashboard`;
+      const redirectUrl = new URL(redirectPath, env.CLIENT_URL);
       redirectUrl.searchParams.set("garmin", "connected");
       redirectUrl.searchParams.set("athleteId", result.athleteId);
 
@@ -297,7 +303,7 @@ export const buildGarminPublicRoutes = (
       const payload = parseOrThrow(
         garminDeregistrationWebhookSchema.safeParse(await c.req.json())
       );
-      await garminConnectionService.handleDeregistrations(payload);
+      await garminLifecycleService.handleDeregistrations(payload);
       return ok(c, { accepted: true });
     })
     // Garmin common lifecycle callback when granted permissions change after consent.
@@ -306,7 +312,7 @@ export const buildGarminPublicRoutes = (
       const payload = parseOrThrow(
         garminUserPermissionsWebhookSchema.safeParse(await c.req.json())
       );
-      await garminConnectionService.handlePermissionChanges(payload);
+      await garminLifecycleService.handlePermissionChanges(payload);
       return ok(c, { accepted: true });
     })
     // Health API ping notifications contain callback URLs that Pulsi fetches asynchronously.
@@ -315,7 +321,7 @@ export const buildGarminPublicRoutes = (
       const requestContext = c.get("requestContext");
       const payload = parseOrThrow(garminHealthPingSchema.safeParse(await c.req.json()));
 
-      void garminConnectionService.handleHealthPing(payload).catch((error) => {
+      void garminHealthIngestionService.handleHealthPing(payload).catch((error) => {
         requestContext.logger.error(
           {
             err: error,
@@ -334,7 +340,7 @@ export const buildGarminPublicRoutes = (
       const requestContext = c.get("requestContext");
       const payload = parseOrThrow(garminActivityPingSchema.safeParse(await c.req.json()));
 
-      void garminConnectionService.handleActivityPing(payload).catch((error) => {
+      void garminActivityIngestionService.handleActivityPing(payload).catch((error) => {
         requestContext.logger.error(
           {
             err: error,
@@ -352,7 +358,7 @@ export const buildGarminPublicRoutes = (
       assertWebhookToken(c.req.param("webhookToken"));
       const body = parseOrThrow(garminHealthPushSchema.safeParse(await c.req.json()));
 
-      const result = await garminConnectionService.handleHealthPush(body);
+      const result = await garminHealthIngestionService.handleHealthPush(body);
       return ok(c, result);
     })
     // Activity API push notifications deliver activity summaries directly in the request body.
@@ -360,7 +366,7 @@ export const buildGarminPublicRoutes = (
       assertWebhookToken(c.req.param("webhookToken"));
       const body = parseOrThrow(garminActivityPushSchema.safeParse(await c.req.json()));
 
-      const result = await garminConnectionService.handleActivityPush(body);
+      const result = await garminActivityIngestionService.handleActivityPush(body);
       return ok(c, result);
     });
 

@@ -1,135 +1,19 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
-import { db } from "./db/client";
-import type { AppBindings } from "./context/app-context";
-import { auth } from "./auth/auth";
 import { adminAuth } from "./auth/admin-auth";
-import { toErrorResponse } from "./http/responses";
-import { requestContextMiddleware, tenantScopeMiddleware } from "./http/middleware";
-import { AdminProfileRepository } from "./repositories/admin-profile-repository";
-import { ActivityRepository } from "./repositories/activity-repository";
-import { AthleteAccountRepository } from "./repositories/athlete-account-repository";
-import { AthleteInviteRepository } from "./repositories/athlete-invite-repository";
-import { AthleteRepository } from "./repositories/athlete-repository";
-import { IntegrationRepository } from "./repositories/integration-repository";
-import { InvitationRepository } from "./repositories/invitation-repository";
-import { MembershipRepository } from "./repositories/membership-repository";
-import { ReadinessRepository } from "./repositories/readiness-repository";
-import { TenantRepository } from "./repositories/tenant-repository";
-import { buildActivityRoutes } from "./routes/activities";
-import { buildAdminRoutes } from "./routes/admin";
-import {
-  buildAthleteAccountRoutes,
-  buildTenantAthleteAccountRoutes
-} from "./routes/athlete-accounts";
-import { buildAthleteRoutes } from "./routes/athletes";
-import {
-  buildGarminAthleteRoutes,
-  buildGarminPublicRoutes,
-  buildGarminTenantRoutes
-} from "./routes/garmin";
-import { healthRoutes } from "./routes/health";
-import { buildReadinessRoutes } from "./routes/readiness";
-import { buildSquadRoutes } from "./routes/squads";
-import { sessionRoutes } from "./routes/session";
-import { buildTenantAccessRoutes, buildTenantRoutes } from "./routes/tenants";
-import { GarminApiClient } from "./integrations/garmin/garmin-client";
-import { GarminMapper } from "./integrations/garmin/garmin-mapper";
-import { TokenCipher } from "./integrations/garmin/token-cipher";
+import { auth } from "./auth/auth";
+import { buildRepositories, buildServices } from "./app/dependencies";
+import { buildV1Routes } from "./app/routes";
+import type { AppBindings } from "./context/app-context";
+import { db } from "./db/client";
 import { env } from "./env";
+import { requestMetaMiddleware } from "./http/middleware";
+import { toErrorResponse } from "./http/responses";
 import { logger } from "./telemetry/logger";
-import { GarminRepository } from "./repositories/garmin-repository";
-import { SquadRepository } from "./repositories/squad-repository";
-import { GarminConnectionService } from "./services/garmin-connection-service";
-import { GarminBackfillService } from "./services/garmin-backfill-service";
-import { GarminOAuthService } from "./services/garmin-oauth-service";
-import { GarminTokenService } from "./services/garmin-token-service";
-import { ActivityService } from "./services/activity-service";
-import { AthleteAccountService } from "./services/athlete-account-service";
-import { AthleteManagementService } from "./services/athlete-management-service";
-import { MetricIngestionService } from "./services/metric-ingestion-service";
-import { ReadinessEngine } from "./services/readiness-engine";
-import { ReadinessService } from "./services/readiness-service";
-import { TenantAccessService } from "./services/tenant-access-service";
-import { SquadService } from "./services/squad-service";
-import { TenantService } from "./services/tenant-service";
-import { AdminGarminService } from "./services/admin-garmin-service";
 
-const membershipRepository = new MembershipRepository(db);
-const adminProfileRepository = new AdminProfileRepository(db);
-const athleteAccountRepository = new AthleteAccountRepository(db);
-const athleteInviteRepository = new AthleteInviteRepository(db);
-const invitationRepository = new InvitationRepository(db);
-const activityRepository = new ActivityRepository(db);
-const athleteRepository = new AthleteRepository(db);
-const readinessRepository = new ReadinessRepository(db);
-const tenantRepository = new TenantRepository(db);
-const integrationRepository = new IntegrationRepository(db);
-const garminRepository = new GarminRepository(db);
-const squadRepository = new SquadRepository(db);
-const readinessEngine = new ReadinessEngine();
-const garminApiClient = new GarminApiClient();
-const garminMapper = new GarminMapper();
-const tokenCipher = new TokenCipher();
-
-const tenantService = new TenantService(
-  db,
-  tenantRepository,
-  membershipRepository,
-  invitationRepository,
-  squadRepository
-);
-const tenantAccessService = new TenantAccessService(membershipRepository);
-const activityService = new ActivityService(athleteRepository, activityRepository);
-const athleteManagementService = new AthleteManagementService(
-  db,
-  athleteRepository,
-  squadRepository,
-  athleteAccountRepository,
-  athleteInviteRepository,
-  garminRepository
-);
-const athleteAccountService = new AthleteAccountService(
-  db,
-  athleteRepository,
-  athleteAccountRepository,
-  athleteInviteRepository,
-  readinessRepository,
-  garminRepository,
-  env.CLIENT_URL
-);
-const readinessService = new ReadinessService(athleteRepository, readinessRepository);
-const squadService = new SquadService(squadRepository);
-const metricIngestionService = new MetricIngestionService(integrationRepository, readinessEngine);
-const garminTokenService = new GarminTokenService(
-  garminRepository,
-  garminApiClient,
-  tokenCipher
-);
-const garminBackfillService = new GarminBackfillService(
-  garminApiClient,
-  garminTokenService,
-  garminMapper,
-  integrationRepository,
-  metricIngestionService
-);
-const garminOAuthService = new GarminOAuthService(
-  athleteRepository,
-  athleteAccountRepository,
-  garminRepository,
-  garminApiClient,
-  garminTokenService
-);
-const garminConnectionService = new GarminConnectionService(
-  garminRepository,
-  garminTokenService,
-  garminApiClient,
-  garminMapper,
-  integrationRepository,
-  metricIngestionService
-);
-const adminGarminService = new AdminGarminService(db, garminRepository, garminBackfillService);
+const repositories = buildRepositories(db);
+const services = buildServices(db, repositories);
 
 export const app = new Hono<AppBindings>();
 
@@ -151,7 +35,7 @@ app.use(
     exposeHeaders: ["X-Request-Id"]
   })
 );
-app.use("*", requestContextMiddleware(membershipRepository, athleteAccountRepository));
+app.use("*", requestMetaMiddleware);
 
 app.onError((error, c) => {
   const requestContext = c.get("requestContext");
@@ -168,33 +52,4 @@ app.onError((error, c) => {
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 app.on(["GET", "POST"], "/api/admin-auth/*", (c) => adminAuth.handler(c.req.raw));
-app.route("/v1", healthRoutes);
-app.route("/v1", sessionRoutes);
-app.route("/v1", buildTenantRoutes(tenantService));
-app.route("/v1", buildAdminRoutes(adminGarminService, adminProfileRepository));
-app.route("/v1", buildAthleteAccountRoutes(athleteAccountService));
-app.route("/v1", buildGarminAthleteRoutes(garminOAuthService, garminConnectionService, garminRepository));
-app.route(
-  "/v1",
-  buildGarminPublicRoutes(garminOAuthService, garminConnectionService, garminBackfillService)
-);
-
-const tenantScopedRoutes = new Hono<AppBindings>()
-  .use("*", tenantScopeMiddleware(tenantAccessService))
-  .route("/", buildTenantAccessRoutes(tenantService))
-  .route("/", buildActivityRoutes(activityService))
-  .route("/", buildTenantAthleteAccountRoutes(athleteAccountService))
-  .route("/", buildAthleteRoutes(athleteRepository, athleteManagementService, athleteAccountService))
-  .route("/", buildReadinessRoutes(readinessService))
-  .route("/", buildSquadRoutes(squadService))
-  .route(
-    "/",
-    buildGarminTenantRoutes(
-      garminOAuthService,
-      garminConnectionService,
-      athleteRepository,
-      garminRepository
-    )
-  );
-
-app.route("/v1/tenants/:tenantSlug", tenantScopedRoutes);
+app.route("/v1", buildV1Routes(repositories, services));

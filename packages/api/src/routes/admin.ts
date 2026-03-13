@@ -7,20 +7,13 @@ import {
   garminAdminOverviewSchema
 } from "@pulsi/shared";
 
-import { requirePlatformAdminAccess } from "../auth/platform-admin";
 import type { AppBindings } from "../context/app-context";
-import { requireAdminAuth } from "../http/middleware";
 import { ok } from "../http/responses";
-import type { AdminProfileRepository } from "../repositories/admin-profile-repository";
 import type { AdminGarminService } from "../services/admin-garmin-service";
 
-export const buildAdminRoutes = (
-  adminGarminService: AdminGarminService,
-  adminProfileRepository: AdminProfileRepository
-) =>
+export const buildAdminRoutes = (adminGarminService: AdminGarminService) =>
   new Hono<AppBindings>()
-    .use("/admin/*", requireAdminAuth(adminProfileRepository), requirePlatformAdminAccess)
-    .get("/admin/bootstrap", async (c) => {
+    .get("/bootstrap", async (c) => {
       const identity = c.get("adminContext").identity!;
 
       const viewer = {
@@ -34,7 +27,7 @@ export const buildAdminRoutes = (
       createApiSuccessSchema(adminViewerSchema).parse({ data: viewer });
       return ok(c, viewer);
     })
-    .get("/admin/garmin", async (c) => {
+    .get("/garmin", async (c) => {
       const identity = c.get("adminContext").identity!;
 
       const overview = await adminGarminService.getOverview();
@@ -51,7 +44,7 @@ export const buildAdminRoutes = (
       createApiSuccessSchema(garminAdminOverviewSchema).parse({ data: payload });
       return ok(c, payload);
     })
-    .post("/admin/garmin/connections/:connectionId/backfill", async (c) => {
+    .post("/garmin/connections/:connectionId/backfill", async (c) => {
       const identity = c.get("adminContext").identity!;
 
       const result = await adminGarminService.rerunBackfill({

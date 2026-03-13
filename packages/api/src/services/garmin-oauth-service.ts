@@ -111,10 +111,9 @@ export class GarminOAuthService {
         createdByUserId: session.createdByUserId,
         providerUserId: userId,
         grantedPermissions: permissions,
-        redirectPath: await this.resolvePostAuthorizationPath({
+        redirectAudience: await this.resolveRedirectAudience({
           athleteId: session.athleteId,
-          createdByUserId: session.createdByUserId,
-          tenantSlug
+          createdByUserId: session.createdByUserId
         })
       };
     } catch (error) {
@@ -136,21 +135,17 @@ export class GarminOAuthService {
     return !isPlaceholder(env.GARMIN_CLIENT_ID) && !isPlaceholder(env.GARMIN_CLIENT_SECRET);
   }
 
-  private async resolvePostAuthorizationPath(input: {
+  private async resolveRedirectAudience(input: {
     athleteId: string;
     createdByUserId: string;
-    tenantSlug: string;
   }) {
-    // Redirect based on the actor that initiated OAuth. Athlete accounts should
-    // land back on the athlete surface, while staff accounts return to the
-    // organization dashboard they were working from.
     const athleteAccount = await this.athleteAccountRepository.findActiveByUserId(input.createdByUserId);
 
     if (athleteAccount?.athleteId === input.athleteId) {
-      return "/athlete";
+      return "athlete" as const;
     }
 
-    return `/${input.tenantSlug}/dashboard`;
+    return "staff" as const;
   }
 }
 
