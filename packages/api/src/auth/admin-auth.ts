@@ -13,6 +13,7 @@ import { env } from "../env";
 export const adminAuth = betterAuth({
   secret: env.ADMIN_AUTH_SECRET,
   baseURL: env.APP_URL,
+  basePath: "/api/admin-auth",
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
