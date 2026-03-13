@@ -4,5 +4,6 @@ export default [
   index("routes/index.tsx"),
   route("sign-in", "routes/sign-in.tsx"),
   route("sign-out", "routes/sign-out.tsx"),
+  route("auth-complete", "routes/auth-complete.tsx"),
   route("garmin", "routes/garmin.tsx")
 ] satisfies RouteConfig;

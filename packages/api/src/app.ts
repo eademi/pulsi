@@ -4,8 +4,10 @@ import { cors } from "hono/cors";
 import { db } from "./db/client";
 import type { AppBindings } from "./context/app-context";
 import { auth } from "./auth/auth";
+import { adminAuth } from "./auth/admin-auth";
 import { toErrorResponse } from "./http/responses";
 import { requestContextMiddleware, tenantScopeMiddleware } from "./http/middleware";
+import { AdminProfileRepository } from "./repositories/admin-profile-repository";
 import { ActivityRepository } from "./repositories/activity-repository";
 import { AthleteAccountRepository } from "./repositories/athlete-account-repository";
 import { AthleteInviteRepository } from "./repositories/athlete-invite-repository";
@@ -13,7 +15,6 @@ import { AthleteRepository } from "./repositories/athlete-repository";
 import { IntegrationRepository } from "./repositories/integration-repository";
 import { InvitationRepository } from "./repositories/invitation-repository";
 import { MembershipRepository } from "./repositories/membership-repository";
-import { PlatformAdminRepository } from "./repositories/platform-admin-repository";
 import { ReadinessRepository } from "./repositories/readiness-repository";
 import { TenantRepository } from "./repositories/tenant-repository";
 import { buildActivityRoutes } from "./routes/activities";
@@ -56,7 +57,7 @@ import { TenantService } from "./services/tenant-service";
 import { AdminGarminService } from "./services/admin-garmin-service";
 
 const membershipRepository = new MembershipRepository(db);
-const platformAdminRepository = new PlatformAdminRepository(db);
+const adminProfileRepository = new AdminProfileRepository(db);
 const athleteAccountRepository = new AthleteAccountRepository(db);
 const athleteInviteRepository = new AthleteInviteRepository(db);
 const invitationRepository = new InvitationRepository(db);
@@ -166,10 +167,11 @@ app.onError((error, c) => {
 });
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.on(["GET", "POST"], "/api/admin-auth/*", (c) => adminAuth.handler(c.req.raw));
 app.route("/v1", healthRoutes);
 app.route("/v1", sessionRoutes);
 app.route("/v1", buildTenantRoutes(tenantService));
-app.route("/v1", buildAdminRoutes(adminGarminService, platformAdminRepository));
+app.route("/v1", buildAdminRoutes(adminGarminService, adminProfileRepository));
 app.route("/v1", buildAthleteAccountRoutes(athleteAccountService));
 app.route("/v1", buildGarminAthleteRoutes(garminOAuthService, garminConnectionService, garminRepository));
 app.route(

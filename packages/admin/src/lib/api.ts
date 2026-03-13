@@ -7,8 +7,13 @@ import {
   garminAdminOverviewSchema
 } from "@pulsi/shared";
 
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://localhost:3001";
-const AUTH_BASE_URL = `${API_BASE_URL}/api/auth`;
+type ClientEnv = {
+  VITE_API_BASE_URL?: string;
+};
+
+const env = (import.meta as { env?: ClientEnv }).env ?? {};
+const API_BASE_URL = (env.VITE_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const AUTH_BASE_URL = `${API_BASE_URL}/api/admin-auth`;
 
 const adminBootstrapResponseSchema = createApiSuccessSchema(adminViewerSchema);
 const garminAdminOverviewResponseSchema = createApiSuccessSchema(garminAdminOverviewSchema);

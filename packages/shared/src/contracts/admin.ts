@@ -6,7 +6,8 @@ export const adminViewerSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   name: z.string(),
-  image: z.string().url().nullable().optional()
+  image: z.string().url().nullable().optional(),
+  role: z.enum(["platform_admin", "support", "manager"])
 });
 
 export const garminAdminConfigSchema = z.object({

@@ -1,3 +1,5 @@
+CREATE TYPE "public"."admin_role" AS ENUM('platform_admin', 'support', 'manager');--> statement-breakpoint
+CREATE TYPE "public"."admin_status" AS ENUM('active', 'disabled');--> statement-breakpoint
 CREATE TYPE "public"."athlete_invite_status" AS ENUM('pending', 'accepted', 'revoked', 'expired');--> statement-breakpoint
 CREATE TYPE "public"."athlete_status" AS ENUM('active', 'inactive', 'rehab');--> statement-breakpoint
 CREATE TYPE "public"."athlete_user_account_status" AS ENUM('active', 'revoked');--> statement-breakpoint
@@ -28,6 +30,60 @@ CREATE TABLE "account" (
 	"refresh_token_expires_at" timestamp with time zone,
 	"scope" text,
 	"password" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "admin_account" (
+	"id" text PRIMARY KEY NOT NULL,
+	"account_id" text NOT NULL,
+	"provider_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"access_token" text,
+	"refresh_token" text,
+	"id_token" text,
+	"access_token_expires_at" timestamp with time zone,
+	"refresh_token_expires_at" timestamp with time zone,
+	"scope" text,
+	"password" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "admin_profiles" (
+	"user_id" text PRIMARY KEY NOT NULL,
+	"role" "admin_role" DEFAULT 'platform_admin' NOT NULL,
+	"status" "admin_status" DEFAULT 'active' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "admin_session" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"token" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "admin_user" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"email" text NOT NULL,
+	"email_verified" boolean DEFAULT false NOT NULL,
+	"image" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "admin_verification" (
+	"id" text PRIMARY KEY NOT NULL,
+	"identifier" text NOT NULL,
+	"value" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -343,6 +399,9 @@ CREATE TABLE "wearable_daily_metrics" (
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "admin_account" ADD CONSTRAINT "admin_account_user_id_admin_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."admin_user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "admin_profiles" ADD CONSTRAINT "admin_profiles_user_id_admin_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."admin_user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "admin_session" ADD CONSTRAINT "admin_session_user_id_admin_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."admin_user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "athlete_accounts" ADD CONSTRAINT "athlete_accounts_athlete_id_athletes_id_fk" FOREIGN KEY ("athlete_id") REFERENCES "public"."athletes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "athlete_accounts" ADD CONSTRAINT "athlete_accounts_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "athlete_integrations" ADD CONSTRAINT "athlete_integrations_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -393,6 +452,13 @@ ALTER TABLE "wearable_daily_metrics" ADD CONSTRAINT "wearable_daily_metrics_athl
 ALTER TABLE "wearable_daily_metrics" ADD CONSTRAINT "wearable_daily_metrics_source_connection_id_athlete_integrations_id_fk" FOREIGN KEY ("source_connection_id") REFERENCES "public"."athlete_integrations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "account_provider_account_key" ON "account" USING btree ("provider_id","account_id");--> statement-breakpoint
 CREATE INDEX "account_user_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "admin_account_provider_account_key" ON "admin_account" USING btree ("provider_id","account_id");--> statement-breakpoint
+CREATE INDEX "admin_account_user_idx" ON "admin_account" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "admin_profiles_role_status_idx" ON "admin_profiles" USING btree ("role","status");--> statement-breakpoint
+CREATE UNIQUE INDEX "admin_session_token_key" ON "admin_session" USING btree ("token");--> statement-breakpoint
+CREATE INDEX "admin_session_user_idx" ON "admin_session" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "admin_user_email_key" ON "admin_user" USING btree ("email");--> statement-breakpoint
+CREATE INDEX "admin_verification_identifier_idx" ON "admin_verification" USING btree ("identifier");--> statement-breakpoint
 CREATE INDEX "athlete_accounts_athlete_idx" ON "athlete_accounts" USING btree ("athlete_id","status");--> statement-breakpoint
 CREATE INDEX "athlete_accounts_user_idx" ON "athlete_accounts" USING btree ("user_id","status");--> statement-breakpoint
 CREATE UNIQUE INDEX "athlete_accounts_athlete_key" ON "athlete_accounts" USING btree ("athlete_id");--> statement-breakpoint

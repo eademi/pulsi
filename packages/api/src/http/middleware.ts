@@ -3,9 +3,16 @@ import { randomUUID } from "node:crypto";
 import type { Context, Next } from "hono";
 
 import { resolveAuthenticatedActor } from "../auth/actor-resolution";
+import { getAdminAuthSession } from "../auth/admin-auth";
 import { getAuthSession } from "../auth/auth";
-import type { AppBindings, AuthenticatedActor, AuthenticatedIdentity } from "../context/app-context";
+import type {
+  AppBindings,
+  AuthenticatedActor,
+  AuthenticatedAdminIdentity,
+  AuthenticatedIdentity
+} from "../context/app-context";
 import { logger } from "../telemetry/logger";
+import type { AdminProfileRepository } from "../repositories/admin-profile-repository";
 import type { AthleteAccountRepository } from "../repositories/athlete-account-repository";
 import type { MembershipRepository } from "../repositories/membership-repository";
 import type { TenantAccessService } from "../services/tenant-access-service";
@@ -85,6 +92,46 @@ export const requireAuth = async (c: Context<AppBindings>, next: Next) => {
 
   await next();
 };
+
+export const requireAdminAuth =
+  (adminProfileRepository: AdminProfileRepository) =>
+  async (c: Context<AppBindings>, next: Next) => {
+    const requestContext = c.get("requestContext");
+    const session = await getAdminAuthSession(c.req.raw.headers);
+
+    if (!session) {
+      throw new AppError(401, "UNAUTHENTICATED", "Authentication required");
+    }
+
+    const profile = await adminProfileRepository.findByUserId(session.user.id);
+
+    if (!profile || profile.status !== "active") {
+      throw new AppError(403, "FORBIDDEN", "Pulsi administrator access is required");
+    }
+
+    const adminIdentity: AuthenticatedAdminIdentity = {
+      userId: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+      image: session.user.image,
+      sessionId: session.session.id,
+      sessionExpiresAt: session.session.expiresAt,
+      role: profile.role,
+      status: profile.status
+    };
+
+    c.set("adminContext", {
+      requestId: requestContext.requestId,
+      logger: requestContext.logger.child({
+        adminUserId: adminIdentity.userId,
+        adminRole: adminIdentity.role
+      }),
+      now: requestContext.now,
+      identity: adminIdentity
+    });
+
+    await next();
+  };
 
 export const requireActorAuth = async (c: Context<AppBindings>, next: Next) => {
   const requestContext = c.get("requestContext");

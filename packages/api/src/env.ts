@@ -18,6 +18,7 @@ const envSchema = z.object({
   ADMIN_URL: z.string().url().default("http://localhost:3002"),
   DATABASE_URL: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(32),
+  ADMIN_AUTH_SECRET: z.string().min(32).optional(),
   GARMIN_API_BASE_URL: z.string().url(),
   GARMIN_CLIENT_ID: z.string().min(1),
   GARMIN_CLIENT_SECRET: z.string().min(1),
@@ -27,5 +28,10 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info")
 });
 
-export const env = envSchema.parse(process.env);
+const parsedEnv = envSchema.parse(process.env);
+
+export const env = {
+  ...parsedEnv,
+  ADMIN_AUTH_SECRET: parsedEnv.ADMIN_AUTH_SECRET ?? parsedEnv.BETTER_AUTH_SECRET
+};
 export type Environment = typeof env;

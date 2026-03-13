@@ -40,18 +40,7 @@ export const clientAction = async ({ request }: { request: Request }) => {
     };
   }
 
-  try {
-    await apiClient.getAdminBootstrap();
-  } catch (error) {
-    return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "This account is signed in, but it does not have Pulsi platform admin access."
-    };
-  }
-
-  throw redirect("/garmin");
+  throw redirect("/auth-complete");
 };
 
 export default function AdminSignInRoute() {

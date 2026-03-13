@@ -2,22 +2,33 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { db } from "../db/client";
-import * as schema from "../db/schema";
+import {
+  adminAccount,
+  adminSession,
+  adminUser,
+  adminVerification
+} from "../db/schema";
 import { env } from "../env";
 
-export const auth = betterAuth({
-  secret: env.BETTER_AUTH_SECRET,
+export const adminAuth = betterAuth({
+  secret: env.ADMIN_AUTH_SECRET,
   baseURL: env.APP_URL,
   database: drizzleAdapter(db, {
     provider: "pg",
-    schema
+    schema: {
+      user: adminUser,
+      session: adminSession,
+      account: adminAccount,
+      verification: adminVerification
+    }
   }),
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false
   },
-  trustedOrigins: [env.APP_URL, env.CLIENT_URL],
+  trustedOrigins: [env.APP_URL, env.ADMIN_URL],
   advanced: {
+    cookiePrefix: "pulsi_admin",
     defaultCookieAttributes: {
       httpOnly: true,
       path: "/",
@@ -27,7 +38,7 @@ export const auth = betterAuth({
   }
 });
 
-export interface NormalizedSession {
+export interface NormalizedAdminSession {
   user: {
     id: string;
     email: string;
@@ -40,8 +51,10 @@ export interface NormalizedSession {
   };
 }
 
-export const getAuthSession = async (headers: Headers): Promise<NormalizedSession | null> => {
-  const rawSession = (await auth.api.getSession({
+export const getAdminAuthSession = async (
+  headers: Headers
+): Promise<NormalizedAdminSession | null> => {
+  const rawSession = (await adminAuth.api.getSession({
     headers
   })) as
     | {

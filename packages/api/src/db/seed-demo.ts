@@ -6,12 +6,14 @@ import { hashPassword } from "better-auth/crypto";
 import { closeDatabase, db } from "./client";
 import {
   account,
+  adminAccount,
+  adminProfiles,
+  adminUser,
   athleteAccounts,
   athleteIntegrations,
   athleteInvites,
   athleteSquadAssignments,
   athletes,
-  platformAdmins,
   readinessSnapshots,
   squads,
   staffMemberships,
@@ -113,8 +115,7 @@ const main = async () => {
   const staffUsers = await upsertStaffUsers(passwordHash);
   const platformAdminUser = await upsertPlatformAdmin(passwordHash);
   await upsertPlatformAdmins({
-    platformAdminUser,
-    staffUsers
+    platformAdminUser
   });
   const squadRecords = await upsertSquads(tenant.id);
   const squadBySlug = new Map(squadRecords.map((squad) => [squad.slug, squad]));
@@ -289,8 +290,75 @@ const upsertStaffUsers = async (passwordHash: string) => {
   return users;
 };
 
+const upsertAdminAuthUser = async (input: {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+}) => {
+  const normalizedEmail = input.email.toLowerCase();
+  const [existing] = await db
+    .select()
+    .from(adminUser)
+    .where(eq(adminUser.email, normalizedEmail))
+    .limit(1);
+
+  let userRecord: typeof adminUser.$inferSelect | null = existing ?? null;
+  if (existing) {
+    const [updated] = await db
+      .update(adminUser)
+      .set({
+        name: input.name,
+        emailVerified: true,
+        updatedAt: TODAY
+      })
+      .where(eq(adminUser.id, existing.id))
+      .returning();
+    userRecord = updated ?? existing;
+  } else {
+    const [created] = await db
+      .insert(adminUser)
+      .values({
+        id: input.id,
+        name: input.name,
+        email: normalizedEmail,
+        emailVerified: true,
+        image: null,
+        createdAt: TODAY,
+        updatedAt: TODAY
+      })
+      .returning();
+    userRecord = created ?? null;
+  }
+
+  if (!userRecord) {
+    throw new Error(`Failed to upsert admin auth user for ${input.email}`);
+  }
+
+  await db
+    .insert(adminAccount)
+    .values({
+      id: deterministicTextId(`admin-account:${normalizedEmail}`),
+      accountId: userRecord.id,
+      providerId: "credential",
+      userId: userRecord.id,
+      password: input.passwordHash,
+      createdAt: TODAY,
+      updatedAt: TODAY
+    })
+    .onConflictDoUpdate({
+      target: [adminAccount.providerId, adminAccount.accountId],
+      set: {
+        password: input.passwordHash,
+        updatedAt: TODAY
+      }
+    });
+
+  return userRecord;
+};
+
 const upsertPlatformAdmin = async (passwordHash: string) =>
-  upsertAuthUser({
+  upsertAdminAuthUser({
     id: deterministicTextId(`platform-admin:${PLATFORM_ADMIN_FIXTURE.email}`),
     name: PLATFORM_ADMIN_FIXTURE.name,
     email: PLATFORM_ADMIN_FIXTURE.email,
@@ -298,23 +366,25 @@ const upsertPlatformAdmin = async (passwordHash: string) =>
   });
 
 const upsertPlatformAdmins = async (input: {
-  platformAdminUser: typeof user.$inferSelect;
-  staffUsers: Map<string, typeof user.$inferSelect>;
+  platformAdminUser: typeof adminUser.$inferSelect;
 }) => {
-  const tenantOrgAdminUser = input.staffUsers.get("admin");
-
-  if (tenantOrgAdminUser) {
-    await db.delete(platformAdmins).where(eq(platformAdmins.userId, tenantOrgAdminUser.id));
-  }
-
   await db
-    .insert(platformAdmins)
+    .insert(adminProfiles)
     .values({
       userId: input.platformAdminUser.id,
-      grantedByUserId: input.platformAdminUser.id,
-      createdAt: TODAY
+      role: "platform_admin",
+      status: "active",
+      createdAt: TODAY,
+      updatedAt: TODAY
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: [adminProfiles.userId],
+      set: {
+        role: "platform_admin",
+        status: "active",
+        updatedAt: TODAY
+      }
+    });
 };
 
 const upsertMemberships = async (input: {

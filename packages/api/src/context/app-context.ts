@@ -50,6 +50,17 @@ export interface AuthenticatedIdentity {
   sessionExpiresAt: string;
 }
 
+export interface AuthenticatedAdminIdentity {
+  userId: string;
+  email: string;
+  name: string;
+  image?: string | null;
+  sessionId: string;
+  sessionExpiresAt: string;
+  role: "platform_admin" | "support" | "manager";
+  status: "active" | "disabled";
+}
+
 export interface TenantContext {
   id: string;
   slug: string;
@@ -71,8 +82,16 @@ export interface RequestContext {
   tenant: TenantContext | null;
 }
 
+export interface AdminContext {
+  requestId: string;
+  logger: Logger;
+  now: Date;
+  identity: AuthenticatedAdminIdentity | null;
+}
+
 export type AppBindings = {
   Variables: {
     requestContext: RequestContext;
+    adminContext: AdminContext;
   };
 };
