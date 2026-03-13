@@ -19,6 +19,7 @@ import { ActivityService } from "../services/activity-service";
 import { AdminGarminService } from "../services/admin-garmin-service";
 import { AthleteAccountService } from "../services/athlete-account-service";
 import { AthleteManagementService } from "../services/athlete-management-service";
+import { AthleteOnboardingService } from "../services/athlete-onboarding-service";
 import { GarminActivityIngestionService } from "../services/garmin-activity-ingestion-service";
 import { GarminBackfillService } from "../services/garmin-backfill-service";
 import { GarminHealthIngestionService } from "../services/garmin-health-ingestion-service";
@@ -95,6 +96,10 @@ export const buildServices = (
     repositories.athleteInviteRepository,
     repositories.garminRepository
   );
+  const athleteOnboardingService = new AthleteOnboardingService(
+    athleteManagementService,
+    athleteAccountService
+  );
   const activityService = new ActivityService(
     repositories.athleteRepository,
     repositories.activityRepository
@@ -159,6 +164,7 @@ export const buildServices = (
     tenantService,
     athleteAccountService,
     athleteManagementService,
+    athleteOnboardingService,
     activityService,
     readinessService,
     squadService,

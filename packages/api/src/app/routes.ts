@@ -81,7 +81,7 @@ export const buildV1Routes = (repositories: Repositories, services: Services) =>
       buildAthleteRoutes(
         repositories.athleteRepository,
         services.athleteManagementService,
-        services.athleteAccountService
+        services.athleteOnboardingService
       )
     )
     .route("/", buildReadinessRoutes(services.readinessService))

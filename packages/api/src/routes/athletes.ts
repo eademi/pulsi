@@ -13,16 +13,15 @@ import {
 
 import type { AppBindings } from "../context/app-context";
 import { requireCapability } from "../auth/authorization";
-import { AppError } from "../http/errors";
 import { created, ok, parseOrThrow } from "../http/responses";
-import type { AthleteAccountService } from "../services/athlete-account-service";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { AthleteManagementService } from "../services/athlete-management-service";
+import type { AthleteOnboardingService } from "../services/athlete-onboarding-service";
 
 export const buildAthleteRoutes = (
   athleteRepository: AthleteRepository,
   athleteManagementService: AthleteManagementService,
-  athleteAccountService: AthleteAccountService
+  athleteOnboardingService: AthleteOnboardingService
 ) =>
   new Hono<AppBindings>()
     .get("/athletes", async (c) => {
@@ -51,18 +50,9 @@ export const buildAthleteRoutes = (
       requireCapability(requestContext.tenant!.role, "athletes:manage");
 
       const body = parseOrThrow(createAthleteInputSchema.safeParse(await c.req.json()));
-      const athlete = await athleteManagementService.createAthlete(requestContext.tenant!.id, body);
-
-      if (!athlete) {
-        throw new AppError(500, "INTERNAL_ERROR", "Athlete could not be loaded after creation");
-      }
-
-      // Athlete onboarding now expects Pulsi account setup immediately, so a
-      // roster create also issues the initial athlete invite in the same flow.
-      const invite = await athleteAccountService.createInvite({
+      const { athlete, invite } = await athleteOnboardingService.createAthleteWithInvite({
         tenantId: requestContext.tenant!.id,
-        athleteId: athlete.id,
-        email: body.email,
+        athlete: body,
         createdByUserId: requestContext.actor!.userId,
         accessScope: requestContext.tenant!.accessScope,
         accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
