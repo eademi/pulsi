@@ -62,7 +62,7 @@ export default function AthleteSetupRoute() {
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 lg:px-6">
-      <section className="surface-panel mx-auto flex max-w-3xl flex-col gap-6 rounded-[var(--radius-panel)] p-6 lg:p-8">
+      <section className="surface-panel mx-auto flex max-w-3xl flex-col gap-6 rounded-panel p-6 lg:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="eyebrow">Athlete setup</p>
@@ -79,7 +79,7 @@ export default function AthleteSetupRoute() {
           </Form>
         </div>
 
-        <section className="surface-grid rounded-[var(--radius-panel)] p-5">
+        <section className="surface-grid rounded-panel p-5">
           <p className="eyebrow">Profile</p>
           <h2 className="mt-3 text-2xl font-semibold text-obsidian-100">{invite.athleteName}</h2>
           <p className="mt-2 text-sm text-obsidian-400">
@@ -88,13 +88,13 @@ export default function AthleteSetupRoute() {
           <p className="mt-2 text-sm text-obsidian-500">Expires {new Date(invite.expiresAt).toLocaleString()}</p>
         </section>
 
-        <section className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4 text-sm text-obsidian-400">
+        <section className="rounded-soft border border-white/8 bg-white/3 p-4 text-sm text-obsidian-400">
           Use the same email address your club entered when they invited you. Once setup is complete, this account becomes athlete-only and will no
           longer access staff routes.
         </section>
 
         {actionData?.error ? (
-          <p className="rounded-[var(--radius-soft)] border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">{actionData.error}</p>
+          <p className="rounded-soft border border-risk-500/25 bg-risk-500/10 px-4 py-3 text-sm text-risk-500">{actionData.error}</p>
         ) : null}
 
         <Form className="grid gap-3" method="post">
