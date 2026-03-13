@@ -26,7 +26,7 @@ const main = async () => {
 
   if (tenant) {
     // Deleting the tenant removes the full demo graph through foreign-key cascades:
-    // squads, athletes, Garmin links, claim links, readiness data, memberships, and scoped access rows.
+    // squads, athletes, Garmin links, athlete invites, readiness data, memberships, and scoped access rows.
     await db.delete(tenants).where(eq(tenants.id, tenant.id));
     process.stdout.write(`Deleted tenant ${DEMO_TENANT_SLUG}\n`);
   } else {

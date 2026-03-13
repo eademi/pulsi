@@ -103,12 +103,12 @@ export class AthleteAccountService {
     const claimLink = await this.athleteClaimRepository.findPendingByTokenHash(hashClaimToken(token));
 
     if (!claimLink) {
-      throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete claim link not found");
+      throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete invite not found");
     }
 
     if (claimLink.claimLink.expiresAt < now) {
       await this.athleteClaimRepository.markExpiredPendingLinks(now);
-      throw new AppError(409, "CONFLICT", "Athlete claim link has expired");
+      throw new AppError(409, "CONFLICT", "Athlete invite has expired");
     }
 
     return {
@@ -155,20 +155,20 @@ export class AthleteAccountService {
     const claimLink = await this.athleteClaimRepository.findPendingByTokenHash(hashClaimToken(input.token));
 
     if (!claimLink) {
-      throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete claim link not found");
+      throw new AppError(404, "RESOURCE_NOT_FOUND", "Athlete invite not found");
     }
 
     const now = input.now ?? new Date();
     if (claimLink.claimLink.expiresAt < now) {
       await this.athleteClaimRepository.markExpiredPendingLinks(now);
-      throw new AppError(409, "CONFLICT", "Athlete claim link has expired");
+      throw new AppError(409, "CONFLICT", "Athlete invite has expired");
     }
 
     if (claimLink.claimLink.email.toLowerCase() !== input.userEmail.trim().toLowerCase()) {
       throw new AppError(
         403,
         "FORBIDDEN",
-        "This athlete claim link was issued for a different email address"
+        "This athlete invite was issued for a different email address"
       );
     }
 
@@ -324,7 +324,7 @@ export class AthleteAccountService {
 const hashClaimToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
 const buildClaimUrl = (clientUrl: string, token: string) =>
-  new URL(`/athlete/claim/${token}`, clientUrl).toString();
+  new URL(`/athlete/setup/${token}`, clientUrl).toString();
 
 const buildTrendSummary = (
   records: Awaited<ReturnType<ReadinessRepository["listSnapshotsForAthletes"]>>

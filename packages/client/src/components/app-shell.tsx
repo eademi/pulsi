@@ -68,7 +68,7 @@ export function AppShell({
       {
         href: getPlayersPath(activeMembership.tenantSlug),
         label: "Players",
-        description: "Roster, claim links, and athlete ownership",
+        description: "Roster, athlete invites, and athlete ownership",
         icon: UsersIcon,
         section: "operations",
       },

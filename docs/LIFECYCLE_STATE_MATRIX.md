@@ -38,7 +38,7 @@ Example:
 ```mermaid
 stateDiagram-v2
   [*] --> ActiveUnclaimed
-  ActiveUnclaimed --> ActiveInvited: generate claim link
+  ActiveUnclaimed --> ActiveInvited: send athlete invite
   ActiveInvited --> ActiveClaimed: athlete claims profile
   ActiveClaimed --> ActiveGarmin: connect Garmin
   ActiveUnclaimed --> ArchivedUnclaimed: archive
@@ -57,19 +57,19 @@ stateDiagram-v2
 | Athlete status | Claim link | Athlete account | Garmin | Staff roster account badge | Staff roster Garmin badge | Athlete login allowed |
 | --- | --- | --- | --- | --- | --- | --- |
 | `active` | none | none | none | `No account` | `No Garmin` | No |
-| `active` | `pending` | none | none | `Invite sent` | `No Garmin` | No |
+| `active` | `pending` | none | none | `Invite pending` | `No Garmin` | No |
 | `active` | `claimed` or none | `active` | none | `Claimed` | `No Garmin` | Yes |
 | `active` | `claimed` or none | `active` | `active` | `Claimed` | `Garmin connected` | Yes |
 | `inactive` | none | none | none | `No account` | `No Garmin` | No |
 | `inactive` | none | `revoked` | `revoked` or historical | `Claimed` | `Garmin connected` if a connection record still exists, otherwise `No Garmin` | No |
-| `inactive` | `pending` | none | none | `Invite sent` | `No Garmin` | No |
+| `inactive` | `pending` | none | none | `Invite pending` | `No Garmin` | No |
 
 ### Rules behind the roster badge
 
-- `Claimed` wins over `Invite sent`
-- `Invite sent` wins over `No account`
-- A revoked `athlete_user_account` still counts as historically `Claimed` for staff views
-- A revoked `athlete_user_account` does not count as active athlete access
+- `Claimed` wins over `Invite pending`
+- `Invite pending` wins over `No account`
+- A revoked `athlete_account` still counts as historically `Claimed` for staff views
+- A revoked `athlete_account` does not count as active athlete access
 
 ## Archive behavior
 
@@ -77,8 +77,8 @@ Archiving an athlete should do all of the following:
 
 - set `athletes.status = inactive`
 - end the active squad assignment
-- revoke pending claim links
-- set `athlete_user_accounts.status = revoked`
+- revoke pending athlete invites
+- set `athlete_accounts.status = revoked`
 - deactivate Garmin connections
 
 Archiving should not erase:
@@ -93,7 +93,7 @@ Restoring an athlete should do all of the following:
 
 - set `athletes.status = active`
 - create a new active squad assignment
-- set `athlete_user_accounts.status = active` if a historical athlete account exists
+- set `athlete_accounts.status = active` if a historical athlete account exists
 
 Restoring should not:
 
@@ -123,7 +123,7 @@ Delete must be blocked when any of these are true:
 
 - Active claimed athlete shows `Claimed`
 - Archived previously claimed athlete still shows `Claimed`
-- Active pending invite athlete shows `Invite sent`
+- Active pending invite athlete shows `Invite pending`
 - Archived athlete without claim history shows `No account`
 - Archive revokes athlete login access
 - Restore reactivates athlete login access

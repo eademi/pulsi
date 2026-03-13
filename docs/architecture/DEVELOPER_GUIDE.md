@@ -210,8 +210,8 @@ Key file:
 How user-to-tenant linkage works:
 
 - Better Auth stores authenticated users in the `user` table
-- Pulsi links those identities to clubs through `tenant_memberships.user_id`
-- `tenant_memberships.user_id` now references `user.id`
+- Pulsi links those identities to clubs through `staff_memberships.user_id`
+- `staff_memberships.user_id` now references `user.id`
 - when a request is authenticated, Pulsi takes `session.user.id` from Better Auth and resolves the active tenant membership from `staff_memberships`
 - Pulsi now allows only one active tenant membership per user account at a time
 - that rule is enforced in both service logic and the database

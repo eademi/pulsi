@@ -274,13 +274,13 @@ Garmin documentation treats the Garmin API user ID as the canonical external use
 
 Pulsi stores that identifier in:
 
-- `athlete_device_connections.provider_user_id`
+- `athlete_integrations.provider_user_id`
 
 This is how Garmin webhook events are matched back to Pulsi athlete connections.
 
 Pulsi also stores the current permission snapshot in:
 
-- `athlete_device_connections.granted_permissions`
+- `athlete_integrations.granted_permissions`
 
 And tracks lifecycle timestamps:
 

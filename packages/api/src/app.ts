@@ -168,7 +168,7 @@ const tenantScopedRoutes = new Hono<AppBindings>()
   .route("/", buildTenantAccessRoutes(tenantService))
   .route("/", buildActivityRoutes(activityService))
   .route("/", buildTenantAthleteAccountRoutes(athleteAccountService))
-  .route("/", buildAthleteRoutes(athleteRepository, athleteManagementService))
+  .route("/", buildAthleteRoutes(athleteRepository, athleteManagementService, athleteAccountService))
   .route("/", buildReadinessRoutes(readinessService))
   .route("/", buildSquadRoutes(squadService))
   .route(

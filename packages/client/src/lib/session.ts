@@ -16,7 +16,8 @@ export const getGarminIntegrationPath = (tenantSlug: string) => `/${tenantSlug}/
 export const getSessionPlannerPath = (tenantSlug: string) => `/${tenantSlug}/session-planner`;
 export const getReportsPath = (tenantSlug: string) => `/${tenantSlug}/reports`;
 export const getAthleteHomePath = () => "/athlete";
-export const getAthleteClaimPath = (token: string) => `/athlete/claim/${token}`;
+export const getAthleteSetupPath = (token: string) => `/athlete/setup/${token}`;
+export const getAthleteClaimPath = getAthleteSetupPath;
 export const getNoAccessPath = () => "/welcome";
 
 export const getDefaultAppPath = (session: ActorSession) => {

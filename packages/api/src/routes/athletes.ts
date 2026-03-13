@@ -4,6 +4,7 @@ import {
   athleteSchema,
   createApiSuccessSchema,
   createAthleteInputSchema,
+  createAthleteResponseSchema,
   deleteAthleteResponseSchema,
   listAthletesQuerySchema,
   restoreAthleteInputSchema,
@@ -14,12 +15,14 @@ import type { AppBindings } from "../context/app-context";
 import { requireCapability } from "../auth/authorization";
 import { AppError } from "../http/errors";
 import { created, ok, parseOrThrow } from "../http/responses";
+import type { AthleteAccountService } from "../services/athlete-account-service";
 import type { AthleteRepository } from "../repositories/athlete-repository";
 import type { AthleteManagementService } from "../services/athlete-management-service";
 
 export const buildAthleteRoutes = (
   athleteRepository: AthleteRepository,
-  athleteManagementService: AthleteManagementService
+  athleteManagementService: AthleteManagementService,
+  athleteAccountService: AthleteAccountService
 ) =>
   new Hono<AppBindings>()
     .get("/athletes", async (c) => {
@@ -54,12 +57,26 @@ export const buildAthleteRoutes = (
         throw new AppError(500, "INTERNAL_ERROR", "Athlete could not be loaded after creation");
       }
 
+      // Athlete onboarding now expects Pulsi account setup immediately, so a
+      // roster create also issues the initial athlete invite in the same flow.
+      const invite = await athleteAccountService.createClaimLink({
+        tenantId: requestContext.tenant!.id,
+        athleteId: athlete.id,
+        email: body.email,
+        createdByUserId: requestContext.actor!.userId,
+        accessScope: requestContext.tenant!.accessScope,
+        accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      });
+
       const payload = {
-        ...athlete,
-        createdAt: new Date(athlete.createdAt).toISOString()
+        athlete: {
+          ...athlete,
+          createdAt: new Date(athlete.createdAt).toISOString()
+        },
+        invite
       };
 
-      createApiSuccessSchema(athleteSchema).parse({ data: payload });
+      createApiSuccessSchema(createAthleteResponseSchema).parse({ data: payload });
 
       return created(c, payload);
     })

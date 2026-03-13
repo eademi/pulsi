@@ -148,6 +148,7 @@ test("createAthlete trims input and assigns the athlete to the selected squad", 
     externalRef: "  ext-10  ",
     firstName: " Egzon ",
     lastName: " Ademi ",
+    email: "egzon@pulsi.com",
     position: " Winger ",
     squadId: "squad-1",
     status: "active"

@@ -4,7 +4,8 @@ export default [
   index("routes/index.tsx"),
   route("welcome", "routes/welcome.tsx"),
   route("athlete", "routes/athlete-home.tsx"),
-  route("athlete/claim/:token", "routes/athlete-claim.tsx"),
+  route("athlete/setup/:token", "routes/athlete-claim.tsx"),
+  route("athlete/claim/:token", "routes/athlete-claim-redirect.tsx"),
   layout("routes/auth-layout.tsx", [
     route("auth/sign-in", "routes/auth-sign-in.tsx"),
     route("auth/register", "routes/auth-register.tsx")

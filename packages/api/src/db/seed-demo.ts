@@ -739,7 +739,7 @@ const upsertPendingClaimLinks = async (input: {
     claimUrls.push({
       athleteName: `${athleteRecord.firstName} ${athleteRecord.lastName}`,
       email,
-      claimUrl: `http://localhost:3000/athlete/claim/${rawToken}`
+      claimUrl: `http://localhost:3000/athlete/setup/${rawToken}`
     });
   }
 
@@ -818,7 +818,7 @@ const printSummary = (input: {
   }
 
   if (input.claimLinks.length > 0) {
-    process.stdout.write("\nPending athlete claim links:\n");
+    process.stdout.write("\nPending athlete setup invites:\n");
     for (const claimLink of input.claimLinks) {
       process.stdout.write(`- ${claimLink.athleteName} <${claimLink.email}> -> ${claimLink.claimUrl}\n`);
     }

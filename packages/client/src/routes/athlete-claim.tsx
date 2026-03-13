@@ -27,7 +27,7 @@ export const clientLoader = async ({ params, request }: { params: Record<string,
   const claim = await apiClient.getAthleteClaim(token);
 
   return {
-    claim,
+    invite: claim,
     session,
   };
 };
@@ -51,7 +51,7 @@ export const clientAction = async ({ params }: { params: Record<string, string |
 };
 
 export default function AthleteClaimRoute() {
-  const { claim, session } = useLoaderData<typeof clientLoader>();
+  const { invite, session } = useLoaderData<typeof clientLoader>();
   const actionData = useActionData() as { error?: string } | undefined;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -61,10 +61,10 @@ export default function AthleteClaimRoute() {
       <section className="surface-panel mx-auto flex max-w-3xl flex-col gap-6 rounded-[var(--radius-panel)] p-6 lg:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="eyebrow">Athlete claim</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-obsidian-100">Claim your Pulsi profile</h1>
+            <p className="eyebrow">Athlete setup</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-obsidian-100">Set up your Pulsi athlete account</h1>
             <p className="mt-3 text-sm text-obsidian-400">
-              This link was issued for {claim.email}. You are signed in as {session.user.email}.
+              This invite was issued for {invite.email}. You are signed in as {session.user.email}.
             </p>
           </div>
 
@@ -77,15 +77,15 @@ export default function AthleteClaimRoute() {
 
         <section className="surface-grid rounded-[var(--radius-panel)] p-5">
           <p className="eyebrow">Profile</p>
-          <h2 className="mt-3 text-2xl font-semibold text-obsidian-100">{claim.athleteName}</h2>
+          <h2 className="mt-3 text-2xl font-semibold text-obsidian-100">{invite.athleteName}</h2>
           <p className="mt-2 text-sm text-obsidian-400">
-            {claim.tenantName} · {claim.currentSquad?.name ?? "No squad assigned"}
+            {invite.tenantName} · {invite.currentSquad?.name ?? "No squad assigned"}
           </p>
-          <p className="mt-2 text-sm text-obsidian-500">Expires {new Date(claim.expiresAt).toLocaleString()}</p>
+          <p className="mt-2 text-sm text-obsidian-500">Expires {new Date(invite.expiresAt).toLocaleString()}</p>
         </section>
 
         <section className="rounded-[var(--radius-soft)] border border-white/8 bg-white/[0.03] p-4 text-sm text-obsidian-400">
-          Use the same email address your club entered when they generated the claim link. Once claimed, this account becomes athlete-only and will no
+          Use the same email address your club entered when they invited you. Once setup is complete, this account becomes athlete-only and will no
           longer access staff routes.
         </section>
 
@@ -95,7 +95,7 @@ export default function AthleteClaimRoute() {
 
         <Form className="grid gap-3" method="post">
           <button className="btn-primary w-full justify-center" disabled={isSubmitting} type="submit">
-            Claim this athlete profile
+            Activate athlete account
           </button>
         </Form>
 

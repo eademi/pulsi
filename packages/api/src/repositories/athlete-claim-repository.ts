@@ -32,7 +32,7 @@ export class AthleteClaimRepository {
       .returning();
 
     if (!claimLink) {
-      throw new AppError(500, "INTERNAL_ERROR", "Failed to create athlete claim link");
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to create athlete invite");
     }
 
     return claimLink;
@@ -112,7 +112,7 @@ export class AthleteClaimRepository {
       .returning();
 
     if (!claimLink) {
-      throw new AppError(500, "INTERNAL_ERROR", "Failed to mark athlete claim link as claimed");
+      throw new AppError(500, "INTERNAL_ERROR", "Failed to mark athlete invite as accepted");
     }
 
     return claimLink;

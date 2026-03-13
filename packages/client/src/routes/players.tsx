@@ -51,22 +51,29 @@ export const clientAction = async ({ params, request }: { params: Record<string,
     if (intent === "create-athlete") {
       const firstName = String(formData.get("firstName") ?? "").trim();
       const lastName = String(formData.get("lastName") ?? "").trim();
+      const email = String(formData.get("email") ?? "").trim();
       const squadId = String(formData.get("squadId") ?? "").trim();
 
-      if (!firstName || !lastName || !squadId) {
-        return { error: "First name, last name, and squad are required.", feedbackId, intent };
+      if (!firstName || !lastName || !email || !squadId) {
+        return { error: "First name, last name, athlete email, and squad are required.", feedbackId, intent };
       }
 
-      await apiClient.createAthlete(tenantSlug, {
+      const createdAthlete = await apiClient.createAthlete(tenantSlug, {
         externalRef: nullableText(formData.get("externalRef")),
         firstName,
         lastName,
+        email,
         position: nullableText(formData.get("position")),
         squadId,
         status: "active",
       });
 
-      return { feedbackId, intent, success: "Player created." };
+      return {
+        invite: createdAthlete.invite,
+        feedbackId,
+        intent,
+        success: "Player created and athlete account invite generated.",
+      };
     }
 
     if (intent === "move-athlete") {
@@ -87,7 +94,7 @@ export const clientAction = async ({ params, request }: { params: Record<string,
       }
 
       await apiClient.archiveAthlete(tenantSlug, athleteId);
-      return { feedbackId, intent, success: "Athlete archived. Garmin access and pending claim links were revoked." };
+      return { feedbackId, intent, success: "Athlete archived. Garmin access and pending athlete invites were revoked." };
     }
 
     if (intent === "restore-athlete") {
@@ -111,19 +118,19 @@ export const clientAction = async ({ params, request }: { params: Record<string,
       return { feedbackId, intent, success: "Athlete permanently deleted." };
     }
 
-    if (intent === "generate-claim-link") {
+    if (intent === "generate-athlete-invite") {
       const athleteId = String(formData.get("athleteId") ?? "").trim();
       const email = String(formData.get("email") ?? "").trim();
       if (!athleteId || !email) {
-        return { error: "Athlete and email are required to generate a claim link.", feedbackId, intent };
+        return { error: "Athlete and email are required to generate an athlete invite.", feedbackId, intent };
       }
 
-      const claimLink = await apiClient.createAthleteClaimLink(tenantSlug, athleteId, { email });
+      const invite = await apiClient.createAthleteClaimLink(tenantSlug, athleteId, { email });
       return {
-        claimLink,
+        invite,
         feedbackId,
         intent,
-        success: "Athlete claim link generated.",
+        success: "Athlete account invite generated.",
       };
     }
 
@@ -144,7 +151,7 @@ export default function PlayersRoute() {
     feedbackId?: string;
     intent?: string;
     success?: string;
-    claimLink?: {
+    invite?: {
       athleteName: string;
       claimUrl: string;
       email: string;
@@ -219,7 +226,7 @@ export default function PlayersRoute() {
             </button>
           ) : undefined
         }
-        description="Create athlete records once, assign them to squads, and use those records as the source of truth for readiness and Garmin connectivity."
+        description="Create athlete records with their Pulsi account setup invite, assign them to squads, and use those records as the source of truth for readiness and Garmin connectivity."
         eyebrow="Players"
         title="Athlete roster operations"
       />
@@ -247,7 +254,7 @@ export default function PlayersRoute() {
           </div>
 
           <div className="mt-4">
-            <DataTable headers={["Athlete", "Pulsi account", "Squad", "Status", "Move squad", "Claim link", "Lifecycle"]}>
+            <DataTable headers={["Athlete", "Pulsi account", "Squad", "Status", "Move squad", "Account invite", "Lifecycle"]}>
               {activeAthletes.map((athlete) => (
                 <DataRow key={athlete.id}>
                   <DataCell>
@@ -271,11 +278,11 @@ export default function PlayersRoute() {
                   </DataCell>
                   <DataCell>
                     {canManage ? (
-                      athlete.accountState === "claimed" ? (
+      athlete.accountState === "claimed" ? (
                         <span className="pill pill-muted">Already claimed</span>
                       ) : (
                         <Form className="flex gap-2" method="post">
-                          <input name="intent" type="hidden" value="generate-claim-link" />
+                          <input name="intent" type="hidden" value="generate-athlete-invite" />
                           <input name="athleteId" type="hidden" value={athlete.id} />
                           <input
                             className="input-field h-10 min-w-40"
@@ -285,7 +292,7 @@ export default function PlayersRoute() {
                             type="email"
                           />
                           <button className="btn-secondary h-10" disabled={isSubmitting} type="submit">
-                            {athlete.accountState === "invited" ? "Regenerate" : "Generate"}
+                            {athlete.accountState === "invited" ? "Resend invite" : "Send invite"}
                           </button>
                         </Form>
                       )
@@ -387,22 +394,22 @@ export default function PlayersRoute() {
           </div>
         </section>
 
-        {actionData?.claimLink ? (
+        {actionData?.invite ? (
           <section className="surface-grid rounded-panel p-5">
-            <p className="eyebrow">Latest athlete claim link</p>
-            <h2 className="mt-2 text-xl font-semibold text-obsidian-100">{actionData.claimLink.athleteName}</h2>
+            <p className="eyebrow">Latest athlete account invite</p>
+            <h2 className="mt-2 text-xl font-semibold text-obsidian-100">{actionData.invite.athleteName}</h2>
             <p className="mt-3 text-sm text-obsidian-400">
-              Send this to {actionData.claimLink.email}. It expires {new Date(actionData.claimLink.expiresAt).toLocaleString()}.
+              Send this setup link to {actionData.invite.email}. It expires {new Date(actionData.invite.expiresAt).toLocaleString()}.
             </p>
             <code className="mt-4 block rounded-soft border border-white/8 bg-black/20 px-4 py-3 text-xs text-accent-300">
-              {actionData.claimLink.claimUrl}
+              {actionData.invite.claimUrl}
             </code>
           </section>
         ) : null}
       </div>
 
       <CenteredDialog
-        description="Create a new player record and assign it directly to an active squad."
+        description="Create a new player record, assign it to an active squad, and issue the initial Pulsi account setup invite in one step."
         footer={
           <>
             <button className="btn-secondary" onClick={() => setCreateModalOpen(false)} type="button">
@@ -438,24 +445,30 @@ export default function PlayersRoute() {
               <input className="input-field" name="position" placeholder="Midfielder" />
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-obsidian-300">External reference</span>
-              <input className="input-field" name="externalRef" placeholder="player-101" />
+              <span className="text-sm font-medium text-obsidian-300">Athlete email</span>
+              <input className="input-field" name="email" placeholder="egzon@pulsi.com" type="email" />
             </label>
           </div>
 
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-obsidian-300">Squad</span>
-            <select className="input-field" defaultValue="" name="squadId">
-              <option disabled value="">
-                Select squad
-              </option>
-              {squads.map((squad) => (
-                <option key={squad.id} value={squad.id}>
-                  {squad.name}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">External reference</span>
+              <input className="input-field" name="externalRef" placeholder="player-101" />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-obsidian-300">Squad</span>
+              <select className="input-field" defaultValue="" name="squadId">
+                <option disabled value="">
+                  Select squad
                 </option>
-              ))}
-            </select>
-          </label>
+                {squads.map((squad) => (
+                  <option key={squad.id} value={squad.id}>
+                    {squad.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           {actionData?.intent === "create-athlete" && actionData?.error ? <Message tone="error">{actionData.error}</Message> : null}
           {actionData?.intent === "create-athlete" && actionData?.success ? <Message tone="success">{actionData.success}</Message> : null}
@@ -548,7 +561,7 @@ export default function PlayersRoute() {
               <AccountDetail label="Pulsi account" value={accountDialogAthlete.accountDetails?.email ?? "Unknown"} />
               <AccountDetail label="Linked user name" value={accountDialogAthlete.accountDetails?.name ?? "Unknown"} />
               <AccountDetail
-                label="Claimed at"
+                label="Activated at"
                 value={
                   accountDialogAthlete.accountDetails?.claimedAt
                     ? new Date(accountDialogAthlete.accountDetails.claimedAt).toLocaleString()
@@ -593,8 +606,8 @@ function describeIntent(intent?: string) {
       return "Restore athlete";
     case "delete-athlete":
       return "Delete athlete";
-    case "generate-claim-link":
-      return "Claim link";
+    case "generate-athlete-invite":
+      return "Athlete invite";
     case "create-athlete":
       return "Create athlete";
     default:
@@ -658,7 +671,7 @@ function AccountStateBadge({ athlete, onOpenDetails }: { athlete: Athlete; onOpe
   }
 
   if (athlete.accountState === "invited") {
-    return <span className="pill pill-caution">Invite sent</span>;
+    return <span className="pill pill-caution">Invite pending</span>;
   }
 
   return <span className="pill pill-muted">No account</span>;

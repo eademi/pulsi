@@ -36,12 +36,12 @@ flowchart TD
   User --> StaffPath["Staff path"]
   User --> AthletePath["Athlete path"]
 
-  StaffPath --> Membership["tenant_memberships"]
+  StaffPath --> Membership["staff_memberships"]
   Membership --> StaffActor["actorType = staff"]
   StaffActor --> Role["role<br/>club_owner / org_admin / coach / performance_staff / analyst"]
   StaffActor --> Scope["scope<br/>all_squads / assigned_squads"]
 
-  AthletePath --> AthleteLink["athlete_user_accounts"]
+  AthletePath --> AthleteLink["athlete_accounts"]
   AthleteLink --> AthleteActor["actorType = athlete"]
   AthleteActor --> AthleteProfile["single athlete profile only"]
 ```
@@ -70,7 +70,7 @@ flowchart TD
   Tenant["tenant<br/>club / organization"]
   Squad1["squad<br/>Senior"]
   Squad2["squad<br/>U18"]
-  Staff["tenant_memberships<br/>staff users"]
+  Staff["staff_memberships<br/>staff users"]
   Athlete["athletes"]
   Assignment["athlete_squad_assignments"]
   SquadAccess["tenant_user_squad_access"]
@@ -99,10 +99,10 @@ flowchart TD
   CreateAthlete --> AthleteRecord["athletes row"]
   CreateAthlete --> SquadAssignment["active squad assignment"]
 
-  AthleteRecord --> ClaimLink["optional athlete_claim_links"]
+  AthleteRecord --> ClaimLink["optional athlete_invites"]
   ClaimLink --> Register["Athlete registers/signs in"]
   Register --> Claim["Claim profile"]
-  Claim --> AthleteUserAccount["athlete_user_accounts row"]
+  Claim --> AthleteUserAccount["athlete_accounts row"]
 ```
 
 Meaning:
@@ -116,9 +116,9 @@ Garmin is connected to an athlete profile, not to a staff user.
 
 ```mermaid
 flowchart LR
-  Athlete["athlete profile"] --> GarminConnection["athlete_device_connections"]
-  GarminConnection --> Credentials["provider_credentials"]
-  GarminConnection --> Webhooks["provider_webhook_events"]
+  Athlete["athlete profile"] --> GarminConnection["athlete_integrations"]
+  GarminConnection --> Credentials["integration_credentials"]
+  GarminConnection --> Webhooks["integration_webhook_events"]
   GarminConnection --> Metrics["wearable_daily_metrics / summaries"]
 ```
 
@@ -145,8 +145,8 @@ sequenceDiagram
   Garmin->>API: Callback with code + state
   API->>Garmin: Exchange code for tokens
   API->>Garmin: Fetch Garmin user id + permissions
-  API->>DB: Upsert athlete_device_connection
-  API->>DB: Store encrypted provider_credentials
+  API->>DB: Upsert athlete_integration
+  API->>DB: Store encrypted integration_credentials
   API-->>Client: Redirect back to staff or athlete surface
 ```
 
@@ -158,7 +158,7 @@ flowchart TD
   Webhook["Pulsi webhook routes"]
   ConnectionService["GarminConnectionService"]
   Mapper["Garmin mapper"]
-  RawStore["provider_health_summaries / provider_activity_summaries / webhook events"]
+  RawStore["integration_health_summaries / integration_activity_summaries / webhook events"]
   Normalized["wearable_daily_metrics"]
   Readiness["readiness_snapshots"]
 
@@ -249,7 +249,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  AthleteCreated["Staff creates athlete profile"] --> Invite["Generate claim link"]
+  AthleteCreated["Staff creates athlete profile"] --> Invite["Send athlete invite"]
   Invite --> AthleteLogin["Athlete registers / signs in"]
   AthleteLogin --> Claim["Claim athlete profile"]
   Claim --> AthletePortal["Athlete portal + Garmin self-connect"]

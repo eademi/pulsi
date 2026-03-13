@@ -11,6 +11,7 @@ import {
   actorSessionSchema,
   athleteReadinessSchema,
   createAthleteInputSchema,
+  createAthleteResponseSchema,
   createApiSuccessSchema,
   createSquadInputSchema,
   createTenantInputSchema,
@@ -197,7 +198,7 @@ export const apiClient = {
   async createAthlete(tenantSlug: string, input: z.infer<typeof createAthleteInputSchema>) {
     const parsed = await request(
       `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes`,
-      createApiSuccessSchema(athleteSchema),
+      createApiSuccessSchema(createAthleteResponseSchema),
       {
         method: "POST",
         body: JSON.stringify(input)
@@ -271,7 +272,7 @@ export const apiClient = {
     input: z.infer<typeof createAthleteClaimLinkInputSchema>
   ) {
     const parsed = await request(
-      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}/claim-links`,
+      `${API_BASE_URL}/v1/tenants/${tenantSlug}/athletes/${athleteId}/invites`,
       athleteClaimLinkResponseSchema,
       {
         method: "POST",
@@ -284,7 +285,7 @@ export const apiClient = {
 
   async getAthleteClaim(token: string) {
     const parsed = await request(
-      `${API_BASE_URL}/v1/athlete-claims/${token}`,
+      `${API_BASE_URL}/v1/athlete-invites/${token}`,
       athleteClaimDetailsResponseSchema,
       {
         method: "GET"
@@ -296,7 +297,7 @@ export const apiClient = {
 
   async acceptAthleteClaim(token: string) {
     const parsed = await request(
-      `${API_BASE_URL}/v1/athlete-claims/${token}/accept`,
+      `${API_BASE_URL}/v1/athlete-invites/${token}/accept`,
       createApiSuccessSchema(
         z.object({
           accepted: z.boolean()

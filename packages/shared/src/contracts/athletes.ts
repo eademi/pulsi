@@ -20,6 +20,7 @@ export const listAthletesQuerySchema = z.object({
 export const createAthleteInputSchema = z.object({
   firstName: z.string().min(1).max(80),
   lastName: z.string().min(1).max(80),
+  email: z.string().trim().email(),
   externalRef: z.string().trim().min(1).max(120).nullable().optional(),
   position: z.string().trim().min(1).max(80).nullable().optional(),
   squadId: z.string().uuid(),
@@ -107,7 +108,10 @@ export const athletePortalSchema = z.object({
   garminConnected: z.boolean()
 });
 
-export const createAthleteResponseSchema = athleteSchema;
+export const createAthleteResponseSchema = z.object({
+  athlete: athleteSchema,
+  invite: athleteClaimLinkSchema
+});
 
 export type ListAthletesQuery = z.infer<typeof listAthletesQuerySchema>;
 export type CreateAthleteInput = z.infer<typeof createAthleteInputSchema>;

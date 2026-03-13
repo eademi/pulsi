@@ -189,11 +189,11 @@ Main tables:
 
 Important Garmin fields:
 
-- `athlete_device_connections.provider_user_id`: Garmin API user ID
-- `athlete_device_connections.granted_permissions`: last known Garmin permission set
-- `athlete_device_connections.last_permissions_sync_at`: last successful permissions fetch
-- `athlete_device_connections.last_permission_change_at`: timestamp from Garmin permission webhooks
-- `provider_credentials.*`: encrypted token material and expiry metadata
+- `athlete_integrations.provider_user_id`: Garmin API user ID
+- `athlete_integrations.granted_permissions`: last known Garmin permission set
+- `athlete_integrations.last_permissions_sync_at`: last successful permissions fetch
+- `athlete_integrations.last_permission_change_at`: timestamp from Garmin permission webhooks
+- `integration_credentials.*`: encrypted token material and expiry metadata
 - `integration_webhook_events`: raw webhook payload archive plus processing status
 
 Schema principles:
@@ -293,7 +293,7 @@ Approach:
 - Better Auth manages identity, session cookies, and auth persistence
 - Better Auth persistence lives in the `user`, `session`, `account`, and `verification` tables
 - Pulsi manages tenant memberships and application roles
-- tenant membership is linked through `tenant_memberships.user_id -> user.id`
+- tenant membership is linked through `staff_memberships.user_id -> user.id`
 - request context resolves the actor once, then tenant scope is applied on top
 
 Roles:

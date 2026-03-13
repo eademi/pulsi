@@ -486,7 +486,7 @@ To be ready for athlete accounts, do this in order:
 The cleanest first implementation is:
 
 - staff creates athlete record
-- staff sends athlete claim link
+- staff sends athlete setup invite
 - athlete registers/signs in
 - athlete claims that athlete profile
 - `athlete_accounts` row is created

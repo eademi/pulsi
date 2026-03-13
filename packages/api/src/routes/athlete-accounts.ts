@@ -20,16 +20,26 @@ const requireUnassignedAccount = (actor: NonNullable<AppBindings["Variables"]["r
     throw new AppError(
       403,
       "FORBIDDEN",
-      "Only unassigned Pulsi accounts can view or accept athlete claim links"
+      "Only unassigned Pulsi accounts can view or accept athlete account invites"
     );
   }
 };
 
 export const buildAthleteAccountRoutes = (athleteAccountService: AthleteAccountService) =>
   new Hono<AppBindings>()
+    .use("/athlete-invites/:token", requireAuth)
+    .use("/athlete-invites/:token/accept", requireAuth)
     .use("/athlete-claims/:token", requireAuth)
     .use("/athlete-claims/:token/accept", requireAuth)
     .use("/me/athlete", requireAuth)
+    .get("/athlete-invites/:token", async (c) => {
+      const actor = c.get("requestContext").actor!;
+      requireUnassignedAccount(actor);
+
+      const details = await athleteAccountService.getClaimDetails(c.req.param("token"));
+      createApiSuccessSchema(athleteClaimDetailsSchema).parse({ data: details });
+      return ok(c, details);
+    })
     .get("/athlete-claims/:token", async (c) => {
       const actor = c.get("requestContext").actor!;
       requireUnassignedAccount(actor);
@@ -37,6 +47,18 @@ export const buildAthleteAccountRoutes = (athleteAccountService: AthleteAccountS
       const details = await athleteAccountService.getClaimDetails(c.req.param("token"));
       createApiSuccessSchema(athleteClaimDetailsSchema).parse({ data: details });
       return ok(c, details);
+    })
+    .post("/athlete-invites/:token/accept", async (c) => {
+      const actor = c.get("requestContext").actor!;
+      const result = await athleteAccountService.acceptClaim({
+        token: c.req.param("token"),
+        userId: actor.userId,
+        userEmail: actor.email,
+        membershipCount: actor.memberships.length,
+        actorType: actor.actorType
+      });
+
+      return ok(c, result);
     })
     .post("/athlete-claims/:token/accept", async (c) => {
       const actor = c.get("requestContext").actor!;
@@ -63,20 +85,38 @@ export const buildAthleteAccountRoutes = (athleteAccountService: AthleteAccountS
     });
 
 export const buildTenantAthleteAccountRoutes = (athleteAccountService: AthleteAccountService) =>
-  new Hono<AppBindings>().post("/athletes/:athleteId/claim-links", async (c) => {
-    const requestContext = c.get("requestContext");
-    requireCapability(requestContext.tenant!.role, "athletes:manage");
+  new Hono<AppBindings>()
+    .post("/athletes/:athleteId/invites", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "athletes:manage");
 
-    const body = parseOrThrow(createAthleteClaimLinkInputSchema.safeParse(await c.req.json()));
-    const claimLink = await athleteAccountService.createClaimLink({
-      tenantId: requestContext.tenant!.id,
-      athleteId: c.req.param("athleteId"),
-      email: body.email,
-      createdByUserId: requestContext.actor!.userId,
-      accessScope: requestContext.tenant!.accessScope,
-      accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      const body = parseOrThrow(createAthleteClaimLinkInputSchema.safeParse(await c.req.json()));
+      const claimLink = await athleteAccountService.createClaimLink({
+        tenantId: requestContext.tenant!.id,
+        athleteId: c.req.param("athleteId"),
+        email: body.email,
+        createdByUserId: requestContext.actor!.userId,
+        accessScope: requestContext.tenant!.accessScope,
+        accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      });
+
+      createApiSuccessSchema(athleteClaimLinkSchema).parse({ data: claimLink });
+      return created(c, claimLink);
+    })
+    .post("/athletes/:athleteId/claim-links", async (c) => {
+      const requestContext = c.get("requestContext");
+      requireCapability(requestContext.tenant!.role, "athletes:manage");
+
+      const body = parseOrThrow(createAthleteClaimLinkInputSchema.safeParse(await c.req.json()));
+      const claimLink = await athleteAccountService.createClaimLink({
+        tenantId: requestContext.tenant!.id,
+        athleteId: c.req.param("athleteId"),
+        email: body.email,
+        createdByUserId: requestContext.actor!.userId,
+        accessScope: requestContext.tenant!.accessScope,
+        accessibleSquadIds: requestContext.tenant!.accessibleSquadIds
+      });
+
+      createApiSuccessSchema(athleteClaimLinkSchema).parse({ data: claimLink });
+      return created(c, claimLink);
     });
-
-    createApiSuccessSchema(athleteClaimLinkSchema).parse({ data: claimLink });
-    return created(c, claimLink);
-  });
