@@ -31,7 +31,7 @@ import {
   updateTenantMemberAccessInputSchema
 } from "@pulsi/shared";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+const API_BASE_URL = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_API_BASE_URL ?? "http://localhost:3001";
 const AUTH_BASE_URL = `${API_BASE_URL}/api/auth`;
 
 const sessionResponseSchema = createApiSuccessSchema(actorSessionSchema);

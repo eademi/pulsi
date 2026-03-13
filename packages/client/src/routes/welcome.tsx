@@ -60,6 +60,10 @@ export const clientAction = async ({ request }: { request: Request }) => {
 
     return { error: "Unsupported welcome action." };
   } catch (error) {
+    if (error instanceof Response) {
+      throw error;
+    }
+
     return {
       error: error instanceof Error ? error.message : "Unable to complete the request.",
     };

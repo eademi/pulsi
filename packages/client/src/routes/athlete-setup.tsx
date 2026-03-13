@@ -44,6 +44,10 @@ export const clientAction = async ({ params }: { params: Record<string, string |
     const session = await apiClient.getSession();
     throw redirect(getDefaultAppPath(session));
   } catch (error) {
+    if (error instanceof Response) {
+      throw error;
+    }
+
     return {
       error: error instanceof Error ? error.message : "Unable to activate athlete account.",
     };
