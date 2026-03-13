@@ -18,6 +18,7 @@
     "dev:api": "pnpm --filter @pulsi/api dev",
     "dev:client": "pnpm --filter @pulsi/client dev",
     "dev:admin": "pnpm --filter @pulsi/admin dev",
+    "dev:all": "pnpm --parallel --filter @pulsi/api --filter @pulsi/client --filter @pulsi/admin dev",
     "lint": "pnpm -r lint",
     "test": "pnpm --filter @pulsi/api test && pnpm --filter @pulsi/client test",
     "test:api": "pnpm --filter @pulsi/api test",
